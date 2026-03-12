@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <title>📜 교사 관리자 대시보드 - 바람의 나라 RPG</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
   <!-- 로그인 오버레이 -->
@@ -65,6 +67,63 @@
       </div>
 
       <div class="admin-grid">
+        <!-- ========== 학생 명단 업로드 섹션 ========== -->
+        <div class="card full-width">
+          <div class="card-title">👨‍🎓 학생 명단 업로드 및 세션 코드 발급</div>
+          <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:10px;">
+            학생들이 비밀번호 없이 세션 코드만으로 로그인할 수 있도록 명단을 등록합니다.<br>
+            A열(학년), B열(반), C열(번호), D열(이름) 형식의 엑셀 파일을 업로드하세요.
+          </p>
+
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <label for="session-code-input" style="font-weight:bold; color:var(--text-gold);">세션 코드 설정:</label>
+            <input type="text" id="session-code-input" class="input-field" placeholder="예: CLASS123"
+              style="max-width:200px;">
+            <button id="btn-generate-session" class="btn btn-sm btn-secondary">랜덤 생성</button>
+          </div>
+
+          <!-- 드래그 앤 드롭 영역 -->
+          <div id="student-upload-zone" class="upload-zone">
+            <div class="upload-icon">🧑‍🤝‍🧑</div>
+            <div class="upload-text">학생 명단 엑셀 파일 (.xlsx)을 드래그하거나 클릭하세요</div>
+            <div class="upload-hint">형식: 학년 | 반 | 번호 | 이름</div>
+            <input type="file" id="student-file-input" accept=".xlsx,.xls">
+          </div>
+
+          <!-- 파싱 결과 미리보기 -->
+          <div id="student-preview-section" style="display:none; margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="color:var(--text-gold); font-weight:600;">
+                📋 명단 미리보기 (<span id="student-preview-count">0</span>명)
+              </span>
+              <div style="display:flex; gap:8px;">
+                <button id="btn-cancel-student-upload" class="btn btn-sm btn-secondary">취소</button>
+                <button id="btn-confirm-student-upload" class="btn btn-sm btn-primary">✅ 명단 및 세션 등록</button>
+              </div>
+            </div>
+            <div class="preview-table-container">
+              <table class="data-table" id="student-preview-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                  </tr>
+                </thead>
+                <tbody id="student-preview-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 업로드 상태 표시 -->
+          <div id="student-upload-status" style="display:none; margin-top:16px; text-align:center;">
+            <div class="spinner"></div>
+            <span id="student-upload-status-text" style="margin-left:8px; color:var(--text-secondary);">업로드 중...</span>
+          </div>
+        </div>
+
         <!-- ========== 엑셀 업로드 섹션 ========== -->
         <div class="card full-width">
           <div class="card-title">📊 일일 퀴즈 업로드 (엑셀)</div>
@@ -156,7 +215,9 @@
                 </tr>
               </thead>
               <tbody id="student-stats-body">
-                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td></tr>
+                <tr>
+                  <td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -176,7 +237,9 @@
                 </tr>
               </thead>
               <tbody id="wrong-stats-body">
-                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td></tr>
+                <tr>
+                  <td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -200,7 +263,9 @@
                 </tr>
               </thead>
               <tbody id="current-quiz-body">
-                <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">퀴즈 데이터 로딩 중...</td></tr>
+                <tr>
+                  <td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">퀴즈 데이터 로딩 중...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -210,8 +275,8 @@
 
       <!-- 푸터 -->
       <footer class="app-footer">
-        만든 사람: 경기도 지구과학 교사 뀨짱 | 
-        문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" rel="noopener">카카오톡 오픈채팅</a> | 
+        만든 사람: 경기도 지구과학 교사 뀨짱 |
+        문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" rel="noopener">카카오톡 오픈채팅</a> |
         블로그: <a href="https://eduarchive.tistory.com/" target="_blank" rel="noopener">뀨짱쌤의 교육자료 아카이브</a>
       </footer>
     </div>
@@ -230,4 +295,5 @@
   <script src="js/firebase.js"></script>
   <script src="js/admin.js"></script>
 </body>
+
 </html>

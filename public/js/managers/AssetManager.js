@@ -21,31 +21,59 @@ class AssetManager {
     }
 
     /**
+     * 이미지 비동기 로드
+     */
+    async loadImage(src) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => {
+                console.warn(`[AssetManager] Failed to load ${src}`);
+                resolve(null);
+            };
+            img.src = src;
+        });
+    }
+
+    /**
      * 모든 에셋을 생성/로드
      * @returns {Promise} 로드 완료 프로미스
      */
     async loadAll() {
-        console.log('[AssetManager] 에셋 생성 시작...');
+        console.log('[AssetManager] 에셋 로드 시작...');
+
+        const assets = {
+            grass: await this.loadImage('/assets/rpg_grass_tile_1773292706481.png'),
+            wall: await this.loadImage('/assets/rpg_wall_brick_1773292904200.png'),
+            dirt: await this.loadImage('/assets/rpg_dirt_path_1773292888496.png'),
+            portal: await this.loadImage('/assets/rpg_portal_1773292920194.png'),
+            shop: await this.loadImage('/assets/rpg_shop_building_1773292762510.png'),
+            warrior: await this.loadImage('/assets/rpg_player_sprite_1773292722977.png'),
+            thief: await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
+            mage: await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
+            healer: await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
+            monster_squirrel: await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png')
+        };
 
         // 타일셋 스프라이트 생성
-        this.images.tiles = this._generateTileset();
+        this.images.tiles = this._generateTileset(assets);
 
         // 캐릭터 스프라이트시트 생성 (4직업 × 4방향 × 4프레임)
         this.images.characters = {
-            '전사': this._generateCharacterSheet('전사'),
-            '도적': this._generateCharacterSheet('도적'),
-            '주술사': this._generateCharacterSheet('주술사'),
-            '도사': this._generateCharacterSheet('도사'),
+            '전사': this._generateCharacterSheet('전사', assets.warrior),
+            '도적': this._generateCharacterSheet('도적', assets.thief),
+            '주술사': this._generateCharacterSheet('주술사', assets.mage),
+            '도사': this._generateCharacterSheet('도사', assets.healer),
         };
 
         // GM 캐릭터 스프라이트 (황금색 특수)
-        this.images.gm = this._generateCharacterSheet('GM');
+        this.images.gm = this._generateCharacterSheet('GM', assets.warrior);
 
         // NPC 스프라이트
         this.images.npcs = {
-            '주모': this._generateNPCSprite('#e07050', '#ffd0b0'),
-            '대장장이': this._generateNPCSprite('#808080', '#c0c0c0'),
-            '길드마스터': this._generateNPCSprite('#6040a0', '#d0b0ff'),
+            '주모': this._generateNPCSprite('#e07050', '#ffd0b0', assets.shop),
+            '대장장이': this._generateNPCSprite('#808080', '#c0c0c0', assets.shop),
+            '길드마스터': this._generateNPCSprite('#6040a0', '#d0b0ff', assets.shop),
         };
 
         // UI 아이콘 생성
@@ -53,15 +81,16 @@ class AssetManager {
 
         // 몬스터 스프라이트 생성
         this.images.monsters = {
-            slime: this._generateMonsterSprite('slime'),
-            wolf: this._generateMonsterSprite('wolf'),
-            goblin: this._generateMonsterSprite('goblin'),
-            skeleton: this._generateMonsterSprite('skeleton'),
-            boss_ogre: this._generateMonsterSprite('boss_ogre'),
+            slime: this._generateMonsterSprite('slime', assets.monster_squirrel),
+            wolf: this._generateMonsterSprite('wolf', assets.monster_squirrel),
+            goblin: this._generateMonsterSprite('goblin', assets.monster_squirrel),
+            skeleton: this._generateMonsterSprite('skeleton', assets.monster_squirrel),
+            boss_ogre: this._generateMonsterSprite('boss_ogre', assets.monster_squirrel),
+            squirrel: this._generateMonsterSprite('squirrel', assets.monster_squirrel),
         };
 
         this.loaded = true;
-        console.log('[AssetManager] 모든 에셋 생성 완료');
+        console.log('[AssetManager] 모든 에셋 준비 완료');
         return true;
     }
 
@@ -73,7 +102,7 @@ class AssetManager {
      * 타일셋 이미지 맵 생성
      * 각 타일 ID에 대응하는 32x32 캔버스 이미지
      */
-    _generateTileset() {
+    _generateTileset(assets) {
         const tiles = {};
         const S = this.TILE_SIZE;
 
@@ -93,7 +122,7 @@ class AssetManager {
                 ctx.fillRect(gx - 1, gy - 1, 1, 2);
                 ctx.fillRect(gx + 2, gy - 1, 1, 2);
             }
-        });
+        }, assets.grass);
 
         // 1: 벽/바위 (이동 불가)
         tiles[1] = this._createTile((ctx) => {
@@ -121,7 +150,7 @@ class AssetManager {
             ctx.fillStyle = '#7a7a8a';
             ctx.fillRect(2, 2, 12, 1);
             ctx.fillRect(18, 2, 12, 1);
-        });
+        }, assets.wall);
 
         // 2: 흙길 (이동 가능)
         tiles[2] = this._createTile((ctx) => {
@@ -135,7 +164,7 @@ class AssetManager {
                 ctx.fillStyle = dirtColors[i % dirtColors.length];
                 ctx.fillRect(dx, dy, 3, 2);
             }
-        });
+        }, assets.dirt);
 
         // 3: 물 (이동 불가)
         tiles[3] = this._createTile((ctx) => {
@@ -177,7 +206,7 @@ class AssetManager {
             ctx.beginPath();
             ctx.arc(16, 16, 2, 0, Math.PI * 2);
             ctx.fill();
-        });
+        }, assets.portal);
 
         // 5: 나무 타일 바닥 (실내)
         tiles[5] = this._createTile((ctx) => {
@@ -252,9 +281,10 @@ class AssetManager {
      * 직업별 캐릭터 스프라이트시트 생성
      * 4방향(down, left, right, up) × 4프레임 = 16개 포즈
      * @param {string} job - 직업명
+     * @param {HTMLImageElement} img - (옵션) 실제 이미지 에셋
      * @returns {Object} { down: [4 canvas], left: [4 canvas], right: [4 canvas], up: [4 canvas] }
      */
-    _generateCharacterSheet(job) {
+    _generateCharacterSheet(job, img = null) {
         // 직업별 색상 팔레트
         const palettes = {
             '전사': { body: '#c04040', armor: '#8a3030', hair: '#3a2a1a', skin: '#f0c8a0', weapon: '#a0a0b0' },
@@ -271,7 +301,19 @@ class AssetManager {
         directions.forEach(dir => {
             sheet[dir] = [];
             for (let frame = 0; frame < 4; frame++) {
-                sheet[dir].push(this._drawCharacter(palette, dir, frame, job));
+                if (img) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = this.SPRITE_SIZE;
+                    canvas.height = this.SPRITE_SIZE;
+                    const ctx = canvas.getContext('2d');
+
+                    // Simple animation for single image: just bob up/down
+                    const bounce = (frame % 2 === 1) ? -1 : 0;
+                    ctx.drawImage(img, 0, bounce, this.SPRITE_SIZE, this.SPRITE_SIZE);
+                    sheet[dir].push(canvas);
+                } else {
+                    sheet[dir].push(this._drawCharacter(palette, dir, frame, job));
+                }
             }
         });
 
@@ -425,11 +467,16 @@ class AssetManager {
     /**
      * NPC 스프라이트 생성 (단일 정면 이미지)
      */
-    _generateNPCSprite(bodyColor, accentColor) {
+    _generateNPCSprite(bodyColor, accentColor, img = null) {
         const canvas = document.createElement('canvas');
         canvas.width = this.SPRITE_SIZE;
         canvas.height = this.SPRITE_SIZE;
         const ctx = canvas.getContext('2d');
+
+        if (img) {
+            ctx.drawImage(img, 0, 0, this.SPRITE_SIZE, this.SPRITE_SIZE);
+            return canvas;
+        }
 
         // 그림자
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -520,15 +567,17 @@ class AssetManager {
     /**
      * 몬스터 타입별 4프레임 스프라이트 생성
      * @param {string} type - 몬스터 타입
+     * @param {HTMLImageElement} img - (옵션) 실제 이미지 에셋
      * @returns {Array<HTMLCanvasElement>} 4프레임 배열
      */
-    _generateMonsterSprite(type) {
+    _generateMonsterSprite(type, img = null) {
         const configs = {
             slime: { body: '#40c040', eye: '#fff', size: 0.7 },
             wolf: { body: '#808080', eye: '#ff4040', size: 0.85 },
             goblin: { body: '#c09040', eye: '#fff', size: 0.75 },
             skeleton: { body: '#d0d0d0', eye: '#ff0000', size: 0.8 },
             boss_ogre: { body: '#c04040', eye: '#FFD700', size: 1.0 },
+            squirrel: { body: '#a08050', eye: '#000', size: 0.8 }
         };
         const cfg = configs[type] || configs.slime;
         const frames = [];
@@ -539,6 +588,18 @@ class AssetManager {
             canvas.height = 32;
             const ctx = canvas.getContext('2d');
             const bounce = [0, -1, 0, 1][f];
+
+            if (img) {
+                // 그림자
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(16, 28, 8 * cfg.size, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.drawImage(img, 0, bounce, 32, 32);
+                frames.push(canvas);
+                continue;
+            }
 
             // 그림자
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -659,12 +720,16 @@ class AssetManager {
     /**
      * 타일 생성 헬퍼
      */
-    _createTile(drawFn) {
+    _createTile(drawFn, img = null) {
         const canvas = document.createElement('canvas');
         canvas.width = this.TILE_SIZE;
         canvas.height = this.TILE_SIZE;
         const ctx = canvas.getContext('2d');
-        drawFn(ctx);
+        if (img) {
+            ctx.drawImage(img, 0, 0, this.TILE_SIZE, this.TILE_SIZE);
+        } else {
+            drawFn(ctx);
+        }
         return canvas;
     }
 

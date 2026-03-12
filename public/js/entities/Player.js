@@ -51,6 +51,10 @@ class Player {
             accessory: null,
         };
 
+        // 스킬 및 버프 시스템
+        this.learnedSkills = [];
+        this.activeBuffs = [];
+
         // 상태
         this.isAlive = true;
         this.isAttacking = false;
@@ -58,7 +62,7 @@ class Player {
     }
 
     /**
-     * 장비 보너스를 포함한 실제 스탯 계산
+     * 장비 및 버프 보너스를 포함한 실제 스탯 계산
      * @returns {Object} { atk, def, ... }
      */
     getEffectiveStats() {
@@ -72,6 +76,14 @@ class Player {
                 if (item.def) base.def += item.def;
             }
         });
+
+        // 버프 보너스 합산
+        if (typeof skillManager !== 'undefined') {
+            const buffBonus = skillManager.getBuffBonus();
+            if (buffBonus.atk) base.atk += buffBonus.atk;
+            if (buffBonus.def) base.def += buffBonus.def;
+        }
+
         return base;
     }
 

@@ -92,8 +92,26 @@ class CombatManager {
         // 공격 쿨다운 감소
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        // 몬스터 AI 업데이트
-        this.monsters.forEach(m => m.update(dt, map, player));
+        // 몬스터 AI 업데이트 및 상태 이상(디버프/기절) 처리
+        this.monsters.forEach(m => {
+            if (m.state === 'dead') return;
+
+            // 디버프 타이머 갱신
+            if (m.debuffs) {
+                m.debuffs = m.debuffs.filter(db => {
+                    db.remaining -= dt;
+                    return db.remaining > 0;
+                });
+            }
+
+            // 기절(마비) 상태 처리
+            if (m.stunTimer && m.stunTimer > 0) {
+                m.stunTimer -= dt;
+                return; // 기절 중에는 AI(움직임, 공격) 중지
+            }
+
+            m.update(dt, map, player);
+        });
 
         // 몬스터 -> 플레이어 근접 공격 체크
         this._checkMonsterAttacks(dt, player);
@@ -149,7 +167,19 @@ class CombatManager {
         if (hitMonster) {
             // 데미지 계산 (PRD 공식: ATK - DEF/2, 최소 1, 장비 보너스 반영)
             const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
-            const rawDmg = effectiveStats.atk - Math.floor(hitMonster.stats.def / 2);
+
+            // 몬스터 방어력(DEF) 디버프 적용
+            let monsterDef = hitMonster.stats.def;
+            if (hitMonster.debuffs) {
+                hitMonster.debuffs.forEach(db => {
+                    if (db.stat === 'def') {
+                        monsterDef += db.value; // 음수값 더함 (예: -15)
+                    }
+                });
+            }
+            if (monsterDef < 0) monsterDef = 0;
+
+            const rawDmg = effectiveStats.atk - Math.floor(monsterDef / 2);
             const dmg = Math.max(1, rawDmg + Math.floor(Math.random() * 5));
             const killed = hitMonster.takeDamage(dmg);
 

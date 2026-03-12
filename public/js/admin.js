@@ -6,7 +6,8 @@
 // ============================================================
 // 전역 변수
 // ============================================================
-let parsedQuizData = []; // 엑셀 파싱 결과 임시 저장
+let parsedQuizData = []; // 퀴즈용 엑셀 파싱 결과 임시 저장
+let parsedStudentData = []; // 학생 명단용 엑셀 파싱 결과 임시 저장
 
 // ============================================================
 // DOM 요소 참조
@@ -34,6 +35,19 @@ const DOM = {
     btnConfirmUpload: document.getElementById('btn-confirm-upload'),
     uploadStatus: document.getElementById('upload-status'),
     uploadStatusText: document.getElementById('upload-status-text'),
+
+    // 학생 명단 업로드 관련
+    sessionCodeInput: document.getElementById('session-code-input'),
+    btnGenerateSession: document.getElementById('btn-generate-session'),
+    studentUploadZone: document.getElementById('student-upload-zone'),
+    studentFileInput: document.getElementById('student-file-input'),
+    studentPreviewSection: document.getElementById('student-preview-section'),
+    studentPreviewCount: document.getElementById('student-preview-count'),
+    studentPreviewBody: document.getElementById('student-preview-body'),
+    btnCancelStudentUpload: document.getElementById('btn-cancel-student-upload'),
+    btnConfirmStudentUpload: document.getElementById('btn-confirm-student-upload'),
+    studentUploadStatus: document.getElementById('student-upload-status'),
+    studentUploadStatusText: document.getElementById('student-upload-status-text'),
 
     // 통계 관련
     statTotalStudents: document.getElementById('stat-total-students'),
@@ -329,6 +343,160 @@ DOM.btnConfirmUpload.addEventListener('click', async () => {
     } finally {
         DOM.btnConfirmUpload.disabled = false;
         DOM.uploadStatus.style.display = 'none';
+    }
+});
+
+// ============================================================
+// 2.5 학생 명단 파싱 (SheetJS) 및 업로드
+// ============================================================
+
+DOM.btnGenerateSession.addEventListener('click', () => {
+    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    DOM.sessionCodeInput.value = randomCode;
+});
+
+DOM.studentUploadZone.addEventListener('click', () => DOM.studentFileInput.click());
+
+DOM.studentUploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    DOM.studentUploadZone.classList.add('drag-over');
+});
+
+DOM.studentUploadZone.addEventListener('dragleave', () => {
+    DOM.studentUploadZone.classList.remove('drag-over');
+});
+
+DOM.studentUploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    DOM.studentUploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processStudentExcelFile(file);
+});
+
+DOM.studentFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) processStudentExcelFile(file);
+});
+
+function processStudentExcelFile(file) {
+    const validExts = ['.xlsx', '.xls'];
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!validExts.includes(ext)) {
+        showToast('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            parsedStudentData = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || !row[0] || String(row[0]).trim() === '') continue;
+
+                const firstCell = String(row[0] || '').toLowerCase();
+                if (i === 0 && (firstCell.includes('학년') || firstCell.includes('grade'))) continue;
+
+                const grade = String(row[0] || '').trim();
+                const cls = String(row[1] || '').trim();
+                const num = String(row[2] || '').trim();
+                const name = String(row[3] || '').trim();
+
+                if (!grade || !cls || !num || !name) {
+                    console.warn(`[학생 엑셀 파싱] ${i + 1}행: 정보 누락 건너뜀`);
+                    continue;
+                }
+
+                parsedStudentData.push({
+                    grade, class: cls, number: num, name,
+                    id: `${grade}_${cls}_${num}_${name}`
+                });
+            }
+
+            if (parsedStudentData.length === 0) {
+                showToast('유효한 학생 데이터가 없습니다.', 'error');
+                return;
+            }
+
+            // 학생 미리보기 렌더링
+            DOM.studentPreviewSection.style.display = 'block';
+            DOM.studentPreviewCount.textContent = parsedStudentData.length;
+            DOM.studentPreviewBody.innerHTML = parsedStudentData.map((s, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(s.grade)}학년</td>
+                    <td>${escapeHtml(s.class)}반</td>
+                    <td>${escapeHtml(s.number)}번</td>
+                    <td><span class="badge badge-green">${escapeHtml(s.name)}</span></td>
+                </tr>
+            `).join('');
+
+            showToast(`${parsedStudentData.length}명의 학생이 파싱되었습니다.`, 'success');
+        } catch (err) {
+            console.error('[학생 엑셀 파싱 에러]', err);
+            showToast('엑셀 파일 파싱 중 오류가 발생했습니다.', 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+DOM.btnCancelStudentUpload.addEventListener('click', () => {
+    parsedStudentData = [];
+    DOM.studentPreviewSection.style.display = 'none';
+    DOM.studentPreviewBody.innerHTML = '';
+    DOM.studentFileInput.value = '';
+});
+
+DOM.btnConfirmStudentUpload.addEventListener('click', async () => {
+    const sessionCode = DOM.sessionCodeInput.value.trim();
+    if (!sessionCode) {
+        showToast('세션 코드를 입력하세요.', 'error');
+        return;
+    }
+
+    if (parsedStudentData.length === 0) {
+        showToast('업로드할 학생 데이터가 없습니다.', 'error');
+        return;
+    }
+
+    if (!confirm(`${parsedStudentData.length}명의 학생 명단을 [${sessionCode}] 세션으로 등록하시겠습니까?\n이전 동일 세션 데이터는 덮어씌워질 수 있습니다.`)) {
+        return;
+    }
+
+    DOM.btnConfirmStudentUpload.disabled = true;
+    DOM.studentUploadStatus.style.display = 'block';
+    DOM.studentUploadStatusText.textContent = '학생 명단 데이터베이스(RTDB)에 등록 중...';
+
+    try {
+        const updates = {};
+        parsedStudentData.forEach(student => {
+            updates[`sessions/${sessionCode}/students/${student.id}`] = student;
+        });
+
+        // Firebase Realtime Database 트랜잭션 (일괄 업데이트)
+        await rtdb.ref().update(updates);
+
+        console.log(`[RTDB] 세션 ${sessionCode} 에 학생 ${parsedStudentData.length}명 등록 완료`);
+        showToast(`✅ ${parsedStudentData.length}명의 학생이 성공적으로 등록되었습니다!`, 'success');
+
+        parsedStudentData = [];
+        DOM.studentPreviewSection.style.display = 'none';
+        DOM.studentPreviewBody.innerHTML = '';
+        DOM.studentFileInput.value = '';
+
+    } catch (err) {
+        console.error('[RTDB 업데이트 에러]', err);
+        showToast('업로드 중 오류가 발생했습니다: ' + err.message, 'error');
+    } finally {
+        DOM.btnConfirmStudentUpload.disabled = false;
+        DOM.studentUploadStatus.style.display = 'none';
     }
 });
 

@@ -43,22 +43,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Firebase Auth 상태 감지
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            console.log(`[Main] 로그인됨: ${user.email}`);
-            const charData = await loadCharacterData(user.uid);
-            if (charData) {
-                showScreen('game-container');
-                startGame(charData, user.uid);
-            } else {
-                showScreen('character-screen');
-                setupCharacterCreation(user);
+            console.log(`[Main] 로그인됨: ${user.uid}`);
+
+            const savedStudentUid = localStorage.getItem('studentUid');
+            const savedStudentName = localStorage.getItem('studentName');
+
+            if (user.isAnonymous && savedStudentUid) {
+                // 학생 로그인
+                await handleLoginSuccess(savedStudentUid, 'student', savedStudentName);
+            } else if (!user.isAnonymous) {
+                // 교사 로그인 -> 관리자 페이지로 (또는 교사도 캐릭터를 만들 수 있다면 그대로)
+                // 만약 교사가 게임에 들어와버렸다면 admin.html로 이동할 수 있는 버튼을 띄우거나,
+                // 여기서는 일단 같이 게임에 접속할 수 있게 하되, admin 이동 기능은 UI로 제공한다고 가정.
+                // 편의상 곧바로 admin.html로 리다이렉트 시킬수도 있으나 교사도 테스트를 위해 게임을 할 수 있게 둠.
+                await handleLoginSuccess(user.uid, 'teacher', user.email.split('@')[0]);
             }
         } else {
             console.log('[Main] 로그아웃 상태');
+            localStorage.removeItem('studentUid');
+            localStorage.removeItem('studentName');
             showScreen('auth-screen');
             stopGame();
         }
     });
 });
+
+async function handleLoginSuccess(uid, role, name) {
+    const charData = await loadCharacterData(uid);
+    if (charData) {
+        showScreen('game-container');
+        startGame(charData, uid);
+    } else {
+        showScreen('character-screen');
+        setupCharacterCreation(uid, role, name);
+    }
+}
 
 // ============================================================
 // 화면 전환
@@ -82,67 +101,120 @@ function showScreen(screenId) {
 function setupAuthUI() {
     const linkSignup = document.getElementById('link-signup');
     const linkLogin = document.getElementById('link-login');
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('teacher-login-form');
+    const signupForm = document.getElementById('teacher-signup-form');
 
     if (linkSignup) {
         linkSignup.addEventListener('click', (e) => {
             e.preventDefault();
-            loginForm.style.display = 'none';
-            signupForm.style.display = 'block';
+            if (loginForm) loginForm.style.display = 'none';
+            if (signupForm) signupForm.style.display = 'block';
         });
     }
     if (linkLogin) {
         linkLogin.addEventListener('click', (e) => {
             e.preventDefault();
-            signupForm.style.display = 'none';
-            loginForm.style.display = 'block';
+            if (signupForm) signupForm.style.display = 'none';
+            if (loginForm) loginForm.style.display = 'block';
         });
     }
 
-    // 로그인 버튼
-    const btnLogin = document.getElementById('btn-login');
-    if (btnLogin) {
-        btnLogin.addEventListener('click', async () => {
-            const email = document.getElementById('login-email').value.trim();
-            const pw = document.getElementById('login-password').value;
-            const errorEl = document.getElementById('auth-error');
+    // 학생 로그인 버튼
+    const btnStudentLogin = document.getElementById('btn-student-login');
+    if (btnStudentLogin) {
+        btnStudentLogin.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('student-session-code').value.trim();
+            const grade = document.getElementById('student-grade').value.trim();
+            const cls = document.getElementById('student-class').value.trim();
+            const num = document.getElementById('student-number').value.trim();
+            const name = document.getElementById('student-name').value.trim();
+            const errorEl = document.getElementById('student-auth-error');
             errorEl.textContent = '';
-            if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
+
+            if (!code || !grade || !cls || !num || !name) {
+                errorEl.textContent = '모든 정보를 입력해주세요.'; return;
+            }
+
             try {
-                btnLogin.disabled = true;
-                btnLogin.textContent = '로그인 중...';
-                await auth.signInWithEmailAndPassword(email, pw);
+                btnStudentLogin.disabled = true;
+                btnStudentLogin.textContent = '로그인 중...';
+
+                // 세션 존재 여부 및 학생 확인
+                const studentId = `${grade}_${cls}_${num}_${name}`;
+                const studentRef = rtdb.ref(`sessions/${code}/students/${studentId}`);
+                const snapshot = await studentRef.once('value');
+
+                if (!snapshot.exists()) {
+                    errorEl.textContent = '등록되지 않은 학생이거나 세션 코드가 잘못되었습니다.';
+                    return;
+                }
+
+                const studentUid = `session_${code}_${studentId}`;
+                localStorage.setItem('studentUid', studentUid);
+                localStorage.setItem('studentName', name);
+
+                // 익명 로그인으로 RTDB 쓰기 권한 확보 (규칙 설정에 따라 다름)
+                await auth.signInAnonymously();
+                // onAuthStateChanged에서 처리
             } catch (err) {
-                errorEl.textContent = getAuthErrorMessage(err.code);
+                errorEl.textContent = '로그인 중 오류가 발생했습니다.';
+                console.error(err);
             } finally {
-                btnLogin.disabled = false;
-                btnLogin.textContent = '로그인';
+                btnStudentLogin.disabled = false;
+                btnStudentLogin.textContent = '학생 로그인';
             }
         });
     }
 
-    // 회원가입 버튼
-    const btnSignup = document.getElementById('btn-signup');
-    if (btnSignup) {
-        btnSignup.addEventListener('click', async () => {
-            const email = document.getElementById('signup-email').value.trim();
-            const pw = document.getElementById('signup-password').value;
-            const pwConfirm = document.getElementById('signup-password-confirm').value;
-            const errorEl = document.getElementById('signup-error');
+    // 교사 로그인 버튼
+    const btnTeacherLogin = document.getElementById('btn-teacher-login');
+    if (btnTeacherLogin) {
+        btnTeacherLogin.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('teacher-login-email').value.trim();
+            const pw = document.getElementById('teacher-login-password').value;
+            const errorEl = document.getElementById('teacher-auth-error');
+            errorEl.textContent = '';
+            if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
+            try {
+                btnTeacherLogin.disabled = true;
+                btnTeacherLogin.textContent = '로그인 중...';
+                await auth.signInWithEmailAndPassword(email, pw);
+                // 교사는 로그인 시 주로 관리자 페이지 사용을 원할 수 있으므로 선택권 제공 혹은 바로 이동
+                window.location.href = 'admin.html';
+            } catch (err) {
+                errorEl.textContent = getAuthErrorMessage(err.code);
+            } finally {
+                btnTeacherLogin.disabled = false;
+                btnTeacherLogin.textContent = '교사 로그인';
+            }
+        });
+    }
+
+    // 교사 회원가입 버튼
+    const btnTeacherSignup = document.getElementById('btn-teacher-signup');
+    if (btnTeacherSignup) {
+        btnTeacherSignup.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('teacher-signup-email').value.trim();
+            const pw = document.getElementById('teacher-signup-password').value;
+            const pwConfirm = document.getElementById('teacher-signup-password-confirm').value;
+            const errorEl = document.getElementById('teacher-signup-error');
             errorEl.textContent = '';
             if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
             if (pw.length < 6) { errorEl.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
             if (pw !== pwConfirm) { errorEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
             try {
-                btnSignup.disabled = true;
-                btnSignup.textContent = '가입 중...';
+                btnTeacherSignup.disabled = true;
+                btnTeacherSignup.textContent = '가입 중...';
                 await auth.createUserWithEmailAndPassword(email, pw);
+                window.location.href = 'admin.html';
             } catch (err) {
                 errorEl.textContent = getAuthErrorMessage(err.code);
             } finally {
-                btnSignup.disabled = false;
-                btnSignup.textContent = '회원가입';
+                btnTeacherSignup.disabled = false;
+                btnTeacherSignup.textContent = '교사 회원가입';
             }
         });
     }
@@ -164,7 +236,7 @@ function getAuthErrorMessage(code) {
 // ============================================================
 // 캐릭터 생성
 // ============================================================
-function setupCharacterCreation(user) {
+function setupCharacterCreation(uid, role, name) {
     let selectedJob = null;
     document.querySelectorAll('.job-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -175,9 +247,21 @@ function setupCharacterCreation(user) {
         });
     });
 
+    const nicknameInput = document.getElementById('char-nickname');
+    if (nicknameInput && name) {
+        nicknameInput.value = name;
+        if (role === 'student') {
+            nicknameInput.readOnly = true; // 학생은 본인 이름 그대로 사용
+        }
+    }
+
     const btnStart = document.getElementById('btn-start-game');
     if (btnStart) {
-        btnStart.addEventListener('click', async () => {
+        // 중복 이벤트 리스너 방지
+        const newBtnStart = btnStart.cloneNode(true);
+        btnStart.parentNode.replaceChild(newBtnStart, btnStart);
+
+        newBtnStart.addEventListener('click', async () => {
             const nickname = document.getElementById('char-nickname').value.trim();
             const errorEl = document.getElementById('char-error');
             errorEl.textContent = '';
@@ -187,27 +271,35 @@ function setupCharacterCreation(user) {
             if (!selectedJob) { errorEl.textContent = '직업을 선택하세요.'; return; }
 
             try {
-                btnStart.disabled = true;
-                btnStart.textContent = '캐릭터 생성 중...';
-                const snapshot = await rtdb.ref('nicknames/' + nickname).once('value');
-                if (snapshot.exists()) {
-                    errorEl.textContent = '이미 사용 중인 닉네임입니다.';
-                    btnStart.disabled = false; btnStart.textContent = '🎮 게임 시작'; return;
+                newBtnStart.disabled = true;
+                newBtnStart.textContent = '캐릭터 생성 중...';
+
+                // 학생은 sessionUid를 쓰기 때문에 닉네임 중복 체크 우회 또는 이름 그대로 사용
+                if (role !== 'student') {
+                    const snapshot = await rtdb.ref('nicknames/' + nickname).once('value');
+                    if (snapshot.exists()) {
+                        errorEl.textContent = '이미 사용 중인 닉네임입니다.';
+                        newBtnStart.disabled = false; newBtnStart.textContent = '🎮 게임 시작'; return;
+                    }
                 }
+
                 const charData = {
                     nickname, job: selectedJob, level: 1, exp: 0, gold: 100,
                     map: 'map_000', x: 15, y: 15, createdAt: Date.now(),
+                    role: role
                 };
-                await rtdb.ref('userData/' + user.uid).set(charData);
-                await rtdb.ref('nicknames/' + nickname).set(user.uid);
+                await rtdb.ref('userData/' + uid).set(charData);
+                if (role !== 'student') {
+                    await rtdb.ref('nicknames/' + nickname).set(uid);
+                }
                 console.log(`[Main] 캐릭터 생성 완료: ${nickname} (${selectedJob})`);
                 showScreen('game-container');
-                startGame(charData, user.uid);
+                startGame(charData, uid);
             } catch (err) {
                 console.error('[Main] 캐릭터 생성 오류:', err);
                 errorEl.textContent = '캐릭터 생성 중 오류가 발생했습니다.';
             } finally {
-                btnStart.disabled = false; btnStart.textContent = '🎮 게임 시작';
+                newBtnStart.disabled = false; newBtnStart.textContent = '🎮 게임 시작';
             }
         });
     }
@@ -261,6 +353,9 @@ async function startGame(charData, uid) {
     inventoryManager.loadFromData(charData);
     localPlayer.equipment = { ...inventoryManager.equipment };
 
+    // 스킬 로드
+    skillManager.loadFromData(charData, localPlayer);
+
     // 맵 로드
     const spawnMap = charData.map || 'map_000';
     mapManager.loadMap(spawnMap);
@@ -288,16 +383,23 @@ async function startGame(charData, uid) {
 
     // HUD 초기화
     updateHUD();
+    skillManager.updateSkillBarHUD();
 
     // 모바일 인벤토리 버튼
     const btnInv = document.getElementById('btn-inventory');
     if (btnInv) {
         btnInv.addEventListener('click', () => {
-            if (inventoryManager.isOpen) {
-                inventoryManager.close();
-            } else {
-                inventoryManager.open(localPlayer);
-            }
+            if (inventoryManager.isOpen) inventoryManager.close();
+            else inventoryManager.open(localPlayer);
+        });
+    }
+
+    // 모바일 스킬북 버튼
+    const btnSkillbook = document.getElementById('btn-skillbook');
+    if (btnSkillbook) {
+        btnSkillbook.addEventListener('click', () => {
+            if (skillManager.isBookOpen) skillManager.closeBook();
+            else skillManager.openBook(localPlayer);
         });
     }
 
@@ -325,8 +427,8 @@ function gameLoop(timestamp) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
 
-    // 퀴즈/상점/인벤토리 팝업 중에는 게임 일시정지
-    if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen) {
+    // 퀴즈/상점/인벤토리/스킬북 팝업 중에는 게임 일시정지
+    if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen) {
         requestAnimationFrame(gameLoop);
         return;
     }
@@ -348,6 +450,9 @@ function update(dt) {
 
     // 전투 업데이트 (몬스터 AI + 데미지)
     combatManager.update(dt, mapManager, localPlayer);
+
+    // 스킬 업데이트 (쿨다운 및 버프)
+    skillManager.update(dt, localPlayer);
 
     // 네트워크: 위치 동기화
     networkManager.syncPosition(localPlayer);
@@ -617,16 +722,23 @@ document.addEventListener('touchstart', () => {
     }
 }, { passive: true });
 
-// 인벤토리 토글 (I 키)
+// 단축키 처리 (인벤토리, 스킬북, 스킬 사용)
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyI' && localPlayer && !shopManager.isOpen && !quizManager.isVisible) {
-        if (inventoryManager.isOpen) {
-            inventoryManager.close();
-        } else {
-            inventoryManager.open(localPlayer);
-        }
+    if (!localPlayer || shopManager.isOpen || quizManager.isVisible || window.gameUI.dialogVisible || document.activeElement.tagName === 'INPUT') return;
+
+    if (e.code === 'KeyI' && !skillManager.isBookOpen) {
+        if (inventoryManager.isOpen) inventoryManager.close();
+        else inventoryManager.open(localPlayer);
+        e.preventDefault();
+    } else if (e.code === 'KeyK' && !inventoryManager.isOpen) {
+        if (skillManager.isBookOpen) skillManager.closeBook();
+        else skillManager.openBook(localPlayer);
+        e.preventDefault();
+    } else if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code) && !inventoryManager.isOpen && !skillManager.isBookOpen) {
+        const slotIndex = parseInt(e.key) - 1;
+        skillManager.useSkill(slotIndex, localPlayer, combatManager);
         e.preventDefault();
     }
 });
 
-console.log('[Main] main.js 로드 완료 (Phase 4 상점/인벤토리/장비 통합)');
+console.log('[Main] main.js 로드 완료 (Phase 5 스킬 시스템 통합)');
