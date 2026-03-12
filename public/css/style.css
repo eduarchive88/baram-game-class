@@ -42,9 +42,9 @@
   --radius-xl: 16px;
 
   /* 그림자 */
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
   --shadow-gold: 0 0 20px rgba(240, 192, 64, 0.15);
 
   /* 트랜지션 */
@@ -54,7 +54,9 @@
 }
 
 /* --- 글로벌 리셋 및 기본 스타일 --- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -126,7 +128,7 @@ a:hover {
   left: 50%;
   width: 0;
   height: 0;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: width 0.4s, height 0.4s;
@@ -142,7 +144,7 @@ a:hover {
   color: #0a0e1a;
   border: none;
   font-weight: 700;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover {
@@ -766,6 +768,7 @@ a:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -777,6 +780,7 @@ a:hover {
     opacity: 0;
     transform: translateX(100px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -791,17 +795,33 @@ a:hover {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes borderGlow {
-  0%, 100% { border-color: var(--red-accent); }
-  50% { border-color: transparent; }
+
+  0%,
+  100% {
+    border-color: var(--red-accent);
+  }
+
+  50% {
+    border-color: transparent;
+  }
 }
 
 /* 퀴즈 오답 시 붉은 깜빡임 */
@@ -875,4 +895,308 @@ a:hover {
     font-size: 1.8rem;
     letter-spacing: 2px;
   }
+}
+
+/* ===================================================
+   Phase 2: 게임 컨테이너 및 HUD
+   =================================================== */
+
+/* 게임 컨테이너 (전체 화면) */
+#game-container {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  z-index: 500;
+}
+
+#game-canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#game-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* HUD 패널 (포인터 이벤트 활성화) */
+.hud-panel {
+  pointer-events: auto;
+  position: absolute;
+}
+
+.hud-top-left {
+  top: 12px;
+  left: 12px;
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid rgba(240, 192, 64, 0.3);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-width: 180px;
+  backdrop-filter: blur(4px);
+}
+
+.hud-top-right {
+  top: 12px;
+  right: 12px;
+}
+
+/* HUD 캐릭터 이름/레벨 행 */
+.hud-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+#hud-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.hud-level {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(240, 192, 64, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* HUD 바 (HP / MP) */
+.hud-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.hud-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-bar-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 18px;
+  text-align: center;
+}
+
+.hp-bar .hud-bar-label {
+  color: #ff6060;
+}
+
+.mp-bar .hud-bar-label {
+  color: #6090ff;
+}
+
+.hud-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hud-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.hp-fill {
+  background: linear-gradient(90deg, #c04040, #ff6060);
+}
+
+.mp-fill {
+  background: linear-gradient(90deg, #3050b0, #6090ff);
+}
+
+.hud-bar-text {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  min-width: 55px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* HUD 금전 */
+.hud-gold-row {
+  font-size: 0.7rem;
+  color: var(--gold);
+  text-align: right;
+}
+
+/* HUD 메뉴 버튼 */
+.hud-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid rgba(240, 192, 64, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--gold);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: all var(--transition-fast);
+}
+
+.hud-btn:hover {
+  background: rgba(240, 192, 64, 0.15);
+  border-color: var(--gold);
+}
+
+/* ===================================================
+   대화 박스 (NPC 대화)
+   =================================================== */
+.dialog-box {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(500px, calc(100vw - 40px));
+  background: rgba(10, 14, 26, 0.93);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  pointer-events: auto;
+  animation: fadeInUp 0.2s ease;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+.dialog-name {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.dialog-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.dialog-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ===================================================
+   모바일 컨트롤 (가상 조이스틱 + 액션 버튼)
+   =================================================== */
+.mobile-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 20px 24px;
+  pointer-events: none;
+}
+
+/* 가상 조이스틱 */
+.joystick-zone {
+  pointer-events: auto;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.joystick-base {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.joystick-knob {
+  width: 40px;
+  height: 40px;
+  background: rgba(240, 192, 64, 0.5);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  transition: transform 0.05s ease;
+  box-shadow: 0 0 10px rgba(240, 192, 64, 0.3);
+}
+
+/* 액션 버튼 영역 */
+.action-buttons {
+  pointer-events: auto;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.action-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  transition: all 0.1s ease;
+}
+
+.action-btn:active,
+.action-btn.pressed {
+  transform: scale(0.9);
+  background: rgba(240, 192, 64, 0.3);
+  border-color: var(--gold);
+  box-shadow: 0 0 15px rgba(240, 192, 64, 0.4);
+}
+
+.attack-btn {
+  border-color: rgba(255, 74, 90, 0.4);
+  background: rgba(255, 74, 90, 0.1);
+}
+
+.attack-btn:active,
+.attack-btn.pressed {
+  background: rgba(255, 74, 90, 0.3);
+  border-color: var(--red-accent);
+  box-shadow: 0 0 15px var(--red-glow);
 }
