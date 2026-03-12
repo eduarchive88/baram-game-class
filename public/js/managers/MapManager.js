@@ -50,9 +50,11 @@ class MapManager {
             portals: [
                 { x: 28, y: 15, targetMap: 'map_001', targetX: 1, targetY: 15, label: '→ 바람 마을' },
             ],
-            // 몬스터 스폰 구역
+            // 몬스터 스폰 구역 (CombatManager 호환)
             monsterZones: [
-                { minX: 5, minY: 5, maxX: 25, maxY: 25, monsters: ['슬라임', '작은뱀'], maxCount: 5, respawnMs: 10000 },
+                { type: 'slime', x: 3, y: 3, width: 10, height: 10, count: 3, level: 1 },
+                { type: 'slime', x: 18, y: 3, width: 10, height: 10, count: 3, level: 1 },
+                { type: 'goblin', x: 3, y: 18, width: 10, height: 10, count: 2, level: 2 },
             ],
         };
 
@@ -68,14 +70,40 @@ class MapManager {
             bgm: null,
             tiles: this._generateVillageMap(),
             npcs: [
-                { id: 'npc_innkeeper', type: '주모', name: '주모 봉선', x: 12, y: 8, dialog: '이 곳은 바람 마을의 주막이란다. 여기서 쉬어가렴.' },
-                { id: 'npc_smith', type: '대장장이', name: '대장장이 무쇠', x: 18, y: 14, dialog: '좋은 무기가 필요하면 나를 찾아라!' },
+                { id: 'npc_innkeeper', type: '주모', name: '주모 봉선', x: 12, y: 8, dialog: '이 곳은 바람 마을의 주막이란다. 여기서 쉬어가렴. HP가 완전 회복됩니다!' },
+                { id: 'npc_smith', type: '대장장이', name: '대장장이 무쇠', x: 18, y: 14, dialog: '좋은 무기가 필요하면 나를 찾아라! 레벨이 오르면 더 강해진다.' },
+                { id: 'npc_quiz', type: '길드마스터', name: '퀴즈 마스터', x: 12, y: 19, dialog: '지식의 시험을 받아보겠나? 정답 시 특별 보상이 있다네!' },
             ],
             portals: [
                 { x: 0, y: 12, targetMap: 'map_000', targetX: 27, targetY: 15, label: '← 왕초보 사냥터' },
                 { x: 24, y: 12, targetMap: 'map_002', targetX: 1, targetY: 15, label: '→ 풍림 사냥터' },
             ],
             monsterZones: [], // 마을은 안전 구역
+        };
+
+        // =============================================
+        // map_002: 풍림 사냥터 (중급 사냥터, 35x35)
+        // =============================================
+        maps['map_002'] = {
+            name: '풍림 사냥터',
+            width: 35,
+            height: 35,
+            spawnX: 1,
+            spawnY: 15,
+            bgm: null,
+            tiles: this._generateForestMap(),
+            npcs: [
+                { id: 'npc_hunter', type: '길드마스터', name: '사냥꾼 진', x: 3, y: 14, dialog: '이곳은 풍림 사냥터다. 늑대와 해골 전사를 조심하게!' },
+            ],
+            portals: [
+                { x: 0, y: 15, targetMap: 'map_001', targetX: 23, targetY: 12, label: '← 바람 마을' },
+            ],
+            monsterZones: [
+                { type: 'wolf', x: 8, y: 3, width: 12, height: 12, count: 4, level: 3 },
+                { type: 'skeleton', x: 20, y: 5, width: 12, height: 12, count: 3, level: 4 },
+                { type: 'wolf', x: 5, y: 20, width: 12, height: 12, count: 3, level: 3 },
+                { type: 'goblin', x: 20, y: 20, width: 12, height: 12, count: 3, level: 3 },
+            ],
         };
 
         return maps;
@@ -171,6 +199,52 @@ class MapManager {
                 else if ((x === 4 && y === 4) || (x === 20 && y === 4) ||
                     (x === 4 && y === 10) || (x === 22 && y === 20)) {
                     row.push(6);
+                }
+                else {
+                    row.push(0);
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
+    /**
+     * 풍림 사냥터 맵 타일 데이터 생성 (35x35)
+     */
+    _generateForestMap() {
+        const W = 35, H = 35;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                // 외곽 벽
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 0 && y === 15) {
+                        row.push(4); // 서쪽 포털
+                    } else {
+                        row.push(1);
+                    }
+                }
+                // 물 웅덩이
+                else if (x >= 15 && x <= 19 && y >= 15 && y <= 19) {
+                    row.push(3);
+                }
+                // 나무 숲 (랜덤 패턴)
+                else if (
+                    (x % 7 === 0 && y % 5 === 0 && x > 1 && y > 1) ||
+                    (x === 10 && y === 10) || (x === 25 && y === 8) ||
+                    (x === 8 && y === 25) || (x === 28 && y === 28) ||
+                    (x === 5 && y === 30) || (x === 30 && y === 5)
+                ) {
+                    row.push(6);
+                }
+                // 메인 길
+                else if (y >= 14 && y <= 16 && x >= 1 && x <= 6) {
+                    row.push(2);
+                }
+                else if (x >= 14 && x <= 16 && y >= 1 && y <= 33) {
+                    row.push(2);
                 }
                 else {
                     row.push(0);

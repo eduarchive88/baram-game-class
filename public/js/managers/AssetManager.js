@@ -51,6 +51,15 @@ class AssetManager {
         // UI 아이콘 생성
         this.images.icons = this._generateUIIcons();
 
+        // 몬스터 스프라이트 생성
+        this.images.monsters = {
+            slime: this._generateMonsterSprite('slime'),
+            wolf: this._generateMonsterSprite('wolf'),
+            goblin: this._generateMonsterSprite('goblin'),
+            skeleton: this._generateMonsterSprite('skeleton'),
+            boss_ogre: this._generateMonsterSprite('boss_ogre'),
+        };
+
         this.loaded = true;
         console.log('[AssetManager] 모든 에셋 생성 완료');
         return true;
@@ -502,6 +511,145 @@ class AssetManager {
         });
 
         return icons;
+    }
+
+    // ============================================================
+    // 몬스터 스프라이트 생성
+    // ============================================================
+
+    /**
+     * 몬스터 타입별 4프레임 스프라이트 생성
+     * @param {string} type - 몬스터 타입
+     * @returns {Array<HTMLCanvasElement>} 4프레임 배열
+     */
+    _generateMonsterSprite(type) {
+        const configs = {
+            slime: { body: '#40c040', eye: '#fff', size: 0.7 },
+            wolf: { body: '#808080', eye: '#ff4040', size: 0.85 },
+            goblin: { body: '#c09040', eye: '#fff', size: 0.75 },
+            skeleton: { body: '#d0d0d0', eye: '#ff0000', size: 0.8 },
+            boss_ogre: { body: '#c04040', eye: '#FFD700', size: 1.0 },
+        };
+        const cfg = configs[type] || configs.slime;
+        const frames = [];
+
+        for (let f = 0; f < 4; f++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const bounce = [0, -1, 0, 1][f];
+
+            // 그림자
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(16, 28, 8 * cfg.size, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (type === 'slime') {
+                // 슬라임: 탱글탱글 젤리 형태
+                ctx.fillStyle = cfg.body;
+                ctx.beginPath();
+                ctx.ellipse(16, 20 + bounce, 10, 8 - bounce * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // 하이라이트
+                ctx.fillStyle = '#60e060';
+                ctx.beginPath();
+                ctx.ellipse(13, 17 + bounce, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (type === 'wolf') {
+                // 늑대: 네발 동물 형태
+                ctx.fillStyle = cfg.body;
+                ctx.fillRect(8, 14 + bounce, 16, 10);
+                // 머리
+                ctx.fillStyle = '#909090';
+                ctx.fillRect(4, 12 + bounce, 8, 8);
+                // 꼬리
+                ctx.fillRect(24, 12 + bounce, 4, 3);
+                // 다리
+                ctx.fillStyle = '#707070';
+                ctx.fillRect(9, 24 + bounce, 3, 4);
+                ctx.fillRect(20, 24 + bounce, 3, 4);
+            } else if (type === 'goblin') {
+                // 고블린: 작은 인간형
+                ctx.fillStyle = cfg.body;
+                ctx.fillRect(12, 16 + bounce, 8, 8);
+                // 머리
+                ctx.fillStyle = '#d0a050';
+                ctx.fillRect(11, 8 + bounce, 10, 8);
+                // 다리
+                ctx.fillStyle = '#805020';
+                ctx.fillRect(13, 24 + bounce, 3, 4);
+                ctx.fillRect(17, 24 + bounce, 3, 4);
+                // 귀
+                ctx.fillStyle = '#c09040';
+                ctx.fillRect(9, 6 + bounce, 3, 4);
+                ctx.fillRect(20, 6 + bounce, 3, 4);
+            } else if (type === 'skeleton') {
+                // 해골 전사
+                ctx.fillStyle = cfg.body;
+                ctx.fillRect(12, 14 + bounce, 8, 10);
+                // 머리 (해골)
+                ctx.fillRect(11, 5 + bounce, 10, 9);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(13, 8 + bounce, 2, 3);
+                ctx.fillRect(17, 8 + bounce, 2, 3);
+                ctx.fillRect(14, 12 + bounce, 4, 1);
+                // 다리
+                ctx.fillStyle = '#b0b0b0';
+                ctx.fillRect(13, 24 + bounce, 2, 4);
+                ctx.fillRect(17, 24 + bounce, 2, 4);
+            } else if (type === 'boss_ogre') {
+                // 오우거 대장 (크게)
+                ctx.fillStyle = cfg.body;
+                ctx.fillRect(6, 10 + bounce, 20, 16);
+                // 머리
+                ctx.fillStyle = '#e06060';
+                ctx.fillRect(9, 2 + bounce, 14, 10);
+                // 뿔
+                ctx.fillStyle = '#a0a0a0';
+                ctx.fillRect(9, 0 + bounce, 3, 4);
+                ctx.fillRect(20, 0 + bounce, 3, 4);
+                // 다리
+                ctx.fillStyle = '#a03030';
+                ctx.fillRect(10, 26 + bounce, 4, 4);
+                ctx.fillRect(18, 26 + bounce, 4, 4);
+            }
+
+            // 눈
+            ctx.fillStyle = cfg.eye;
+            if (type === 'slime') {
+                ctx.fillRect(13, 18 + bounce, 2, 2);
+                ctx.fillRect(18, 18 + bounce, 2, 2);
+            } else if (type === 'wolf') {
+                ctx.fillRect(6, 14 + bounce, 2, 2);
+            } else if (type === 'boss_ogre') {
+                ctx.fillRect(13, 5 + bounce, 3, 3);
+                ctx.fillRect(18, 5 + bounce, 3, 3);
+            }
+            // 눈동자
+            ctx.fillStyle = '#000';
+            if (type === 'slime') {
+                ctx.fillRect(14, 19 + bounce, 1, 1);
+                ctx.fillRect(19, 19 + bounce, 1, 1);
+            }
+
+            frames.push(canvas);
+        }
+
+        return frames;
+    }
+
+    /**
+     * 몬스터 스프라이트 접근자
+     * @param {string} type - 몬스터 타입
+     * @param {number} frame - 애니메이션 프레임 (0~3)
+     * @returns {HTMLCanvasElement|null}
+     */
+    getMonsterSprite(type, frame) {
+        const sprites = this.images.monsters?.[type];
+        if (!sprites) return null;
+        return sprites[frame % sprites.length] || null;
     }
 
     // ============================================================

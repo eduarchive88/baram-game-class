@@ -124,8 +124,16 @@
                         </div>
                         <span id="hud-mp-text" class="hud-bar-text">30 / 30</span>
                     </div>
+                    <div class="hud-bar exp-bar">
+                        <div class="hud-bar-label">EXP</div>
+                        <div class="hud-bar-track">
+                            <div id="hud-exp-fill" class="hud-bar-fill exp-fill" style="width:0%"></div>
+                        </div>
+                        <span id="hud-exp-text" class="hud-bar-text">0 / 100</span>
+                    </div>
                 </div>
-                <div class="hud-gold-row">💰 <span id="hud-gold">0</span> 전</div>
+                <div class="hud-gold-row">💰 <span id="hud-gold">0</span> 전 &nbsp;|&nbsp; 👥 <span
+                        id="hud-player-count">1</span></div>
             </div>
 
             <!-- 우측 상단: 메뉴 버튼 -->
@@ -140,18 +148,32 @@
                 <div class="dialog-hint">[Space / 터치하여 닫기]</div>
             </div>
 
-            <!-- 모바일 컨트롤 (터치 디바이스에서만 표시) -->
+            <!-- 모바일 컨트롤 -->
             <div id="mobile-controls" class="mobile-controls" style="display:none;">
-                <!-- 가상 조이스틱 -->
                 <div id="joystick-zone" class="joystick-zone">
                     <div class="joystick-base">
                         <div id="joystick-knob" class="joystick-knob"></div>
                     </div>
                 </div>
-                <!-- 액션 버튼 -->
                 <div class="action-buttons">
                     <button id="btn-action" class="action-btn attack-btn">⚔️</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 퀴즈 팝업 오버레이 -->
+        <div id="quiz-overlay" class="quiz-overlay" style="display:none;">
+            <div class="quiz-popup">
+                <div class="quiz-header">
+                    <span class="quiz-icon">📚</span>
+                    <h3>지식의 시험</h3>
+                    <span id="quiz-category" class="quiz-category">일반</span>
+                </div>
+                <p id="quiz-question" class="quiz-question">질문이 여기에 표시됩니다.</p>
+                <div id="quiz-options" class="quiz-options">
+                    <!-- 보기 버튼이 동적으로 생성됨 -->
+                </div>
+                <p id="quiz-result" class="quiz-result"></p>
             </div>
         </div>
     </div>
@@ -169,7 +191,12 @@
     <script src="js/managers/AssetManager.js"></script>
     <script src="js/managers/MapManager.js"></script>
     <script src="js/managers/InputManager.js"></script>
+    <script src="js/managers/NetworkManager.js"></script>
+    <script src="js/managers/CombatManager.js"></script>
+    <script src="js/managers/QuizManager.js"></script>
     <script src="js/entities/Player.js"></script>
+    <script src="js/entities/RemotePlayer.js"></script>
+    <script src="js/entities/Monster.js"></script>
 
     <!-- 메인 게임 컨트롤러 -->
     <script src="js/main.js"></script>
