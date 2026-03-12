@@ -99,23 +99,56 @@ function showScreen(screenId) {
 // 인증 UI 설정
 // ============================================================
 function setupAuthUI() {
+    // 탭 전환 로직
+    const tabStudent = document.getElementById('tab-student');
+    const tabTeacher = document.getElementById('tab-teacher');
+    const studentForm = document.getElementById('student-login-form');
+    const teacherLoginForm = document.getElementById('teacher-login-form');
+    const teacherSignupForm = document.getElementById('teacher-signup-form');
+
+    if (tabStudent && tabTeacher) {
+        tabStudent.addEventListener('click', () => {
+            tabStudent.classList.add('active');
+            tabTeacher.classList.remove('active');
+            tabStudent.style.borderBottom = '3px solid var(--primary-color)';
+            tabTeacher.style.borderBottom = '3px solid transparent';
+            tabStudent.style.color = 'var(--text-primary)';
+            tabTeacher.style.color = 'var(--text-muted)';
+
+            if (studentForm) studentForm.style.display = 'block';
+            if (teacherLoginForm) teacherLoginForm.style.display = 'none';
+            if (teacherSignupForm) teacherSignupForm.style.display = 'none';
+        });
+
+        tabTeacher.addEventListener('click', () => {
+            tabTeacher.classList.add('active');
+            tabStudent.classList.remove('active');
+            tabTeacher.style.borderBottom = '3px solid var(--primary-color)';
+            tabStudent.style.borderBottom = '3px solid transparent';
+            tabTeacher.style.color = 'var(--text-primary)';
+            tabStudent.style.color = 'var(--text-muted)';
+
+            if (studentForm) studentForm.style.display = 'none';
+            if (teacherLoginForm) teacherLoginForm.style.display = 'block';
+            if (teacherSignupForm) teacherSignupForm.style.display = 'none';
+        });
+    }
+
     const linkSignup = document.getElementById('link-signup');
     const linkLogin = document.getElementById('link-login');
-    const loginForm = document.getElementById('teacher-login-form');
-    const signupForm = document.getElementById('teacher-signup-form');
 
     if (linkSignup) {
         linkSignup.addEventListener('click', (e) => {
             e.preventDefault();
-            if (loginForm) loginForm.style.display = 'none';
-            if (signupForm) signupForm.style.display = 'block';
+            if (teacherLoginForm) teacherLoginForm.style.display = 'none';
+            if (teacherSignupForm) teacherSignupForm.style.display = 'block';
         });
     }
     if (linkLogin) {
         linkLogin.addEventListener('click', (e) => {
             e.preventDefault();
-            if (signupForm) signupForm.style.display = 'none';
-            if (loginForm) loginForm.style.display = 'block';
+            if (teacherSignupForm) teacherSignupForm.style.display = 'none';
+            if (teacherLoginForm) teacherLoginForm.style.display = 'block';
         });
     }
 
@@ -124,10 +157,10 @@ function setupAuthUI() {
     if (btnStudentLogin) {
         btnStudentLogin.addEventListener('click', async (e) => {
             e.preventDefault();
-            const code = document.getElementById('student-session-code').value.trim();
+            const code = document.getElementById('student-session').value.trim();
             const grade = document.getElementById('student-grade').value.trim();
             const cls = document.getElementById('student-class').value.trim();
-            const num = document.getElementById('student-number').value.trim();
+            const num = document.getElementById('student-num').value.trim();
             const name = document.getElementById('student-name').value.trim();
             const errorEl = document.getElementById('student-auth-error');
             errorEl.textContent = '';
@@ -154,15 +187,14 @@ function setupAuthUI() {
                 localStorage.setItem('studentUid', studentUid);
                 localStorage.setItem('studentName', name);
 
-                // 익명 로그인으로 RTDB 쓰기 권한 확보 (규칙 설정에 따라 다름)
+                // 익명 로그인으로 RTDB 쓰기 권한 확보
                 await auth.signInAnonymously();
-                // onAuthStateChanged에서 처리
             } catch (err) {
                 errorEl.textContent = '로그인 중 오류가 발생했습니다.';
                 console.error(err);
             } finally {
                 btnStudentLogin.disabled = false;
-                btnStudentLogin.textContent = '학생 로그인';
+                btnStudentLogin.textContent = '🚀 게임 접속';
             }
         });
     }
@@ -172,8 +204,8 @@ function setupAuthUI() {
     if (btnTeacherLogin) {
         btnTeacherLogin.addEventListener('click', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('teacher-login-email').value.trim();
-            const pw = document.getElementById('teacher-login-password').value;
+            const email = document.getElementById('login-email').value.trim();
+            const pw = document.getElementById('login-password').value;
             const errorEl = document.getElementById('teacher-auth-error');
             errorEl.textContent = '';
             if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
@@ -181,7 +213,6 @@ function setupAuthUI() {
                 btnTeacherLogin.disabled = true;
                 btnTeacherLogin.textContent = '로그인 중...';
                 await auth.signInWithEmailAndPassword(email, pw);
-                // 교사는 로그인 시 주로 관리자 페이지 사용을 원할 수 있으므로 선택권 제공 혹은 바로 이동
                 window.location.href = 'admin.html';
             } catch (err) {
                 errorEl.textContent = getAuthErrorMessage(err.code);
@@ -197,9 +228,9 @@ function setupAuthUI() {
     if (btnTeacherSignup) {
         btnTeacherSignup.addEventListener('click', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('teacher-signup-email').value.trim();
-            const pw = document.getElementById('teacher-signup-password').value;
-            const pwConfirm = document.getElementById('teacher-signup-password-confirm').value;
+            const email = document.getElementById('signup-email').value.trim();
+            const pw = document.getElementById('signup-password').value;
+            const pwConfirm = document.getElementById('signup-password-confirm').value;
             const errorEl = document.getElementById('teacher-signup-error');
             errorEl.textContent = '';
             if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
@@ -214,7 +245,7 @@ function setupAuthUI() {
                 errorEl.textContent = getAuthErrorMessage(err.code);
             } finally {
                 btnTeacherSignup.disabled = false;
-                btnTeacherSignup.textContent = '교사 회원가입';
+                btnTeacherSignup.textContent = '가입하기';
             }
         });
     }
