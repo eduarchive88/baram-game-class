@@ -1,0 +1,7 @@
+name = "baram-game-class"
+compatibility_date = "2024-03-12"
+pages_build_output_dir = "public"
+
+[vars]
+# Firebase configuration will be handled via Cloudflare Dashboard Environment Variables
+# for security, but we can list the keys here as documentation if needed.
