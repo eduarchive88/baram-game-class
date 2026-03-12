@@ -228,18 +228,28 @@ function setupAuthUI() {
     if (btnTeacherSignup) {
         btnTeacherSignup.addEventListener('click', async (e) => {
             e.preventDefault();
+            const name = document.getElementById('signup-name').value.trim();
             const email = document.getElementById('signup-email').value.trim();
             const pw = document.getElementById('signup-password').value;
             const pwConfirm = document.getElementById('signup-password-confirm').value;
             const errorEl = document.getElementById('teacher-signup-error');
             errorEl.textContent = '';
+            
+            if (!name) { errorEl.textContent = '이름을 입력하세요.'; return; }
             if (!email || !pw) { errorEl.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
             if (pw.length < 6) { errorEl.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
             if (pw !== pwConfirm) { errorEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
+            
             try {
                 btnTeacherSignup.disabled = true;
                 btnTeacherSignup.textContent = '가입 중...';
-                await auth.createUserWithEmailAndPassword(email, pw);
+                const userCredential = await auth.createUserWithEmailAndPassword(email, pw);
+                
+                // 가입 성공 후 프로필(이름) 업데이트
+                await userCredential.user.updateProfile({
+                    displayName: name
+                });
+                
                 window.location.href = 'admin.html';
             } catch (err) {
                 errorEl.textContent = getAuthErrorMessage(err.code);

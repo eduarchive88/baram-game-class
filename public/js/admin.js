@@ -24,6 +24,7 @@ const DOM = {
     btnLogoutDenied: document.getElementById('btn-logout-denied'),
     authError: document.getElementById('auth-error'),
     userEmail: document.getElementById('user-email'),
+    userName: document.getElementById('user-name'),
 
     // 엑셀 업로드 관련
     uploadZone: document.getElementById('upload-zone'),
@@ -118,7 +119,12 @@ auth.onAuthStateChanged((user) => {
             DOM.authOverlay.style.display = 'none';
             DOM.accessDenied.style.display = 'none';
             DOM.adminMain.style.display = 'block';
-            DOM.userEmail.textContent = user.email;
+            
+            const teacherName = user.displayName || user.email.split('@')[0];
+            if (DOM.userName) {
+                DOM.userName.textContent = `${teacherName} 선생님 환영합니다!`;
+            }
+            DOM.userEmail.textContent = `(${user.email})`;
             // 통계 데이터 로드
             loadAllStats();
             loadCurrentQuizzes();
