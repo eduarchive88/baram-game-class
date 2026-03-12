@@ -257,6 +257,10 @@ async function startGame(charData, uid) {
     localPlayer.exp = charData.exp || 0;
     localPlayer.gold = charData.gold || 100;
 
+    // 인벤토리/장비 로드
+    inventoryManager.loadFromData(charData);
+    localPlayer.equipment = { ...inventoryManager.equipment };
+
     // 맵 로드
     const spawnMap = charData.map || 'map_000';
     mapManager.loadMap(spawnMap);
@@ -285,6 +289,18 @@ async function startGame(charData, uid) {
     // HUD 초기화
     updateHUD();
 
+    // 모바일 인벤토리 버튼
+    const btnInv = document.getElementById('btn-inventory');
+    if (btnInv) {
+        btnInv.addEventListener('click', () => {
+            if (inventoryManager.isOpen) {
+                inventoryManager.close();
+            } else {
+                inventoryManager.open(localPlayer);
+            }
+        });
+    }
+
     // 게임 루프 시작
     gameRunning = true;
     lastTime = performance.now();
@@ -309,8 +325,8 @@ function gameLoop(timestamp) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
 
-    // 퀴즈 팝업 중에는 게임 일시정지
-    if (quizManager.isVisible) {
+    // 퀴즈/상점/인벤토리 팝업 중에는 게임 일시정지
+    if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen) {
         requestAnimationFrame(gameLoop);
         return;
     }
@@ -415,6 +431,14 @@ function handleNPCInteraction(npc) {
         localPlayer.stats.mp = localPlayer.stats.maxMp;
     }
 
+    // 대장장이 → 상점 오픈
+    if (npc.id === 'npc_smith') {
+        setTimeout(() => {
+            window.gameUI.hideDialog();
+            shopManager.open(localPlayer);
+        }, 800);
+    }
+
     // 퀴즈 마스터 → 퀴즈 트리거
     if (npc.id === 'npc_quiz') {
         setTimeout(() => {
@@ -505,6 +529,15 @@ function updateHUD() {
     const expRatio = Math.min(1, (localPlayer.exp || 0) / requiredExp);
     if (expFill) expFill.style.width = `${expRatio * 100}%`;
     if (expText) expText.textContent = `${localPlayer.exp || 0} / ${requiredExp}`;
+
+    // 장비 보너스 스탯 표시
+    const atkEl = document.getElementById('hud-atk');
+    const defEl = document.getElementById('hud-def');
+    if (atkEl || defEl) {
+        const eff = localPlayer.getEffectiveStats ? localPlayer.getEffectiveStats() : localPlayer.stats;
+        if (atkEl) atkEl.textContent = eff.atk;
+        if (defEl) defEl.textContent = eff.def;
+    }
 }
 
 function updatePlayerCount() {
@@ -584,4 +617,16 @@ document.addEventListener('touchstart', () => {
     }
 }, { passive: true });
 
-console.log('[Main] main.js 로드 완료 (Phase 3 멀티플레이/전투/퀴즈 통합)');
+// 인벤토리 토글 (I 키)
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyI' && localPlayer && !shopManager.isOpen && !quizManager.isVisible) {
+        if (inventoryManager.isOpen) {
+            inventoryManager.close();
+        } else {
+            inventoryManager.open(localPlayer);
+        }
+        e.preventDefault();
+    }
+});
+
+console.log('[Main] main.js 로드 완료 (Phase 4 상점/인벤토리/장비 통합)');

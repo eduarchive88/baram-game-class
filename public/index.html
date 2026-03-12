@@ -133,7 +133,8 @@
                     </div>
                 </div>
                 <div class="hud-gold-row">💰 <span id="hud-gold">0</span> 전 &nbsp;|&nbsp; 👥 <span
-                        id="hud-player-count">1</span></div>
+                        id="hud-player-count">1</span> &nbsp;|&nbsp; ⚔️<span id="hud-atk">0</span> 🛡️<span
+                        id="hud-def">0</span></div>
             </div>
 
             <!-- 우측 상단: 메뉴 버튼 -->
@@ -157,6 +158,7 @@
                 </div>
                 <div class="action-buttons">
                     <button id="btn-action" class="action-btn attack-btn">⚔️</button>
+                    <button id="btn-inventory" class="action-btn inventory-btn">🎒</button>
                 </div>
             </div>
         </div>
@@ -174,6 +176,20 @@
                     <!-- 보기 버튼이 동적으로 생성됨 -->
                 </div>
                 <p id="quiz-result" class="quiz-result"></p>
+            </div>
+        </div>
+
+        <!-- 상점 팝업 오버레이 -->
+        <div id="shop-overlay" class="shop-overlay" style="display:none;">
+            <div class="shop-popup">
+                <!-- ShopManager가 동적으로 내용 생성 -->
+            </div>
+        </div>
+
+        <!-- 인벤토리 팝업 오버레이 -->
+        <div id="inventory-overlay" class="inventory-overlay" style="display:none;">
+            <div class="inventory-popup">
+                <!-- InventoryManager가 동적으로 내용 생성 -->
             </div>
         </div>
     </div>
@@ -194,6 +210,8 @@
     <script src="js/managers/NetworkManager.js"></script>
     <script src="js/managers/CombatManager.js"></script>
     <script src="js/managers/QuizManager.js"></script>
+    <script src="js/managers/ShopManager.js"></script>
+    <script src="js/managers/InventoryManager.js"></script>
     <script src="js/entities/Player.js"></script>
     <script src="js/entities/RemotePlayer.js"></script>
     <script src="js/entities/Monster.js"></script>

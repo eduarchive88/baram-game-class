@@ -147,8 +147,9 @@ class CombatManager {
         this.attackCooldown = this.ATTACK_COOLDOWN_TIME;
 
         if (hitMonster) {
-            // 데미지 계산 (PRD 공식: ATK - DEF/2, 최소 1)
-            const rawDmg = player.stats.atk - Math.floor(hitMonster.stats.def / 2);
+            // 데미지 계산 (PRD 공식: ATK - DEF/2, 최소 1, 장비 보너스 반영)
+            const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
+            const rawDmg = effectiveStats.atk - Math.floor(hitMonster.stats.def / 2);
             const dmg = Math.max(1, rawDmg + Math.floor(Math.random() * 5));
             const killed = hitMonster.takeDamage(dmg);
 
@@ -181,7 +182,8 @@ class CombatManager {
             // 몬스터 공격은 AI_THINK_INTERVAL마다 (이미 _think에서 처리)
             // 여기서는 공격 시 데미지만 적용 (aiTimer 리셋 시)
             if (m.aiTimer >= m.AI_THINK_INTERVAL * 0.8) {
-                const rawDmg = m.stats.atk - Math.floor(player.stats.def / 2);
+                const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
+                const rawDmg = m.stats.atk - Math.floor(effectiveStats.def / 2);
                 const dmg = Math.max(1, rawDmg);
 
                 player.stats.hp -= dmg;
@@ -232,6 +234,24 @@ class CombatManager {
                 exp: player.exp,
                 gold: player.gold,
             });
+        }
+
+        // 드롭 아이템 (20% 확률)
+        if (typeof inventoryManager !== 'undefined' && Math.random() < 0.2) {
+            const dropTable = {
+                slime: ['c01'],
+                wolf: ['c01', 'c02'],
+                goblin: ['c01', 'c02'],
+                skeleton: ['c01', 'c02', 'c03'],
+                boss_ogre: ['c03', 'w03', 'a03'],
+            };
+            const drops = dropTable[monster.type] || ['c01'];
+            const dropId = drops[Math.floor(Math.random() * drops.length)];
+            const dropItem = shopManager ? shopManager.getItem(dropId) : null;
+            if (dropItem && inventoryManager.canAddItem(dropId)) {
+                inventoryManager.addItem(dropId, 1);
+                this._addDamageText(monster.x + 16, monster.y - 40, `🎁 ${dropItem.name} 획득!`, '#ff80ff');
+            }
         }
 
         // 퀴즈 트리거 (50% 확률)

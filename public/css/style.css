@@ -1341,3 +1341,375 @@ a:hover {
   color: var(--red-accent);
   background: rgba(255, 74, 90, 0.08);
 }
+
+/* ====================================================
+   Phase 4: 상점 팝업 스타일
+   ==================================================== */
+
+.shop-overlay,
+.inventory-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.shop-popup,
+.inventory-popup {
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid var(--gold-primary, #c49a20);
+  border-radius: 12px;
+  padding: 20px;
+  width: min(420px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 0 40px rgba(196, 154, 32, 0.15);
+}
+
+/* 상점 헤더 */
+.shop-header,
+.inv-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(196, 154, 32, 0.3);
+  padding-bottom: 8px;
+}
+
+.shop-header h3,
+.inv-header h3 {
+  flex: 1;
+  margin: 0;
+  color: #FFD700;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.1rem;
+}
+
+.shop-icon,
+.inv-icon {
+  font-size: 1.4rem;
+}
+
+.shop-close-btn,
+.inv-close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.shop-close-btn:hover,
+.inv-close-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 상점 탭 */
+.shop-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.shop-tab {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.shop-tab.active {
+  background: rgba(196, 154, 32, 0.2);
+  color: #FFD700;
+  border: 1px solid rgba(196, 154, 32, 0.4);
+}
+
+/* 보유 골드 */
+.shop-gold {
+  color: #FFD700;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+/* 아이템 카드 */
+.shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shop-item-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  transition: all 0.2s;
+}
+
+.shop-item-card:hover {
+  border-color: rgba(196, 154, 32, 0.4);
+}
+
+.shop-item-card.disabled {
+  opacity: 0.5;
+}
+
+.shop-item-icon {
+  font-size: 1.6rem;
+  width: 36px;
+  text-align: center;
+}
+
+.shop-item-info {
+  flex: 1;
+}
+
+.shop-item-name {
+  color: #e0e0e0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shop-owned {
+  color: #80ff80;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.shop-item-stat {
+  color: #80d0ff;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.shop-item-desc {
+  color: #888;
+  font-size: 0.7rem;
+  margin-top: 1px;
+}
+
+.shop-item-req {
+  color: #aaa;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+.shop-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.shop-item-price {
+  color: #FFD700;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.shop-buy-btn,
+.shop-sell-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.shop-buy-btn {
+  background: linear-gradient(135deg, #c49a20, #ffe070);
+  color: #1a1a2e;
+}
+
+.shop-buy-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.shop-sell-btn {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff8080;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+/* 상점 메시지 */
+.shop-message,
+.inv-message {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  min-height: 20px;
+}
+
+.shop-message.success,
+.inv-message.success {
+  color: #80ff80;
+  background: rgba(64, 224, 128, 0.08);
+}
+
+.shop-message.error,
+.inv-message.error {
+  color: #ff8080;
+  background: rgba(255, 74, 90, 0.08);
+}
+
+/* ====================================================
+   Phase 4: 인벤토리 팝업 스타일
+   ==================================================== */
+
+/* 장비 패널 */
+.inv-equipment {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.inv-equipment h4 {
+  margin: 0 0 8px 0;
+  color: #FFD700;
+  font-size: 0.85rem;
+}
+
+.inv-equip-slots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.inv-equip-slot {
+  flex: 1;
+  padding: 6px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.inv-equip-slot.equipped {
+  background: rgba(196, 154, 32, 0.12);
+  border: 1px solid rgba(196, 154, 32, 0.3);
+}
+
+.inv-equip-slot.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  color: #666;
+}
+
+.inv-equip-icon {
+  font-size: 1.2rem;
+}
+
+.inv-equip-name {
+  color: #ccc;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.inv-unequip-btn {
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  background: rgba(255, 80, 80, 0.1);
+  color: #ff8080;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+/* 스탯 표시 */
+.inv-stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  color: #aaa;
+  font-size: 0.8rem;
+}
+
+.inv-stats .bonus {
+  color: #80ff80;
+  font-style: normal;
+}
+
+/* 아이템 그리드 (5×4) */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.inv-cell {
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.inv-cell:hover {
+  border-color: rgba(196, 154, 32, 0.5);
+}
+
+.inv-cell.equipped {
+  border-color: rgba(196, 154, 32, 0.5);
+  background: rgba(196, 154, 32, 0.08);
+}
+
+.inv-cell.empty {
+  cursor: default;
+  border-style: dashed;
+}
+
+.inv-cell-icon {
+  font-size: 1.2rem;
+}
+
+.inv-cell-name {
+  font-size: 0.55rem;
+  color: #ccc;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.inv-cell-qty {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 0.6rem;
+  color: #FFD700;
+  font-weight: 700;
+}
+
+/* 인벤토리 모바일 버튼 */
+.inventory-btn {
+  background: linear-gradient(135deg, #5a3a1a 0%, #8a6030 100%) !important;
+  font-size: 1.5rem !important;
+}

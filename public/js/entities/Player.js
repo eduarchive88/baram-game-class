@@ -44,10 +44,35 @@ class Player {
         this.exp = 0;
         this.gold = 0;
 
+        // 장비 슬롯 (InventoryManager와 동기화)
+        this.equipment = {
+            weapon: null,
+            armor: null,
+            accessory: null,
+        };
+
         // 상태
         this.isAlive = true;
         this.isAttacking = false;
         this.attackTimer = 0;
+    }
+
+    /**
+     * 장비 보너스를 포함한 실제 스탯 계산
+     * @returns {Object} { atk, def, ... }
+     */
+    getEffectiveStats() {
+        const base = { ...this.stats };
+        // 장비 보너스 합산
+        Object.values(this.equipment).forEach(itemId => {
+            if (!itemId) return;
+            const item = shopManager ? shopManager.getItem(itemId) : null;
+            if (item) {
+                if (item.atk) base.atk += item.atk;
+                if (item.def) base.def += item.def;
+            }
+        });
+        return base;
     }
 
     /**
