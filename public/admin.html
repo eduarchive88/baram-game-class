@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="바람의 나라 교육용 RPG - 교사 관리자 대시보드">
+  <title>📜 교사 관리자 대시보드 - 바람의 나라 RPG</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 로그인 오버레이 -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-box">
+      <h2>📜 관리자 로그인</h2>
+      <p class="subtitle">바람의 나라 교육용 RPG - 교사 전용</p>
+      <div class="form-group">
+        <label for="login-email">이메일</label>
+        <input type="email" id="login-email" class="input-field" placeholder="교사 이메일 입력">
+      </div>
+      <div class="form-group">
+        <label for="login-password">비밀번호</label>
+        <input type="password" id="login-password" class="input-field" placeholder="비밀번호 입력">
+      </div>
+      <button id="btn-login" class="btn btn-primary btn-lg" style="width:100%; margin-top:12px;">로그인</button>
+      <p id="auth-error" class="auth-error"></p>
+      <p class="auth-links">
+        <a href="index.html">← 게임 페이지로 돌아가기</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- 비인가 접근 차단 오버레이 -->
+  <div id="access-denied" class="auth-overlay" style="display:none;">
+    <div class="auth-box">
+      <h2>🚫 접근 불가</h2>
+      <p class="subtitle">이 페이지는 GM(교사) 전용입니다.</p>
+      <p style="color:var(--text-secondary); margin-bottom:24px;">
+        관리자 권한이 있는 계정으로 로그인하세요.
+      </p>
+      <button id="btn-logout-denied" class="btn btn-secondary" style="width:100%;">로그아웃 후 재시도</button>
+    </div>
+  </div>
+
+  <!-- 메인 관리자 대시보드 (로그인 후 표시) -->
+  <div id="admin-main" style="display:none;">
+    <!-- 상단 네비게이션 -->
+    <nav class="admin-nav">
+      <div class="logo">
+        <div class="logo-icon">⚔️</div>
+        <span class="logo-text">GM 관리자 대시보드</span>
+      </div>
+      <div class="user-info">
+        <span class="badge badge-gold">👑 GM</span>
+        <span id="user-email"></span>
+        <button id="btn-logout" class="btn btn-sm btn-secondary">로그아웃</button>
+      </div>
+    </nav>
+
+    <div class="admin-container">
+      <!-- 헤더 -->
+      <div class="admin-header">
+        <h1>⚔️ 바람의 나라 교육용 RPG</h1>
+        <p>퀴즈 관리 및 학생 학습 현황 대시보드</p>
+      </div>
+
+      <div class="admin-grid">
+        <!-- ========== 엑셀 업로드 섹션 ========== -->
+        <div class="card full-width">
+          <div class="card-title">📊 일일 퀴즈 업로드 (엑셀)</div>
+          <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px;">
+            A열(문제), B~E열(보기 1~4), F열(정답번호 1~4), G열(보상 금전) 형식의 엑셀 파일을 업로드하세요.<br>
+            <strong style="color:var(--red-accent);">⚠️ 업로드 시 기존 퀴즈 데이터가 모두 교체됩니다.</strong>
+          </p>
+
+          <!-- 드래그 앤 드롭 영역 -->
+          <div id="upload-zone" class="upload-zone">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">엑셀 파일 (.xlsx)을 여기에 드래그하거나 클릭하세요</div>
+            <div class="upload-hint">A열(문제), B~E열(보기), F열(정답), G열(보상금전)</div>
+            <input type="file" id="file-input" accept=".xlsx,.xls">
+          </div>
+
+          <!-- 파싱 결과 미리보기 -->
+          <div id="preview-section" style="display:none; margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="color:var(--text-gold); font-weight:600;">
+                📋 미리보기 (<span id="preview-count">0</span>문제)
+              </span>
+              <div style="display:flex; gap:8px;">
+                <button id="btn-cancel-upload" class="btn btn-sm btn-secondary">취소</button>
+                <button id="btn-confirm-upload" class="btn btn-sm btn-primary">🔥 Firestore에 업로드</button>
+              </div>
+            </div>
+            <div class="preview-table-container">
+              <table class="data-table" id="preview-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>문제</th>
+                    <th>보기 1</th>
+                    <th>보기 2</th>
+                    <th>보기 3</th>
+                    <th>보기 4</th>
+                    <th>정답</th>
+                    <th>보상(전)</th>
+                  </tr>
+                </thead>
+                <tbody id="preview-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 업로드 상태 표시 -->
+          <div id="upload-status" style="display:none; margin-top:16px; text-align:center;">
+            <div class="spinner"></div>
+            <span id="upload-status-text" style="margin-left:8px; color:var(--text-secondary);">업로드 중...</span>
+          </div>
+        </div>
+
+        <!-- ========== 통계 요약 ========== -->
+        <div class="card full-width">
+          <div class="card-title">📈 학습 현황 요약</div>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-number" id="stat-total-students">0</div>
+              <div class="stat-label">참여 학생 수</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="stat-total-answers">0</div>
+              <div class="stat-label">총 응답 횟수</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="stat-avg-rate">0%</div>
+              <div class="stat-label">전체 정답률</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="stat-quiz-count">0</div>
+              <div class="stat-label">등록 퀴즈 수</div>
+            </div>
+          </div>
+          <button id="btn-refresh-stats" class="btn btn-sm btn-secondary">🔄 통계 새로고침</button>
+        </div>
+
+        <!-- ========== 학생별 정답률 ========== -->
+        <div class="card">
+          <div class="card-title">👨‍🎓 학생별 정답률</div>
+          <div id="student-stats-container" style="max-height:400px; overflow-y:auto;">
+            <table class="data-table" id="student-stats-table">
+              <thead>
+                <tr>
+                  <th>닉네임</th>
+                  <th>정답</th>
+                  <th>오답</th>
+                  <th>정답률</th>
+                </tr>
+              </thead>
+              <tbody id="student-stats-body">
+                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ========== 오답률 TOP 문제 ========== -->
+        <div class="card">
+          <div class="card-title">❌ 오답률 높은 문제 Top 10</div>
+          <div id="wrong-stats-container" style="max-height:400px; overflow-y:auto;">
+            <table class="data-table" id="wrong-stats-table">
+              <thead>
+                <tr>
+                  <th>순위</th>
+                  <th>문제</th>
+                  <th>오답률</th>
+                  <th>응답수</th>
+                </tr>
+              </thead>
+              <tbody id="wrong-stats-body">
+                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:32px;">데이터 로딩 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ========== 현재 등록된 퀴즈 목록 ========== -->
+        <div class="card full-width">
+          <div class="card-title">📝 현재 등록된 퀴즈 목록</div>
+          <div id="current-quiz-container" style="max-height:400px; overflow-y:auto;">
+            <table class="data-table" id="current-quiz-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>문제</th>
+                  <th>보기 1</th>
+                  <th>보기 2</th>
+                  <th>보기 3</th>
+                  <th>보기 4</th>
+                  <th>정답</th>
+                  <th>보상</th>
+                </tr>
+              </thead>
+              <tbody id="current-quiz-body">
+                <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">퀴즈 데이터 로딩 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /admin-grid -->
+
+      <!-- 푸터 -->
+      <footer class="app-footer">
+        만든 사람: 경기도 지구과학 교사 뀨짱 | 
+        문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" rel="noopener">카카오톡 오픈채팅</a> | 
+        블로그: <a href="https://eduarchive.tistory.com/" target="_blank" rel="noopener">뀨짱쌤의 교육자료 아카이브</a>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- SheetJS (엑셀 파싱) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+  <!-- 프로젝트 JS -->
+  <script src="js/firebase.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

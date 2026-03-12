@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="바람의 나라 교육용 2D 실시간 멀티플레이 RPG">
+    <title>⚔️ 바람의 나라 - 교육용 RPG</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 게임 캔버스 전용 스타일 (Phase 2에서 확장) */
+        #game-container {
+            display: none;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #game-canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* Phase 2+ 에서 사용할 게임 HUD placeholder */
+        #game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== 로그인 화면 ===== -->
+    <div id="auth-screen" class="auth-overlay">
+        <div class="auth-box">
+            <div class="game-logo" style="margin-bottom:24px;">
+                <h2 style="font-family:'Noto Serif KR',serif; font-size:1.8rem; 
+                    background:linear-gradient(180deg,#ffe070,#f0c040 60%,#c49a20); 
+                    -webkit-background-clip:text; -webkit-text-fill-color:transparent; 
+                    background-clip:text; letter-spacing:3px;">
+                    ⚔️ 바람의 나라
+                </h2>
+                <p style="color:var(--text-secondary); font-size:0.85rem; margin-top:4px;">교육용 실시간 멀티플레이 RPG</p>
+            </div>
+
+            <!-- 로그인 탭 -->
+            <div id="login-form">
+                <div class="form-group">
+                    <label for="login-email">이메일</label>
+                    <input type="email" id="login-email" class="input-field" placeholder="이메일 입력" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">비밀번호</label>
+                    <input type="password" id="login-password" class="input-field" placeholder="비밀번호 입력"
+                        autocomplete="current-password">
+                </div>
+                <button id="btn-login" class="btn btn-primary btn-lg" style="width:100%; margin-top:8px;">로그인</button>
+                <p id="auth-error" class="auth-error"></p>
+                <p class="auth-links" style="margin-top:16px;">
+                    계정이 없으신가요? <a href="#" id="link-signup">회원가입</a>
+                </p>
+            </div>
+
+            <!-- 회원가입 탭 -->
+            <div id="signup-form" style="display:none;">
+                <div class="form-group">
+                    <label for="signup-email">이메일</label>
+                    <input type="email" id="signup-email" class="input-field" placeholder="이메일 입력" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">비밀번호 (6자 이상)</label>
+                    <input type="password" id="signup-password" class="input-field" placeholder="비밀번호 입력"
+                        autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password-confirm">비밀번호 확인</label>
+                    <input type="password" id="signup-password-confirm" class="input-field" placeholder="비밀번호 다시 입력">
+                </div>
+                <button id="btn-signup" class="btn btn-primary btn-lg" style="width:100%; margin-top:8px;">회원가입</button>
+                <p id="signup-error" class="auth-error"></p>
+                <p class="auth-links" style="margin-top:16px;">
+                    이미 계정이 있으신가요? <a href="#" id="link-login">로그인</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 캐릭터 생성/선택 화면 ===== -->
+    <div id="character-screen" class="game-title-screen" style="display:none;">
+        <div class="game-logo">
+            <h1>⚔️ 바람의 나라</h1>
+            <p>교육용 실시간 멀티플레이 RPG</p>
+        </div>
+
+        <div class="character-create">
+            <h3>🎭 캐릭터 생성</h3>
+
+            <div class="form-group" style="margin-bottom:20px;">
+                <label for="char-nickname">닉네임 (2~8자)</label>
+                <input type="text" id="char-nickname" class="input-field" placeholder="게임 내 닉네임" maxlength="8">
+            </div>
+
+            <label
+                style="display:block; font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px; font-weight:500;">직업
+                선택</label>
+            <div class="job-selector">
+                <div class="job-card" data-job="전사">
+                    <div class="job-icon">⚔️</div>
+                    <div class="job-name">전사</div>
+                    <div class="job-desc">근접 물리 극딜</div>
+                </div>
+                <div class="job-card" data-job="도적">
+                    <div class="job-icon">🗡️</div>
+                    <div class="job-name">도적</div>
+                    <div class="job-desc">기동성 변칙</div>
+                </div>
+                <div class="job-card" data-job="주술사">
+                    <div class="job-icon">🔮</div>
+                    <div class="job-name">주술사</div>
+                    <div class="job-desc">원거리 마법</div>
+                </div>
+                <div class="job-card" data-job="도사">
+                    <div class="job-icon">✨</div>
+                    <div class="job-name">도사</div>
+                    <div class="job-desc">힐링 서포트</div>
+                </div>
+            </div>
+
+            <button id="btn-start-game" class="btn btn-primary btn-lg" style="width:100%;" disabled>
+                🎮 게임 시작
+            </button>
+            <p id="char-error" class="auth-error"></p>
+
+            <div style="margin-top:16px; text-align:center;">
+                <a href="admin.html" style="font-size:0.8rem; color:var(--text-muted);">🔑 교사 관리자 대시보드</a>
+                <span style="margin:0 8px; color:var(--text-muted);">|</span>
+                <a href="#" id="btn-game-logout" style="font-size:0.8rem; color:var(--text-muted);">로그아웃</a>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="app-footer" style="position:fixed; bottom:0; left:0; right:0; margin-top:0; border-top:none;">
+            만든 사람: 경기도 지구과학 교사 뀨짱 |
+            문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" rel="noopener">카카오톡 오픈채팅</a> |
+            블로그: <a href="https://eduarchive.tistory.com/" target="_blank" rel="noopener">뀨짱쌤의 교육자료 아카이브</a>
+        </footer>
+    </div>
+
+    <!-- ===== 게임 컨테이너 (Phase 2에서 본격 구현) ===== -->
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="game-hud"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+    <!-- 프로젝트 JS -->
+    <script src="js/firebase.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
