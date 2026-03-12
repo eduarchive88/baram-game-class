@@ -36,13 +36,48 @@ class AssetManager {
     }
 
     /**
+     * 이미지의 하얀색(유사 하얀색 포함) 배경을 투명하게 처리
+     */
+    _removeWhiteBackground(img) {
+        if (!img) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width || this.SPRITE_SIZE;
+        canvas.height = img.height || this.SPRITE_SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const threshold = 230;
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                // r, g, b 가 모두 threshold 이상이면 투명하게
+                if (r > threshold && g > threshold && b > threshold) {
+                    data[i + 3] = 0; // alpha = 0
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            // 캔버스를 이미지 객체로 변환하여 리턴하는 것이 성능 상 유리하지만, 
+            // ctx.drawImage는 캔버스도 지원하므로 그냥 캔버스를 반환
+            return canvas;
+        } catch (e) {
+            console.warn('[AssetManager] 안티 앨리어싱/CORS 문제로 배경 제거 실패: ', e);
+            return img; // 실패 시 원본 반환
+        }
+    }
+
+    /**
      * 모든 에셋을 생성/로드
      * @returns {Promise} 로드 완료 프로미스
      */
     async loadAll() {
         console.log('[AssetManager] 에셋 로드 시작...');
 
-        const assets = {
+        const rawAssets = {
             grass: await this.loadImage('/assets/rpg_grass_tile_1773292706481.png'),
             wall: await this.loadImage('/assets/rpg_wall_brick_1773292904200.png'),
             dirt: await this.loadImage('/assets/rpg_dirt_path_1773292888496.png'),
@@ -52,7 +87,29 @@ class AssetManager {
             thief: await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
             mage: await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
             healer: await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
-            monster_squirrel: await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png')
+            monster_squirrel: await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png'),
+            monster_slime: await this.loadImage('/assets/rpg_monster_slime_1773294505327.png'),
+            monster_wolf: await this.loadImage('/assets/rpg_monster_wolf_1773294519586.png'),
+            monster_goblin: await this.loadImage('/assets/rpg_monster_goblin_1773294533102.png'),
+            monster_skeleton: await this.loadImage('/assets/rpg_monster_skeleton.png')
+        };
+
+        // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
+        const assets = {
+            grass: rawAssets.grass, // 타일은 배경 제거 시 검은색 맵 바닥이 보일 수 있으므로 제외
+            wall: rawAssets.wall,
+            dirt: rawAssets.dirt,
+            portal: this._removeWhiteBackground(rawAssets.portal),
+            shop: this._removeWhiteBackground(rawAssets.shop),
+            warrior: this._removeWhiteBackground(rawAssets.warrior),
+            thief: this._removeWhiteBackground(rawAssets.thief),
+            mage: this._removeWhiteBackground(rawAssets.mage),
+            healer: this._removeWhiteBackground(rawAssets.healer),
+            monster_squirrel: this._removeWhiteBackground(rawAssets.monster_squirrel),
+            monster_slime: this._removeWhiteBackground(rawAssets.monster_slime),
+            monster_wolf: this._removeWhiteBackground(rawAssets.monster_wolf),
+            monster_goblin: this._removeWhiteBackground(rawAssets.monster_goblin),
+            monster_skeleton: this._removeWhiteBackground(rawAssets.monster_skeleton),
         };
 
         // 타일셋 스프라이트 생성
@@ -81,11 +138,11 @@ class AssetManager {
 
         // 몬스터 스프라이트 생성
         this.images.monsters = {
-            slime: this._generateMonsterSprite('slime', assets.monster_squirrel),
-            wolf: this._generateMonsterSprite('wolf', assets.monster_squirrel),
-            goblin: this._generateMonsterSprite('goblin', assets.monster_squirrel),
-            skeleton: this._generateMonsterSprite('skeleton', assets.monster_squirrel),
-            boss_ogre: this._generateMonsterSprite('boss_ogre', assets.monster_squirrel),
+            slime: this._generateMonsterSprite('slime', assets.monster_slime),
+            wolf: this._generateMonsterSprite('wolf', assets.monster_wolf),
+            goblin: this._generateMonsterSprite('goblin', assets.monster_goblin),
+            skeleton: this._generateMonsterSprite('skeleton', assets.monster_skeleton),
+            boss_ogre: this._generateMonsterSprite('boss_ogre', null), // 이미지 생성 한계로 절차적 드로잉 폴백
             squirrel: this._generateMonsterSprite('squirrel', assets.monster_squirrel),
         };
 
