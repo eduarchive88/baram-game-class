@@ -94,30 +94,69 @@ class InputManager {
             window.addEventListener('touchmove', handleMove, { passive: false });
             window.addEventListener('touchend', handleEnd);
             
-            // 마우스 테스트용
             joystickBase.addEventListener('mousedown', handleStart);
             window.addEventListener('mousemove', handleMove);
             window.addEventListener('mouseup', handleEnd);
         }
 
-        // 2. 공격 버튼
-        const attackBtn = document.getElementById('hud-btn-attack');
-        if (attackBtn) {
-            const press = (e) => { e.preventDefault(); this.actionPressed = true; };
-            const release = () => { this.actionPressed = false; };
-            attackBtn.addEventListener('touchstart', press, { passive: false });
-            attackBtn.addEventListener('touchend', release);
-            attackBtn.addEventListener('mousedown', press);
-            attackBtn.addEventListener('mouseup', release);
+        // 1.5 상단 시스템 버튼
+        const btnMenu = document.getElementById('hud-btn-menu');
+        if (btnMenu) {
+            btnMenu.addEventListener('click', () => {
+                const sidebar = document.getElementById('game-side-panel');
+                if (sidebar) {
+                    sidebar.style.display = (sidebar.style.display === 'flex') ? 'none' : 'flex';
+                }
+            });
+        }
+        
+        const btnSettings = document.getElementById('hud-btn-settings');
+        if (btnSettings) {
+            btnSettings.addEventListener('click', () => {
+                alert('설정창은 개발 중입니다.');
+            });
         }
 
-        // 3. 상호작용 버튼
+
+        // 2. 공격 버튼 (⚔️)
+        const attackBtn = document.getElementById('hud-btn-attack');
+        if (attackBtn) {
+            const press = (e) => { 
+                this.actionPressed = true; 
+                e.preventDefault(); 
+            };
+            const release = () => { this.actionPressed = false; };
+            
+            attackBtn.addEventListener('pointerdown', press);
+            attackBtn.addEventListener('pointerup', release);
+            attackBtn.addEventListener('pointerleave', release);
+            attackBtn.addEventListener('pointercancel', release);
+        }
+
+        // 3. 상호작용 버튼 (💬)
         const interactBtn = document.getElementById('hud-btn-interact');
         if (interactBtn) {
-            interactBtn.addEventListener('click', (e) => {
+            interactBtn.addEventListener('pointerdown', (e) => {
                 this.actionPressed = true;
-                setTimeout(() => { this.actionPressed = false; }, 100);
+                setTimeout(() => { this.actionPressed = false; }, 150);
+                e.preventDefault();
             });
+        }
+
+        // 4. 스킬 버튼 (0~3)
+        for (let i = 0; i < 4; i++) {
+            const skillBtn = document.getElementById(`hud-skill-${i}`);
+            if (skillBtn) {
+                skillBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (window.localPlayer && window.combatManager) {
+                        const result = skillManager.useSkill(i, window.localPlayer, window.combatManager);
+                        if (!result.success) {
+                            console.log(`[Input] Skill ${i} 실패: ${result.message}`);
+                        }
+                    }
+                });
+            }
         }
     }
 

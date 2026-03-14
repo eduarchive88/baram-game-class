@@ -38,6 +38,19 @@ window.gameUI = {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[Main] 게임 초기화 시작');
+    
+    // --- 터치 기기 및 강제 모바일 모드 감지 (1280px 이하 또는 터치 지원 시 활성화) ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceMobile = urlParams.get('mobile') === 'true';
+    const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const isSmallScreen = window.innerWidth <= 1280;
+
+    if (forceMobile || isTouchDevice || isSmallScreen) {
+        document.body.classList.add('is-touch');
+        console.log('[Main] 모바일/태블릿 모드 활성화됨 (Force:', forceMobile, 'Touch:', isTouchDevice, 'Screen:', window.innerWidth, ')');
+    }
+
+
     setupAuthUI();
 
     // Firebase Auth 상태 감지 (학생은 익명 로그인 대신 localStorage 기반 세션 유지로 변경)

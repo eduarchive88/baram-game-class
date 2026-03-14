@@ -789,16 +789,14 @@ class SkillManager {
                 slot.style.backgroundImage = `url(${skill.icon})`;
                 slot.classList.remove('empty');
 
-                const lastUse = this.cooldowns.get(skillId) || 0;
-                const elapsed = Date.now() - lastUse;
-                const remaining = (skill.cooldown * 1000) - elapsed;
+                const remaining = this.cooldowns[skillId] || 0;
 
                 if (remaining > 0) {
-                    const pct = (remaining / (skill.cooldown * 1000)) * 100;
+                    const pct = (remaining / skill.cooldown) * 100;
                     if (cdOverlay) cdOverlay.style.height = `${pct}%`;
                     if (cdTime) {
                         cdTime.style.display = 'block';
-                        cdTime.textContent = Math.ceil(remaining / 1000);
+                        cdTime.textContent = Math.ceil(remaining);
                     }
                 } else {
                     if (cdOverlay) cdOverlay.style.height = '0%';
@@ -820,12 +818,10 @@ class SkillManager {
                     mSlot.textContent = skill.icon;
                     mSlot.classList.remove('empty');
 
-                    const lastUse = this.cooldowns.get(skillId) || 0;
-                    const elapsed = Date.now() - lastUse;
-                    const remaining = (skill.cooldown * 1000) - elapsed;
+                    const remaining = this.cooldowns[skillId] || 0;
 
                     if (remaining > 0) {
-                        const pct = (remaining / (skill.cooldown * 1000)) * 100;
+                        const pct = (remaining / skill.cooldown) * 100;
                         if (mCdOverlay) mCdOverlay.style.height = `${pct}%`;
                     } else {
                         if (mCdOverlay) mCdOverlay.style.height = '0%';

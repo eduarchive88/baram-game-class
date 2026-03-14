@@ -2422,22 +2422,28 @@ a:hover {
     font-family: 'Noto Sans KR', sans-serif;
 }
 
-/* Show mobile HUD only on touch devices or smaller screens (Up to iPad Pro size) */
-@media (max-width: 1366px), (pointer: coarse) {
-    #mobile-hud {
-        display: flex !important;
-    }
-    #game-side-panel {
-        display: none !important;
-    }
-    #game-container {
-        flex-direction: column !important;
-    }
-    #game-main-area {
-        width: 100vw !important;
-        height: 100vh !important;
-    }
+/* --- Tablet/Mobile Activation (Comprehensive) --- */
+/* We target screens up to 1440px OR touch devices OR the forced class */
+@media (max-width: 1440px), (pointer: coarse) {
+    #mobile-hud { display: flex !important; }
+    #game-side-panel { display: none !important; }
+    #game-container { flex-direction: column !important; }
+    #game-main-area { width: 100vw !important; height: 100vh !important; }
+    /* 데스크탑 UI 숨기기 */
+    .interface-panel { display: none !important; }
 }
+
+/* Force mobile HUD via class (JS detection) */
+body.is-touch #mobile-hud { display: flex !important; }
+body.is-touch #game-side-panel { display: none !important; }
+body.is-touch #game-container { flex-direction: column !important; }
+body.is-touch #game-main-area { width: 100vw !important; height: 100vh !important; }
+body.is-touch .interface-panel { display: none !important; }
+
+/* Ensure z-index is solid */
+#game-canvas { z-index: 10; position: relative; }
+#mobile-hud { z-index: 5000; position: fixed; }
+
 
 #mobile-hud .hud-top-left,
 #mobile-hud .hud-top-right,
@@ -2457,33 +2463,43 @@ a:hover {
 .hud-player-profile {
     display: flex;
     align-items: center;
-    background: rgba(15, 23, 42, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 2px solid rgba(240, 192, 64, 0.5);
-    border-radius: 50px 20px 20px 50px;
+    background: rgba(10, 15, 30, 0.6); /* 더 투명하게 하지만 필터는 강하게 */
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid rgba(240, 192, 64, 0.4);
+    border-radius: 40px 15px 15px 40px;
     padding: 6px 18px 6px 6px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(240, 192, 64, 0.2);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
+
 
 .hud-avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #d4af37, #f9d71c);
+    background: linear-gradient(135deg, #f0c040, #c49a20);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.6rem;
-    margin-right: 12px;
-    box-shadow: 0 0 15px rgba(240, 192, 64, 0.5);
+    font-size: 1.5rem;
+    margin-right: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(240, 192, 64, 0.5);
+    animation: profile-glow 3s infinite alternate;
+}
+
+@keyframes profile-glow {
+    from { box-shadow: 0 0 10px rgba(240, 192, 64, 0.4); }
+    to { box-shadow: 0 0 25px rgba(240, 192, 64, 0.7); }
 }
 
 .hud-stats-compact {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    width: 130px;
+    gap: 5px;
+    width: 160px;
 }
 
 .hud-name-row {
@@ -2491,18 +2507,19 @@ a:hover {
     align-items: center;
     gap: 8px;
     color: #fff;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
 }
 
 .hud-badge {
-    background: #f0c040;
+    background: linear-gradient(to bottom, #ffe070, #f0c040);
     color: #000;
     font-size: 0.65rem;
-    padding: 1px 5px;
+    padding: 1px 6px;
     border-radius: 4px;
     font-weight: 900;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .hud-bars {
@@ -2512,55 +2529,65 @@ a:hover {
 }
 
 .hud-bar-mini {
-    height: 5px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 3px;
+    height: 7px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
     overflow: hidden;
-    border: 0.5px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
-.hud-bar-mini.hp .hud-fill { background: linear-gradient(90deg, #ff416c, #ff4b2b); }
-.hud-bar-mini.mp .hud-fill { background: linear-gradient(90deg, #2193b0, #6dd5ed); }
+.hud-bar-mini.hp .hud-fill { background: linear-gradient(90deg, #ff4b2b, #ff416c); box-shadow: 0 0 10px rgba(255, 75, 43, 0.5); }
+.hud-bar-mini.mp .hud-fill { background: linear-gradient(90deg, #00d2ff, #3a7bd5); box-shadow: 0 0 10px rgba(0, 210, 255, 0.5); }
 
 .hud-fill {
     height: 100%;
     width: 100%;
-    transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hud-sub-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.7rem;
+    color: #eee;
     font-weight: 600;
+    margin-top: 2px;
 }
 
-/* --- 상단 우측: 시스템 메뉴 --- */
+.hud-gold-text { color: #ffe070; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.hud-exp-text { color: #a8ff78; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+
 .hud-top-right {
     position: absolute;
     top: 15px;
     right: 15px;
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .hud-circle-btn {
-    width: 48px;
-    height: 48px;
-    background: rgba(30, 41, 59, 0.7);
+    width: 44px;
+    height: 44px;
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px; /* 살짝 각진 느낌으로 프리미엄 강조 */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     cursor: pointer;
     color: #fff;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 255, 255, 0.1);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hud-circle-btn:active {
+    transform: scale(0.9);
+    background: rgba(240, 192, 64, 0.25);
+    border-color: rgba(240, 192, 64, 0.5);
 }
 
 .hud-circle-btn:hover {
@@ -2582,49 +2609,52 @@ a:hover {
 }
 
 #joystick-container {
-    width: 170px;
-    height: 170px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 80%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
 }
 
 #joystick-base {
-    width: 110px;
-    height: 110px;
-    background: rgba(30, 41, 59, 0.4);
+    width: 120px;
+    height: 120px;
+    background: rgba(15, 23, 42, 0.4);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
     position: relative;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
 #joystick-knob {
-    width: 54px;
-    height: 54px;
-    background: radial-gradient(circle at 30% 30%, #475569, #1e293b);
-    border: 1px solid rgba(255,255,255,0.3);
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 35% 35%, #64748b, #0f172a);
+    border: 2px solid rgba(255,255,255,0.4);
     border-radius: 50%;
     position: absolute;
     top: 28px;
     left: 28px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.2);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.3);
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: box-shadow 0.1s;
 }
 
 #joystick-knob::after {
     content: '';
-    width: 20px;
-    height: 20px;
-    background: rgba(240, 192, 64, 0.2);
+    width: 24px;
+    height: 24px;
+    background: rgba(240, 192, 64, 0.3);
     border-radius: 50%;
-    border: 1px solid rgba(240, 192, 64, 0.4);
+    border: 1.5px solid rgba(240, 192, 64, 0.6);
+    box-shadow: 0 0 10px rgba(240, 192, 64, 0.4);
 }
 
 /* --- 하단 우측: 액션 버튼 --- */
@@ -2644,23 +2674,33 @@ a:hover {
     position: absolute;
     bottom: 10px;
     right: 10px;
-    width: 90px;
-    height: 90px;
-    background: linear-gradient(135deg, #f0c040, #c49a20);
-    border: 4px solid rgba(255, 255, 255, 0.4);
+    width: 95px;
+    height: 95px;
+    background: radial-gradient(circle at 30% 30%, #f0c040, #c49a20);
+    border: 4px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
-    font-size: 2.8rem;
+    font-size: 3rem;
     color: #1a1a2e;
     cursor: pointer;
-    box-shadow: 0 0 20px rgba(240, 192, 64, 0.4), 0 12px 24px rgba(0, 0, 0, 0.5), inset 0 2px 5px rgba(255,255,255,0.4);
+    box-shadow: 
+        0 0 0 4px rgba(240, 192, 64, 0.2),
+        0 12px 24px rgba(0, 0, 0, 0.5),
+        inset 0 4px 8px rgba(255, 255, 255, 0.5);
     z-index: 100;
-    transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: action-glow 4s infinite alternate;
+}
+
+@keyframes action-glow {
+    from { box-shadow: 0 0 10px rgba(240, 192, 64, 0.3), 0 8px 16px rgba(0, 0, 0, 0.4); }
+    to { box-shadow: 0 0 30px rgba(240, 192, 64, 0.7), 0 12px 24px rgba(0, 0, 0, 0.6); }
 }
 
 .hud-main-action-btn:active {
-    transform: scale(0.85) translateY(2px);
-    box-shadow: 0 0 30px rgba(240, 192, 64, 0.6), 0 4px 12px rgba(0,0,0,0.3);
+    transform: scale(0.85);
+    filter: brightness(1.2);
 }
+
 
 .hud-sub-action-btn {
     position: absolute;
@@ -2696,20 +2736,28 @@ a:hover {
 
 .hud-skill-btn {
     position: absolute;
-    width: 54px;
-    height: 54px;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(6px);
+    width: 58px;
+    height: 58px;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 2px solid rgba(240, 192, 64, 0.5);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     overflow: hidden;
     cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    transition: all 0.2s;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hud-skill-btn:active {
+    transform: scale(0.85);
+    background: rgba(240, 192, 64, 0.3);
+    border-color: #fff;
+    box-shadow: 0 0 20px rgba(240, 192, 64, 0.6);
 }
 
 .hud-skill-btn.empty {
