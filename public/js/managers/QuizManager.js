@@ -244,6 +244,16 @@ class QuizManager {
     }
 
     /**
+     * 프레임별 상태 체크 (사망 시 창 닫기 등)
+     */
+    update(player) {
+        if (this.isVisible && player && player.isDead) {
+            console.log('[QuizManager] 플레이어 사망 감지 -> 퀴즈 UI 강제 종료');
+            this.closeQuiz();
+        }
+    }
+
+    /**
      * 퀴즈 닫기
      */
     closeQuiz() {

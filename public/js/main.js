@@ -542,10 +542,11 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
 
     // 퀴즈/상점/인벤토리/스킬북 팝업 중에는 게임 일시정지
-    if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen) {
-        requestAnimationFrame(gameLoop);
-        return;
-    }
+    // 기존 파워 (퀴즈/상점 등) 중단 로직 제거 -> 실시간 진행 지원
+    // if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen) {
+    //     requestAnimationFrame(gameLoop);
+    //     return;
+    // }
 
     update(dt);
     render();
@@ -556,14 +557,19 @@ function update(dt) {
     // 입력 업데이트
     inputManager.update();
 
-    // 플레이어 업데이트
-    localPlayer.update(dt, inputManager, mapManager);
+    // 플레이어 업데이트 (UI 열려있으면 이동 입력 무시)
+    const isUIOpen = (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen);
+    const activeInput = isUIOpen ? null : inputManager; 
+    localPlayer.update(dt, activeInput, mapManager);
 
     // 카메라 업데이트
     mapManager.updateCamera(localPlayer.x, localPlayer.y);
 
     // 전투 업데이트 (몬스터 AI + 데미지)
     combatManager.update(dt, mapManager, localPlayer);
+
+    // 퀴즈 업데이트 (사망 체크 등)
+    quizManager.update(localPlayer);
 
     // 스킬 업데이트 (쿨다운 및 버프)
     skillManager.update(dt, localPlayer);
@@ -572,8 +578,8 @@ function update(dt) {
     networkManager.syncPosition(localPlayer);
     networkManager.updateRemotePlayers(dt);
 
-    // 공격 키 처리 (Space가 NPC 대화가 아닐 때)
-    if (inputManager.actionPressed && !window.gameUI.dialogVisible) {
+    // 공격 키 처리 (UI가 닫혀있고 Space가 NPC 대화가 아닐 때)
+    if (!isUIOpen && inputManager.actionPressed && !window.gameUI.dialogVisible) {
         combatManager.playerAttack(localPlayer);
     }
 
