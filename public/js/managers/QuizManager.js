@@ -163,8 +163,8 @@ class QuizManager {
             this._giveReward(this.activeQuiz.player, true);
             this._saveAnswer(this.activeQuiz);
 
-            // 정답일 때만 2.5초 후 닫기
-            setTimeout(() => this.closeQuiz(), 2500);
+            // 정답일 때만 1.5초 후 닫기
+            setTimeout(() => this.closeQuiz(), 1500);
         } else {
             // 오답 처리 - 창을 닫지 않고 다시 기회를 줌
             this.activeQuiz.isCorrecting = true; // 잠시 클릭 방지
@@ -261,6 +261,9 @@ class QuizManager {
         this.activeQuiz = null;
         const overlay = document.getElementById('quiz-overlay');
         if (overlay) overlay.style.display = 'none';
+        
+        // 브라우저 포커스 복구 (키보드 입력 보장)
+        window.focus();
     }
 }
 
