@@ -133,7 +133,7 @@ class Player {
                 this._updateAnimation(dt);
             } else if (this.moveCooldown > 0) {
                 this.moveCooldown -= dt;
-            } else if (input.direction) {
+            } else if (input && input.direction) {
                 this.direction = input.direction;
                 this._tryMove(input.direction, map);
             } else {
@@ -161,7 +161,7 @@ class Player {
         }
 
         // 입력 방향이 있으면 이동 시도
-        if (input.direction) {
+        if (input && input.direction) {
             this.direction = input.direction;
             this._tryMove(input.direction, map);
         } else {
@@ -170,7 +170,7 @@ class Player {
         }
 
         // 공격 입력 처리
-        if (input.actionPressed && !this.isAttacking) {
+        if (input && input.actionPressed && !this.isAttacking) {
             this._attack();
         }
     }
