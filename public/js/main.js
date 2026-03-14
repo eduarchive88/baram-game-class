@@ -76,7 +76,14 @@ async function handleLoginSuccess(uid, role, name) {
 function showScreen(screenId) {
     ['auth-screen', 'character-screen', 'game-container'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = id === screenId ? (id === 'game-container' ? 'block' : '') : 'none';
+        if (el) {
+            if (id === screenId) {
+                // game-container는 display: flex 레이아웃을 사용함
+                el.style.display = (id === 'game-container') ? 'flex' : 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
     });
     if (screenId === 'game-container') {
         const authScreen = document.getElementById('auth-screen');
@@ -401,7 +408,7 @@ async function startGame(charData, uid) {
 
     // 맵 로드
     const spawnMap = charData.map || 'map_000';
-    mapManager.loadMap(spawnMap);
+    await mapManager.loadMap(spawnMap);
     const spawnX = charData.x || mapManager.currentMap.spawnX;
     const spawnY = charData.y || mapManager.currentMap.spawnY;
     localPlayer.setPosition(spawnX, spawnY);
@@ -460,6 +467,7 @@ async function startGame(charData, uid) {
     }
 
     // 게임 루프 시작
+    gameRunning = true;
     requestAnimationFrame(gameLoop);
     
     // 키보드 입력 활성화를 위해 윈도우 포커스
@@ -479,20 +487,26 @@ async function startGame(charData, uid) {
 }
 
 function resizeCanvas() {
-    if (!gameCanvas) return;
+    if (!gameCanvas || !gameCanvas.parentElement) return;
 
-    // 모바일 기기(가로픽셀 작음)에서는 2배~2.5배 줌, PC는 1.5배 줌을 통해 
-    // 바람의나라 특유의 큼직한 도트 감성을 살림
-    const zoom = window.innerWidth < 768 ? 2.5 : 1.5; 
+    const parent = gameCanvas.parentElement;
+    const rect = parent.getBoundingClientRect();
 
-    gameCanvas.width = Math.floor(window.innerWidth / zoom);
-    gameCanvas.height = Math.floor(window.innerHeight / zoom);
+    // 줌 배율 설정 (바람의나라 도트 감성 유지)
+    const zoom = window.innerWidth < 768 ? 2.0 : 1.5; 
+
+    // 실제 캔버스 드로잉 해상도 설정
+    gameCanvas.width = Math.floor(rect.width / zoom);
+    gameCanvas.height = Math.floor(rect.height / zoom);
     
-    // CSS 크기는 브라우저 창 100%를 유지하여 화면에 꽉 차게 렌더링
-    gameCanvas.style.width = window.innerWidth + 'px';
-    gameCanvas.style.height = window.innerHeight + 'px';
+    // CSS 크기는 부모 영역에 꽉 차게 설정
+    gameCanvas.style.width = '100%';
+    gameCanvas.style.height = '100%';
     
-    gameCtx.imageSmoothingEnabled = false;
+    if (gameCtx) gameCtx.imageSmoothingEnabled = false;
+    
+    // 맵 매니저 캔버스 사이즈 갱신 필요 시 호출 (생략 가능하면 패스)
+    if (mapManager) mapManager.onResize?.();
 }
 
 // ============================================================

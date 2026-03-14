@@ -636,7 +636,7 @@ a:hover {
    게임 메인 레이아웃 (바람의 나라 클래식 스타일)
    =================================================== */
 
-#game-wrapper {
+#game-container {
   display: flex;
   flex-direction: column;
   width: 100vw;
