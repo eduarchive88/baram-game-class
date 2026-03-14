@@ -772,7 +772,7 @@ class SkillManager {
     // ============================================================
 
     /**
-     * HUD 스킬바 업데이트
+     * HUD 스킬바 업데이트 (오버레이 모바일 버전)
      */
     updateSkillBarHUD() {
         for (let i = 0; i < 4; i++) {
@@ -785,16 +785,20 @@ class SkillManager {
             if (skill) {
                 const cd = this.cooldowns[skillId] || 0;
                 const onCooldown = cd > 0;
+                const maxCd = skill.cooldown || 1;
+                const cdPercent = onCooldown ? (cd / maxCd) * 100 : 0;
+
                 slotEl.innerHTML = `
                     <span class="hud-skill-icon">${skill.icon}</span>
-                    ${onCooldown ? `<div class="hud-skill-cd">${Math.ceil(cd)}</div>` : ''}
+                    <div class="cooldown-overlay" style="height: ${cdPercent}%"></div>
+                    ${onCooldown ? `<div class="hud-skill-cd" style="position: absolute; z-index: 5; font-size: 0.8rem; font-weight: 800; color: #fff; text-shadow: 1px 1px 2px #000;">${Math.ceil(cd)}</div>` : ''}
                 `;
-                slotEl.className = `hud-skill-slot ${onCooldown ? 'on-cooldown' : ''}`;
-                slotEl.title = `${skill.name} (MP:${skill.mpCost})`;
+                slotEl.style.opacity = onCooldown ? '0.6' : '1.0';
+                slotEl.style.borderColor = onCooldown ? 'rgba(255,255,255,0.2)' : 'var(--gold)';
             } else {
-                slotEl.innerHTML = `<span class="hud-skill-key">${i + 1}</span>`;
-                slotEl.className = 'hud-skill-slot empty';
-                slotEl.title = '';
+                slotEl.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.8rem;">${i + 1}</span>`;
+                slotEl.style.opacity = '0.3';
+                slotEl.style.borderColor = 'rgba(255,255,255,0.1)';
             }
         }
     }

@@ -70,10 +70,6 @@ class InputManager {
      * 모바일 가상 조이스틱 + 액션 버튼 설정
      */
     _setupMobileControls() {
-        // 모바일 컨트롤 UI 표시
-        const mobileUI = document.getElementById('mobile-controls');
-        if (mobileUI) mobileUI.style.display = 'flex';
-
         // 조이스틱 영역
         const joystickZone = document.getElementById('joystick-zone');
         if (!joystickZone) return;
@@ -82,12 +78,14 @@ class InputManager {
         joystickZone.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.changedTouches[0];
-            this.joystick.active = true;
-            this.joystick.touchId = touch.identifier;
-
             const rect = joystickZone.getBoundingClientRect();
+            
+            // 조이스틱 중심점 계산
             this.joystick.startX = rect.left + rect.width / 2;
             this.joystick.startY = rect.top + rect.height / 2;
+            
+            this.joystick.active = true;
+            this.joystick.touchId = touch.identifier;
             this.joystick.currentX = touch.clientX;
             this.joystick.currentY = touch.clientY;
 
@@ -120,7 +118,7 @@ class InputManager {
         joystickZone.addEventListener('touchend', touchEndHandler);
         joystickZone.addEventListener('touchcancel', touchEndHandler);
 
-        // 액션 버튼 (공격)
+        // 공격 버튼
         const attackBtn = document.getElementById('btn-attack');
         if (attackBtn) {
             const handleAttackStart = (e) => {
@@ -139,30 +137,10 @@ class InputManager {
             attackBtn.addEventListener('mouseup', handleAttackEnd);
             attackBtn.addEventListener('mouseleave', handleAttackEnd);
         }
-
-        // 인터랙션 버튼 (대화/수집)
-        const interactBtn = document.getElementById('btn-interact');
-        if (interactBtn) {
-            const handleInteractStart = (e) => {
-                e.preventDefault();
-                this.actionPressed = true;
-                interactBtn.classList.add('pressed');
-            };
-            const handleInteractEnd = (e) => {
-                e.preventDefault();
-                this.actionPressed = false;
-                interactBtn.classList.remove('pressed');
-            };
-            interactBtn.addEventListener('touchstart', handleInteractStart, { passive: false });
-            interactBtn.addEventListener('touchend', handleInteractEnd);
-            interactBtn.addEventListener('mousedown', handleInteractStart);
-            interactBtn.addEventListener('mouseup', handleInteractEnd);
-            interactBtn.addEventListener('mouseleave', handleInteractEnd);
-        }
     }
 
     /**
-     * 조이스틱 비주얼 업데이트
+     * 조이스틱 비주얼 업데이트 (부드러운 움직임 상한선 적용)
      */
     _updateJoystickVisual() {
         const knob = document.getElementById('joystick-knob');
@@ -170,7 +148,9 @@ class InputManager {
 
         const dx = this.joystick.currentX - this.joystick.startX;
         const dy = this.joystick.currentY - this.joystick.startY;
-        const maxRadius = 40;
+        
+        // 조이스틱 베이스 반지름 내에서만 움직이도록 제한
+        const maxRadius = 35; 
         const dist = Math.sqrt(dx * dx + dy * dy);
         const clampedDist = Math.min(dist, maxRadius);
         const angle = Math.atan2(dy, dx);
@@ -198,13 +178,14 @@ class InputManager {
     update() {
         let dir = null;
 
-        // 1. 조이스틱 입력 확인
+        // 1. 조이스틱 입력 확인 (감도 조정)
         if (this.joystick.active) {
             const dx = this.joystick.currentX - this.joystick.startX;
             const dy = this.joystick.currentY - this.joystick.startY;
-            const deadzone = 15;
+            const deadzone = 10; // 임계값 낮춤
 
             if (Math.abs(dx) > deadzone || Math.abs(dy) > deadzone) {
+                // 4방향 결정 (더 큰 쪽으로)
                 if (Math.abs(dx) > Math.abs(dy)) {
                     dir = dx > 0 ? 'right' : 'left';
                 } else {

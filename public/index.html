@@ -143,11 +143,75 @@
 
     <!-- ==================== 게임 컨테이너 (바람의나라 스타일) ==================== -->
     <div id="game-container">
-        <!-- 상단: 게임 화면 -->
+        <!-- 상단: 게임 화면 및 오버레이 UI -->
         <div id="game-main-area">
             <canvas id="game-canvas"></canvas>
             
-            <!-- 게임 내 떠다니는 메시지/알림 영역 -->
+            <!-- [NEW] 모바일/태블릿 대응 오버레이 HUD -->
+            <div id="game-hud">
+                <!-- 상단 좌측: 캐릭터 상태 -->
+                <div class="hud-top-left">
+                    <div id="hud-status-compact">
+                        <div class="status-top">
+                            <span id="hud-level">Lv.1</span>
+                            <span id="hud-name">플레이어</span>
+                        </div>
+                        <div class="status-bars-compact">
+                            <div class="hud-bar hp"><div id="hud-hp-fill" class="bar-fill"></div><span id="hud-hp-text">0/0</span></div>
+                            <div class="hud-bar mp"><div id="hud-mp-fill" class="bar-fill"></div><span id="hud-mp-text">0/0</span></div>
+                            <div class="hud-bar exp"><div id="hud-exp-fill" class="bar-fill"></div><span id="hud-exp-text">0%</span></div>
+                        </div>
+                        <div class="status-bottom">
+                            💰 <span id="hud-gold">0</span> 전
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 상단 우측: 미니맵 및 메뉴 -->
+                <div class="hud-top-right">
+                    <div class="hud-menu-btns">
+                        <button id="btn-inventory" class="hud-btn">🎒</button>
+                        <button id="btn-skillbook" class="hud-btn">✨</button>
+                        <button id="btn-hud-menu" class="hud-btn">⚙️</button>
+                    </div>
+                </div>
+
+                <!-- 하단 좌측: 조이스틱 영역 -->
+                <div class="hud-bottom-left">
+                    <div id="joystick-zone">
+                        <div id="joystick-base">
+                            <div id="joystick-knob"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 하단 우측: 공격 및 스킬 (클러스터형 배치) -->
+                <div class="hud-bottom-right">
+                    <div class="action-cluster">
+                        <div class="skill-slots-wrap">
+                            <div class="skill-slot-wrap">
+                                <div class="skill-slot" id="skill-slot-0"></div>
+                                <span class="skill-label">스킬1</span>
+                            </div>
+                            <div class="skill-slot-wrap">
+                                <div class="skill-slot" id="skill-slot-1"></div>
+                                <span class="skill-label">스킬2</span>
+                            </div>
+                            <div class="skill-slot-wrap">
+                                <div class="skill-slot" id="skill-slot-2"></div>
+                                <span class="skill-label">스킬3</span>
+                            </div>
+                            <div class="skill-slot-wrap">
+                                <div class="skill-slot" id="skill-slot-3"></div>
+                                <span class="skill-label">기능</span>
+                            </div>
+                        </div>
+                        <button id="btn-attack">⚔️</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 게임 내 팝업 메시지 -->
             <div id="world-ui">
                 <div id="dialog-box" class="dialog-box" style="display:none;">
                     <div class="dialog-name" id="dialog-name">NPC</div>
@@ -157,45 +221,6 @@
             </div>
         </div>
 
-        <!-- 하단/사이드: 정보 및 컨트롤 인터페이스 -->
-        <div id="game-interface">
-            <!-- 캐릭터 상태창 -->
-            <div id="interface-status" class="interface-panel">
-                <div class="status-header">
-                    <span id="hud-name">플레이어</span>
-                    <span id="hud-level">Lv.1</span>
-                </div>
-                <div class="status-bars">
-                    <div class="bar-row hp">
-                        <div class="bar-label">體(HP)</div>
-                        <div class="bar-bg"><div id="hud-hp-fill" class="bar-fill"></div></div>
-                        <div id="hud-hp-text" class="bar-text">0 / 0</div>
-                    </div>
-                    <div class="bar-row mp">
-                        <div class="bar-label">魔(MP)</div>
-                        <div class="bar-bg"><div id="hud-mp-fill" class="bar-fill"></div></div>
-                        <div id="hud-mp-text" class="bar-text">0 / 0</div>
-                    </div>
-                    <div class="bar-row exp">
-                        <div class="bar-label">驗(EXP)</div>
-                        <div class="bar-bg"><div id="hud-exp-fill" class="bar-fill"></div></div>
-                        <div id="hud-exp-text" class="bar-text">0 / 0</div>
-                    </div>
-                </div>
-                <div class="status-footer">
-                    💰 <span id="hud-gold">0</span> 전
-                </div>
-            </div>
-
-            <!-- 스킬 및 퀵슬롯 -->
-            <div id="interface-quickslots" class="interface-panel">
-                <div class="quickslot-grid">
-                    <div class="slot" id="skill-slot-0"><span class="key">1</span></div>
-                    <div class="slot" id="skill-slot-1"><span class="key">2</span></div>
-                    <div class="slot" id="skill-slot-2"><span class="key">3</span></div>
-                    <div class="slot" id="skill-slot-3"><span class="key">4</span></div>
-                </div>
-            </div>
 
             <!-- 메뉴 및 시스템 버튼 -->
             <div id="interface-buttons" class="interface-panel">
@@ -280,12 +305,21 @@
     <!-- 메인 진입점 -->
     <script src="js/main.js"></script>
 
-    <!-- ==================== 전역 푸터 (사용자 규칙 준수) ==================== -->
-    <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); background: var(--bg-dark); width: 100%; position: relative; z-index: 1000;">
-        <p>만든 사람: 경기도 지구과학 교사 뀨짱 | 
-           문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" style="color: var(--gold);">카카오톡 오픈채팅</a> | 
-           블로그: <a href="https://eduarchive.tistory.com/" target="_blank" style="color: var(--gold);">뀨짱쌤의 교육자료 아카이브</a>
-        </p>
+    <!-- 푸터: 규정 준수 -->
+    <footer style="
+        position: relative; 
+        width: 100%; 
+        padding: 20px; 
+        text-align: center; 
+        background: #0a0e1a; 
+        color: #888; 
+        font-size: 0.8rem;
+        border-top: 1px solid rgba(240, 192, 64, 0.2);
+        z-index: 10;
+    ">
+        <p>만든 사람: 경기도 지구과학 교사 뀨짱</p>
+        <p>문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" style="color: var(--gold); text-decoration: none;">카카오톡 오픈채팅</a></p>
+        <p>블로그: <a href="https://eduarchive.tistory.com/" target="_blank" style="color: var(--gold); text-decoration: none;">뀨짱쌤의 교육자료 아카이브</a></p>
     </footer>
 </body>
 

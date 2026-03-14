@@ -1040,28 +1040,6 @@ a:hover {
   .stat-item {
     min-width: calc(50% - 10px);
   }
-
-  .upload-zone {
-    padding: 32px 16px;
-  }
-
-  .auth-box {
-    margin: 16px;
-    padding: 32px 24px;
-  }
-
-  .game-title-screen .game-logo h1 {
-    font-size: 2.2rem;
-  }
-
-  .job-selector {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .character-create {
-    margin: 16px;
-    padding: 24px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1080,10 +1058,10 @@ a:hover {
 }
 
 /* ===================================================
-   Phase 2: 게임 컨테이너 및 HUD
+   Phase 2: 게임 컨테이너 및 HUD (모바일 전용 오버레이)
    =================================================== */
 
-/* 게임 컨테이너 (전체 화면) */
+/* 게임 컨테이너 (전체 화면 고정) */
 #game-container {
   display: none;
   position: fixed;
@@ -1094,14 +1072,18 @@ a:hover {
   overflow: hidden;
   background: #000;
   z-index: 500;
+  flex-direction: column;
 }
 
 #game-canvas {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  width: 100%;
+  height: 100%;
 }
 
+/* HUD 메인 컨테이너 (포인터 이벤트 차단, 자식에서 활성화) */
 #game-hud {
   position: absolute;
   top: 0;
@@ -1110,262 +1092,153 @@ a:hover {
   bottom: 0;
   pointer-events: none;
   z-index: 10;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
-/* HUD 패널 (포인터 이벤트 활성화) */
 .hud-panel {
-  pointer-events: auto;
   position: absolute;
+  pointer-events: auto;
 }
 
+/* 상단 좌측: 캐릭터 상태 (HP/MP) */
 .hud-top-left {
-  top: 12px;
-  left: 12px;
-  background: rgba(10, 14, 26, 0.85);
-  border: 1px solid rgba(240, 192, 64, 0.3);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  min-width: 180px;
-  backdrop-filter: blur(4px);
-}
-
-.hud-top-right {
-  top: 12px;
-  right: 12px;
+  top: 15px;
+  left: 15px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 200px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 
 /* HUD 캐릭터 이름/레벨 행 */
-.hud-name-row {
+.status-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
   gap: 8px;
+  margin-bottom: 4px;
 }
 
 #hud-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.hud-level {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--gold);
-  background: rgba(240, 192, 64, 0.12);
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
+  color: #fff;
+  text-shadow: 1px 1px 2px #000;
 }
 
-/* HUD 바 (HP / MP) */
-.hud-bar-group {
+#hud-level {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--gold);
+  background: rgba(240, 192, 64, 0.2);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* HUD 바 (HP / MP / EXP) */
+.status-bars-compact {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .hud-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.hud-bar-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  width: 18px;
-  text-align: center;
-}
-
-.hp-bar .hud-bar-label {
-  color: #ff6060;
-}
-
-.mp-bar .hud-bar-label {
-  color: #6090ff;
+  gap: 8px;
 }
 
 .hud-bar-track {
   flex: 1;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .hud-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  width: 100%;
   transition: width 0.3s ease;
 }
 
-.hp-fill {
-  background: linear-gradient(90deg, #c04040, #ff6060);
-}
-
-.mp-fill {
-  background: linear-gradient(90deg, #3050b0, #6090ff);
-}
+.hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); }
+.mp-fill { background: linear-gradient(90deg, #1976d2, #2196f3); }
+.exp-fill { background: linear-gradient(90deg, #388e3c, #4caf50); }
 
 .hud-bar-text {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  min-width: 55px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* HUD 금전 */
-.hud-gold-row {
-  font-size: 0.7rem;
-  color: var(--gold);
+  font-size: 0.65rem;
+  color: #eee;
+  min-width: 60px;
   text-align: right;
 }
 
-/* HUD 메뉴 버튼 */
-.hud-btn {
-  width: 36px;
-  height: 36px;
-  background: rgba(10, 14, 26, 0.85);
-  border: 1px solid rgba(240, 192, 64, 0.3);
-  border-radius: var(--radius-md);
-  color: var(--gold);
-  font-size: 1.2rem;
-  cursor: pointer;
+/* 상단 우측: 미니맵 및 메뉴 */
+.hud-top-right {
+  top: 15px;
+  right: 15px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-  transition: all var(--transition-fast);
-}
-
-.hud-btn:hover {
-  background: rgba(240, 192, 64, 0.15);
-  border-color: var(--gold);
-}
-
-/* ===================================================
-   대화 박스 (NPC 대화)
-   =================================================== */
-.dialog-box {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(500px, calc(100vw - 40px));
-  background: rgba(10, 14, 26, 0.93);
-  border: 2px solid var(--gold);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  pointer-events: auto;
-  animation: fadeInUp 0.2s ease;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
-}
-
-.dialog-name {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--gold);
-  margin-bottom: 8px;
-}
-
-.dialog-text {
-  font-size: 0.85rem;
-  color: var(--text-primary);
-  line-height: 1.6;
-  margin-bottom: 8px;
-}
-
-.dialog-hint {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-align: right;
-}
-
-/* ===================================================
-   모바일 컨트롤 (가상 조이스틱 + 액션 버튼)
-   =================================================== */
-.mobile-controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  justify-content: space-between;
-  padding: 20px 24px;
-  pointer-events: none;
+  gap: 10px;
 }
 
-/* 가상 조이스틱 */
-.joystick-zone {
-  pointer-events: auto;
-  width: 120px;
-  height: 120px;
+.hud-minimap {
+  width: 100px;
+  height: 100px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.hud-menu-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.hud-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none;
+  cursor: pointer;
+}
+
+/* 하단 좌측: 가상 조이스틱 */
+.hud-bottom-left {
+  bottom: 40px;
+  left: 40px;
+}
+
+.joystick-zone {
+  width: 150px;
+  height: 150px;
+  position: relative;
 }
 
 .joystick-base {
-  width: 100px;
-  height: 100px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  left: 15px;
+  top: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  backdrop-filter: blur(2px);
 }
 
 .joystick-knob {
-  width: 40px;
-  height: 40px;
-  background: rgba(240, 192, 64, 0.5);
-  border: 2px solid var(--gold);
-  border-radius: 50%;
-  transition: transform 0.05s ease;
-  box-shadow: 0 0 10px rgba(240, 192, 64, 0.3);
-}
-
-/* 액션 버튼 영역 (클러스터형 배치) */
-.action-buttons {
-  position: relative;
-  width: 180px;
-  height: 180px;
-  pointer-events: none;
-}
-
-.action-btn-wrap {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  pointer-events: auto;
-}
-
-.action-btn-wrap span {
-  font-size: 0.75rem;
-  color: var(--text-primary);
-  font-weight: 700;
-  text-shadow: 1px 1px 4px #000;
-  pointer-events: none;
-}
-
-/* 기본 버튼 스타일 */
-.action-btn {
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.3);
   background: rgba(10, 14, 26, 0.6);

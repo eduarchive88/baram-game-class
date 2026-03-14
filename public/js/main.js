@@ -487,25 +487,29 @@ async function startGame(charData, uid) {
 }
 
 function resizeCanvas() {
-    if (!gameCanvas || !gameCanvas.parentElement) return;
+    if (!gameCanvas) return;
 
-    const parent = gameCanvas.parentElement;
-    const rect = parent.getBoundingClientRect();
+    // 부모 컨테이너(game-container)가 fixed, 100vw, 100vh이므로 윈도우 크기 사용
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    // 줌 배율 설정 (바람의나라 도트 감성 유지)
-    const zoom = window.innerWidth < 768 ? 2.0 : 1.5; 
+    // 줌 배율 설정 (모바일/태블릿에서 더 크게 보이도록)
+    const zoom = width < 768 ? 2.5 : 1.8; 
 
     // 실제 캔버스 드로잉 해상도 설정
-    gameCanvas.width = Math.floor(rect.width / zoom);
-    gameCanvas.height = Math.floor(rect.height / zoom);
+    gameCanvas.width = Math.floor(width / zoom);
+    gameCanvas.height = Math.floor(height / zoom);
     
-    // CSS 크기는 부모 영역에 꽉 차게 설정
+    // CSS 크기는 전체 화면에 꽉 차게 설정
     gameCanvas.style.width = '100%';
     gameCanvas.style.height = '100%';
     
-    if (gameCtx) gameCtx.imageSmoothingEnabled = false;
+    if (gameCtx) {
+        gameCtx.imageSmoothingEnabled = false;
+        gameCtx.msImageSmoothingEnabled = false;
+        gameCtx.webkitImageSmoothingEnabled = false;
+    }
     
-    // 맵 매니저 캔버스 사이즈 갱신 필요 시 호출 (생략 가능하면 패스)
     if (mapManager) mapManager.onResize?.();
 }
 
