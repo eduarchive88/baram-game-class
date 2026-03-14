@@ -410,8 +410,284 @@ a:hover {
 
 .admin-header p {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.65rem;
 }
+
+/* ===================================================
+   Tablet/Mobile Overlay HUD (Premium Look)
+   =================================================== */
+#mobile-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* 오버레이 자체는 클릭 무시, 자식 요소만 허용 */
+  z-index: 100;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+#mobile-hud button, 
+#mobile-hud .hud-skill-btn,
+#mobile-hud #joystick-container {
+  pointer-events: auto; /* 인터랙션 요소는 클릭 허용 */
+}
+
+/* 상단 좌측: 캐릭터 프로필 */
+.hud-top-left {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  display: flex;
+  align-items: center;
+  background: rgba(10, 14, 26, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(240, 192, 64, 0.3);
+  border-radius: 40px 15px 15px 40px;
+  padding: 6px 15px 6px 6px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.hud-avatar {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #2a2a40, #1a1a2e);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 10px;
+}
+
+.hud-player-profile {
+  display: flex;
+  align-items: center;
+}
+
+.hud-stats-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hud-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-badge {
+  background: var(--gold);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+#hud-name {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.hud-bars {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hud-bar-mini {
+  height: 6px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.3s ease-out;
+}
+
+.hp .hud-fill { background: linear-gradient(90deg, #ff4d4d, #ff0000); box-shadow: 0 0 5px rgba(255,0,0,0.5); }
+.mp .hud-fill { background: linear-gradient(90deg, #4da6ff, #007bff); box-shadow: 0 0 5px rgba(0,123,255,0.5); }
+
+.hud-sub-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #bbb;
+}
+
+.hud-gold-text { color: #f0c040; font-weight: 600; }
+
+/* 상단 우측: 메뉴 버튼 */
+.hud-top-right {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.hud-circle-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(10, 14, 26, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.hud-circle-btn:active {
+  transform: scale(0.9);
+  background: rgba(240, 192, 64, 0.3);
+  border-color: var(--gold);
+}
+
+/* 하단 좌측: 조이스틱 */
+.hud-bottom-left {
+  position: absolute;
+  bottom: 50px;
+  left: 50px;
+}
+
+#joystick-container {
+  width: 140px;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+}
+
+#joystick-base {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#joystick-knob {
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+  border: 2px solid rgba(240, 192, 64, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  transition: transform 0.05s linear;
+}
+
+/* 하단 우측: 액션 버튼 */
+.hud-bottom-right {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 250px;
+  height: 250px;
+}
+
+.hud-main-action-btn {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  width: 85px;
+  height: 85px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 74, 90, 0.4), rgba(180, 0, 0, 0.6));
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(255,0,0,0.3);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.1s;
+}
+
+.hud-main-action-btn:active {
+  transform: scale(0.9);
+  background: rgba(255, 0, 0, 0.8);
+  box-shadow: 0 0 20px rgba(255,0,0,0.6);
+}
+
+.hud-sub-action-btn {
+  position: absolute;
+  bottom: 135px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(10, 14, 26, 0.7);
+  border: 2px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* 스킬 버튼 아크형 배치 */
+.skill-btns-arc {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-skill-btn {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(10, 14, 26, 0.8);
+  border: 2px solid rgba(160, 112, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  transition: all 0.2s;
+}
+
+.hud-skill-btn:active { transform: scale(0.9); border-color: #a070ff; }
+
+/* 아크 위치 계산 */
+#hud-skill-0 { bottom: 40px; right: 140px; }
+#hud-skill-1 { bottom: 105px; right: 125px; }
+#hud-skill-2 { bottom: 155px; right: 95px; }
+#hud-skill-3 { bottom: 185px; right: 40px; }
+
+.cd-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.6);
+  transition: height 0.1s linear;
+}
+
 
 /* 그리드 레이아웃 */
 .admin-grid {

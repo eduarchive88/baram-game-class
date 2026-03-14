@@ -775,9 +775,70 @@ class SkillManager {
      * HUD 스킬바 업데이트 (초기 패널 버전)
      */
     updateSkillBarHUD() {
-        // 조이스틱 버전의 오버레이 요소가 아닌 사이드 패널이나 하단 바 요소 업데이트
-        // (현재는 스킬북에서 주로 관리하며 인게임 HUD 노출 방식은 이전 사양에 따름)
+        // 기존 데스크탑 스킬바
+        for (let i = 0; i < 4; i++) {
+            const slot = document.getElementById(`skill-slot-${i}`);
+            if (!slot) continue;
+
+            const skillId = this.skillBar[i];
+            const cdOverlay = slot.querySelector('.cooldown-overlay');
+            const cdTime = slot.querySelector('.cooldown-time');
+
+            if (skillId) {
+                const skill = this.SKILLS[skillId];
+                slot.style.backgroundImage = `url(${skill.icon})`;
+                slot.classList.remove('empty');
+
+                const lastUse = this.cooldowns.get(skillId) || 0;
+                const elapsed = Date.now() - lastUse;
+                const remaining = (skill.cooldown * 1000) - elapsed;
+
+                if (remaining > 0) {
+                    const pct = (remaining / (skill.cooldown * 1000)) * 100;
+                    if (cdOverlay) cdOverlay.style.height = `${pct}%`;
+                    if (cdTime) {
+                        cdTime.style.display = 'block';
+                        cdTime.textContent = Math.ceil(remaining / 1000);
+                    }
+                } else {
+                    if (cdOverlay) cdOverlay.style.height = '0%';
+                    if (cdTime) cdTime.style.display = 'none';
+                }
+            } else {
+                slot.style.backgroundImage = 'none';
+                slot.classList.add('empty');
+                if (cdOverlay) cdOverlay.style.height = '0%';
+                if (cdTime) cdTime.style.display = 'none';
+            }
+
+            // --- 신규 모바일 전용 HUD 스킬 버튼 동기화 ---
+            const mSlot = document.getElementById(`hud-skill-${i}`);
+            if (mSlot) {
+                const mCdOverlay = mSlot.querySelector('.cd-overlay');
+                if (skillId) {
+                    const skill = this.SKILLS[skillId];
+                    mSlot.textContent = skill.icon;
+                    mSlot.classList.remove('empty');
+
+                    const lastUse = this.cooldowns.get(skillId) || 0;
+                    const elapsed = Date.now() - lastUse;
+                    const remaining = (skill.cooldown * 1000) - elapsed;
+
+                    if (remaining > 0) {
+                        const pct = (remaining / (skill.cooldown * 1000)) * 100;
+                        if (mCdOverlay) mCdOverlay.style.height = `${pct}%`;
+                    } else {
+                        if (mCdOverlay) mCdOverlay.style.height = '0%';
+                    }
+                } else {
+                    mSlot.textContent = '';
+                    mSlot.classList.add('empty');
+                    if (mCdOverlay) mCdOverlay.style.height = '0%';
+                }
+            }
+        }
     }
+
 }
 
 // 전역 인스턴스

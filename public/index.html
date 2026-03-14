@@ -146,6 +146,64 @@
         <!-- 메인 게임 월드 -->
         <div id="game-main-area">
             <canvas id="game-canvas"></canvas>
+
+            <!-- ==================== 모바일/태블릿 전용 HUD 오버레이 ==================== -->
+            <div id="mobile-hud">
+                <!-- 상단 좌측: 캐릭터 간략 정보 -->
+                <div class="hud-top-left">
+                    <div class="hud-player-profile">
+                        <div class="hud-avatar">👤</div>
+                        <div class="hud-stats-compact">
+                            <div class="hud-name-row">
+                                <span id="hud-level" class="hud-badge">Lv.1</span>
+                                <span id="hud-name">플레이어</span>
+                            </div>
+                            <div class="hud-bars">
+                                <div class="hud-bar-mini hp"><div id="hud-hp-fill" class="hud-fill"></div></div>
+                                <div class="hud-bar-mini mp"><div id="hud-mp-fill" class="hud-fill"></div></div>
+                            </div>
+                            <div class="hud-sub-row">
+                                <span class="hud-gold-text">💰 <span id="hud-gold">0</span></span>
+                                <span class="hud-exp-text">EXP <span id="hud-exp-pct">0</span>%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 상단 우측: 시스템 메뉴 -->
+                <div class="hud-top-right">
+                    <button id="hud-btn-inventory" class="hud-circle-btn" title="인벤토리">🎒</button>
+                    <button id="hud-btn-skillbook" class="hud-circle-btn" title="스킬">✨</button>
+                    <button id="hud-btn-settings" class="hud-circle-btn" title="설정">⚙️</button>
+                </div>
+
+                <!-- 하단 좌측: 가상 조이스틱 -->
+                <div class="hud-bottom-left">
+                    <div id="joystick-container">
+                        <div id="joystick-base">
+                            <div id="joystick-knob"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 하단 우측: 공격 및 스킬 버튼 -->
+                <div class="hud-bottom-right">
+                    <div class="action-buttons-grid">
+                        <!-- 스킬 버튼들 (아크형 배치) -->
+                        <div class="skill-btns-arc">
+                            <div id="hud-skill-0" class="hud-skill-btn empty" data-slot="0"><span class="cd-overlay"></span></div>
+                            <div id="hud-skill-1" class="hud-skill-btn empty" data-slot="1"><span class="cd-overlay"></span></div>
+                            <div id="hud-skill-2" class="hud-skill-btn empty" data-slot="2"><span class="cd-overlay"></span></div>
+                            <div id="hud-skill-3" class="hud-skill-btn empty" data-slot="3"><span class="cd-overlay"></span></div>
+                        </div>
+                        <!-- 메인 공격 버튼 -->
+                        <button id="hud-btn-attack" class="hud-main-action-btn">⚔️</button>
+                        <!-- 상호작용 버튼 -->
+                        <button id="hud-btn-interact" class="hud-sub-action-btn">💬</button>
+                    </div>
+                </div>
+            </div>
+
             
             <!-- 게임 내 팝업 (NPC 대화 등) -->
             <div id="world-ui">

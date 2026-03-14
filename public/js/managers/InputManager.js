@@ -1,66 +1,42 @@
-/**
- * InputManager.js - PC 키보드 + 모바일 가상 조이스틱 통합 입력 관리자
- * 바람의 나라 교육용 RPG - 조작계 (PC/Mobile 분리)
- */
-
 class InputManager {
     constructor() {
-        // 현재 입력 상태
-        this.keys = {};              // 키보드 키 상태
-        this.direction = null;       // 현재 이동 방향 ('up', 'down', 'left', 'right' 또는 null)
-        this.actionPressed = false;  // 공격/인터랙션 버튼
-        this.isMobile = false;       // 모바일 여부
-
-        // 가상 조이스틱 상태
+        this.keys = {};
+        this.direction = null;
+        this.actionPressed = false;
+        
+        // 조이스틱 상태
         this.joystick = {
             active: false,
             startX: 0,
             startY: 0,
-            currentX: 0,
-            currentY: 0,
-            touchId: null,
+            moveX: 0,
+            moveY: 0,
+            maxDistance: 60,
+            angle: null,
+            distance: 0
         };
-
-        // 모바일 감지
-        this._detectMobile();
-
-        // 이벤트 바인딩 (PC, 모바일 모두 설정하여 크로스 플랫폼 지원)
-        this._bindKeyboard();
+        
+        this._setupKeyboard();
         this._setupMobileControls();
     }
 
     /**
-     * 모바일 디바이스 감지
+     * 키보드 이벤트 설정
      */
-    _detectMobile() {
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-            || ('ontouchstart' in window)
-            || (navigator.maxTouchPoints > 0);
-        console.log(`[InputManager] 입력 모드: ${this.isMobile ? '모바일 (터치)' : 'PC (키보드)'}`);
-    }
-
-    /**
-     * PC 키보드 이벤트 바인딩
-     */
-    _bindKeyboard() {
-        // 키 다운
+    _setupKeyboard() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.code] = true;
-            // 스페이스바로 공격/인터랙션
-            if (e.code === 'Space') {
+            
+            // 스페이스바/엔터: 액션/대화
+            if (e.code === 'Space' || e.code === 'Enter') {
                 this.actionPressed = true;
-                e.preventDefault();
-            }
-            // 방향키 스크롤 방지
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-                e.preventDefault();
             }
         });
 
-        // 키 업
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
-            if (e.code === 'Space') {
+            
+            if (e.code === 'Space' || e.code === 'Enter') {
                 this.actionPressed = false;
             }
         });
@@ -70,28 +46,78 @@ class InputManager {
      * 모바일 대응: 클릭/터치 기반 인터랙션 (기본 버튼 전용)
      */
     _setupMobileControls() {
-        // 공격 버튼
-        const attackBtn = document.getElementById('btn-attack');
-        if (attackBtn) {
-            const handleAttack = (e) => {
+        // 1. 가상 조이스틱 (드래그)
+        const joystickBase = document.getElementById('joystick-container');
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        if (joystickBase && joystickKnob) {
+            const handleStart = (e) => {
+                const touch = e.touches ? e.touches[0] : e;
+                this.joystick.active = true;
+                this.joystick.startX = touch.clientX;
+                this.joystick.startY = touch.clientY;
                 e.preventDefault();
-                this.actionPressed = true;
-                setTimeout(() => { this.actionPressed = false; }, 100);
             };
-            attackBtn.addEventListener('mousedown', handleAttack);
-            attackBtn.addEventListener('touchstart', handleAttack, { passive: false });
+
+            const handleMove = (e) => {
+                if (!this.joystick.active) return;
+                const touch = e.touches ? e.touches[0] : e;
+                
+                const dx = touch.clientX - this.joystick.startX;
+                const dy = touch.clientY - this.joystick.startY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // 최대 거리 제한
+                const limitedDist = Math.min(dist, this.joystick.maxDistance);
+                const angle = Math.atan2(dy, dx);
+                
+                this.joystick.moveX = Math.cos(angle) * limitedDist;
+                this.joystick.moveY = Math.sin(angle) * limitedDist;
+                this.joystick.angle = angle;
+                this.joystick.distance = limitedDist;
+
+                // 시각적 업데이트
+                joystickKnob.style.transform = `translate(${this.joystick.moveX}px, ${this.joystick.moveY}px)`;
+                e.preventDefault();
+            };
+
+            const handleEnd = () => {
+                this.joystick.active = false;
+                this.joystick.moveX = 0;
+                this.joystick.moveY = 0;
+                this.joystick.angle = null;
+                this.joystick.distance = 0;
+                joystickKnob.style.transform = `translate(0, 0)`;
+            };
+
+            joystickBase.addEventListener('touchstart', handleStart, { passive: false });
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('touchend', handleEnd);
+            
+            // 마우스 테스트용
+            joystickBase.addEventListener('mousedown', handleStart);
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleEnd);
         }
 
-        // 대화/인터랙션 버튼
-        const interactBtn = document.getElementById('btn-interact');
+        // 2. 공격 버튼
+        const attackBtn = document.getElementById('hud-btn-attack');
+        if (attackBtn) {
+            const press = (e) => { e.preventDefault(); this.actionPressed = true; };
+            const release = () => { this.actionPressed = false; };
+            attackBtn.addEventListener('touchstart', press, { passive: false });
+            attackBtn.addEventListener('touchend', release);
+            attackBtn.addEventListener('mousedown', press);
+            attackBtn.addEventListener('mouseup', release);
+        }
+
+        // 3. 상호작용 버튼
+        const interactBtn = document.getElementById('hud-btn-interact');
         if (interactBtn) {
-            const handleInteract = (e) => {
-                e.preventDefault();
+            interactBtn.addEventListener('click', (e) => {
                 this.actionPressed = true;
                 setTimeout(() => { this.actionPressed = false; }, 100);
-            };
-            interactBtn.addEventListener('mousedown', handleInteract);
-            interactBtn.addEventListener('touchstart', handleInteract, { passive: false });
+            });
         }
     }
 
@@ -99,24 +125,29 @@ class InputManager {
      * 매 프레임 입력 상태 업데이트
      */
     update() {
-        // 키보드 입력을 통해 최종 방향 결정 (사이드 패널에서는 조이스틱 미사용)
+        // 키보드 입력을 통해 최종 방향 결정
         let dir = null;
-        if (this.keys['ArrowUp'] || this.keys['KeyW']) dir = 'up';
-        else if (this.keys['ArrowDown'] || this.keys['KeyS']) dir = 'down';
-        else if (this.keys['ArrowLeft'] || this.keys['KeyA']) dir = 'left';
-        else if (this.keys['ArrowRight'] || this.keys['KeyD']) dir = 'right';
+        if (this.keys['ArrowUp'] || this.keys['KeyW']) {
+            dir = 'up';
+        } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {
+            dir = 'down';
+        } else if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
+            dir = 'left';
+        } else if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+            dir = 'right';
+        }
 
-        this.direction = dir;
-    }
-}
-            if (this.keys['ArrowUp'] || this.keys['KeyW']) {
-                dir = 'up';
-            } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {
-                dir = 'down';
-            } else if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
-                dir = 'left';
-            } else if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+        // 조이스틱 (키보드 입력 없을 때)
+        if (!dir && this.joystick.active && this.joystick.distance > 20) {
+            const angle = this.joystick.angle * (180 / Math.PI); // Degree conversion
+            if (angle > -45 && angle <= 45) {
                 dir = 'right';
+            } else if (angle > 45 && angle <= 135) {
+                dir = 'down';
+            } else if (angle > -135 && angle <= -45) {
+                dir = 'up';
+            } else {
+                dir = 'left';
             }
         }
 
@@ -127,9 +158,13 @@ class InputManager {
      * 리소스 정리
      */
     destroy() {
-        // 이벤트 리스너 정리는 필요 시 구현
         this.keys = {};
         this.direction = null;
         this.actionPressed = false;
     }
+}
+
+// 전역에서 접근 가능하도록 내보내기 (모듈화 전 단계 대응)
+if (typeof window !== 'undefined') {
+    window.InputManager = InputManager;
 }

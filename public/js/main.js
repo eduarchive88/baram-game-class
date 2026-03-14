@@ -435,8 +435,8 @@ async function startGame(charData, uid) {
     updateHUD();
     skillManager.updateSkillBarHUD();
 
-    // 모바일 인벤토리 버튼
-    const btnInv = document.getElementById('btn-inventory');
+    // 모바일 HUD 버튼들 연결
+    const btnInv = document.getElementById('hud-btn-inventory');
     if (btnInv) {
         btnInv.addEventListener('click', () => {
             if (inventoryManager.isOpen) inventoryManager.close();
@@ -444,8 +444,7 @@ async function startGame(charData, uid) {
         });
     }
 
-    // 모바일 스킬북 버튼
-    const btnSkillbook = document.getElementById('btn-skillbook');
+    const btnSkillbook = document.getElementById('hud-btn-skillbook');
     if (btnSkillbook) {
         btnSkillbook.addEventListener('click', () => {
             if (skillManager.isBookOpen) skillManager.closeBook();
@@ -453,9 +452,16 @@ async function startGame(charData, uid) {
         });
     }
 
-    // 스킬 슬롯 터치/클릭 지원 (모바일 및 PC 마우스용)
+    const btnSettings = document.getElementById('hud-btn-settings');
+    if (btnSettings) {
+        btnSettings.addEventListener('click', () => {
+            alert('옵션 창은 준비 중입니다.');
+        });
+    }
+
+    // 스킬 슬롯 터치/클릭 지원 (모바일 전용 HUD 스킬 버튼)
     for (let i = 0; i < 4; i++) {
-        const slotEl = document.getElementById(`skill-slot-${i}`);
+        const slotEl = document.getElementById(`hud-skill-${i}`);
         if (slotEl) {
             slotEl.addEventListener('pointerdown', (e) => {
                 if (localPlayer && !inventoryManager.isOpen && !skillManager.isBookOpen && gameRunning) {
@@ -465,6 +471,7 @@ async function startGame(charData, uid) {
             });
         }
     }
+
 
     // 게임 루프 시작
     gameRunning = true;
@@ -774,16 +781,41 @@ function updateHUD() {
     if (!localPlayer) return;
     const s = localPlayer.stats;
 
-    const hpFill = document.getElementById('hud-hp-fill');
-    const hpText = document.getElementById('hud-hp-text');
+    // --- 기존 사이드 패널 업데이트 (데스크탑 하위 호환) ---
+    const hpFill = document.getElementById('hp-fill');
+    const hpText = document.getElementById('hp-text');
     if (hpFill) hpFill.style.width = `${(s.hp / s.maxHp) * 100}%`;
     if (hpText) hpText.textContent = `${s.hp} / ${s.maxHp}`;
 
-    const mpFill = document.getElementById('hud-mp-fill');
-    const mpText = document.getElementById('hud-mp-text');
+    const mpFill = document.getElementById('mp-fill');
+    const mpText = document.getElementById('mp-text');
     if (mpFill) mpFill.style.width = `${(s.mp / s.maxMp) * 100}%`;
     if (mpText) mpText.textContent = `${s.mp} / ${s.maxMp}`;
 
+    // --- 신규 모바일 전용 HUD 오버레이 업데이트 ---
+    const mHpFill = document.getElementById('hud-hp-fill');
+    if (mHpFill) mHpFill.style.width = `${(s.hp / s.maxHp) * 100}%`;
+
+    const mMpFill = document.getElementById('hud-mp-fill');
+    if (mMpFill) mMpFill.style.width = `${(s.mp / s.maxMp) * 100}%`;
+
+    const mLv = document.getElementById('hud-level');
+    if (mLv) mLv.textContent = `Lv.${localPlayer.level}`;
+
+    const mName = document.getElementById('hud-name');
+    if (mName) mName.textContent = localPlayer.nickname;
+
+    const mGold = document.getElementById('hud-gold');
+    if (mGold) mGold.textContent = (localPlayer.gold || 0).toLocaleString();
+
+    const mExpPct = document.getElementById('hud-exp-pct');
+    if (mExpPct) {
+        const requiredExp = localPlayer.level * 100;
+        const percent = Math.floor(Math.min(1, (localPlayer.exp || 0) / requiredExp) * 100);
+        mExpPct.textContent = percent;
+    }
+
+    // 기타 데스크탑 정보 유지
     const lvEl = document.getElementById('hud-level');
     if (lvEl) lvEl.textContent = `Lv.${localPlayer.level}`;
 
@@ -792,24 +824,8 @@ function updateHUD() {
 
     const nameEl = document.getElementById('hud-name');
     if (nameEl) nameEl.textContent = `${localPlayer.nickname} (${localPlayer.job})`;
-
-    // EXP 바
-    const expFill = document.getElementById('hud-exp-fill');
-    const expText = document.getElementById('hud-exp-text');
-    const requiredExp = localPlayer.level * 100;
-    const expRatio = Math.min(1, (localPlayer.exp || 0) / requiredExp);
-    if (expFill) expFill.style.width = `${expRatio * 100}%`;
-    if (expText) expText.textContent = `${localPlayer.exp || 0} / ${requiredExp}`;
-
-    // 장비 보너스 스탯 표시
-    const atkEl = document.getElementById('hud-atk');
-    const defEl = document.getElementById('hud-def');
-    if (atkEl || defEl) {
-        const eff = localPlayer.getEffectiveStats ? localPlayer.getEffectiveStats() : localPlayer.stats;
-        if (atkEl) atkEl.textContent = eff.atk;
-        if (defEl) defEl.textContent = eff.def;
-    }
 }
+
 
 function updatePlayerCount() {
     const countEl = document.getElementById('hud-player-count');
