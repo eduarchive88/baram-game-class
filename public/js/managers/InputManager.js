@@ -67,135 +67,48 @@ class InputManager {
     }
 
     /**
-     * 모바일 가상 조이스틱 + 액션 버튼 설정
+     * 모바일 대응: 클릭/터치 기반 인터랙션 (기본 버튼 전용)
      */
     _setupMobileControls() {
-        // 조이스틱 영역
-        const joystickZone = document.getElementById('joystick-zone');
-        if (!joystickZone) return;
-
-        // 터치 시작
-        joystickZone.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.changedTouches[0];
-            const rect = joystickZone.getBoundingClientRect();
-            
-            // 조이스틱 중심점 계산
-            this.joystick.startX = rect.left + rect.width / 2;
-            this.joystick.startY = rect.top + rect.height / 2;
-            
-            this.joystick.active = true;
-            this.joystick.touchId = touch.identifier;
-            this.joystick.currentX = touch.clientX;
-            this.joystick.currentY = touch.clientY;
-
-            this._updateJoystickVisual();
-        }, { passive: false });
-
-        // 터치 이동
-        joystickZone.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            for (const touch of e.changedTouches) {
-                if (touch.identifier === this.joystick.touchId) {
-                    this.joystick.currentX = touch.clientX;
-                    this.joystick.currentY = touch.clientY;
-                    this._updateJoystickVisual();
-                }
-            }
-        }, { passive: false });
-
-        // 터치 종료
-        const touchEndHandler = (e) => {
-            for (const touch of e.changedTouches) {
-                if (touch.identifier === this.joystick.touchId) {
-                    this.joystick.active = false;
-                    this.joystick.touchId = null;
-                    this.direction = null;
-                    this._resetJoystickVisual();
-                }
-            }
-        };
-        joystickZone.addEventListener('touchend', touchEndHandler);
-        joystickZone.addEventListener('touchcancel', touchEndHandler);
-
         // 공격 버튼
         const attackBtn = document.getElementById('btn-attack');
         if (attackBtn) {
-            const handleAttackStart = (e) => {
+            const handleAttack = (e) => {
                 e.preventDefault();
                 this.actionPressed = true;
-                attackBtn.classList.add('pressed');
+                setTimeout(() => { this.actionPressed = false; }, 100);
             };
-            const handleAttackEnd = (e) => {
-                e.preventDefault();
-                this.actionPressed = false;
-                attackBtn.classList.remove('pressed');
-            };
-            attackBtn.addEventListener('touchstart', handleAttackStart, { passive: false });
-            attackBtn.addEventListener('touchend', handleAttackEnd);
-            attackBtn.addEventListener('mousedown', handleAttackStart);
-            attackBtn.addEventListener('mouseup', handleAttackEnd);
-            attackBtn.addEventListener('mouseleave', handleAttackEnd);
+            attackBtn.addEventListener('mousedown', handleAttack);
+            attackBtn.addEventListener('touchstart', handleAttack, { passive: false });
         }
-    }
 
-    /**
-     * 조이스틱 비주얼 업데이트 (부드러운 움직임 상한선 적용)
-     */
-    _updateJoystickVisual() {
-        const knob = document.getElementById('joystick-knob');
-        if (!knob) return;
-
-        const dx = this.joystick.currentX - this.joystick.startX;
-        const dy = this.joystick.currentY - this.joystick.startY;
-        
-        // 조이스틱 베이스 반지름 내에서만 움직이도록 제한
-        const maxRadius = 35; 
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const clampedDist = Math.min(dist, maxRadius);
-        const angle = Math.atan2(dy, dx);
-
-        const clampedX = Math.cos(angle) * clampedDist;
-        const clampedY = Math.sin(angle) * clampedDist;
-
-        knob.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-    }
-
-    /**
-     * 조이스틱 비주얼 리셋
-     */
-    _resetJoystickVisual() {
-        const knob = document.getElementById('joystick-knob');
-        if (knob) {
-            knob.style.transform = 'translate(0px, 0px)';
+        // 대화/인터랙션 버튼
+        const interactBtn = document.getElementById('btn-interact');
+        if (interactBtn) {
+            const handleInteract = (e) => {
+                e.preventDefault();
+                this.actionPressed = true;
+                setTimeout(() => { this.actionPressed = false; }, 100);
+            };
+            interactBtn.addEventListener('mousedown', handleInteract);
+            interactBtn.addEventListener('touchstart', handleInteract, { passive: false });
         }
     }
 
     /**
      * 매 프레임 입력 상태 업데이트
-     * 키보드 또는 조이스틱에서 방향 결정
      */
     update() {
+        // 키보드 입력을 통해 최종 방향 결정 (사이드 패널에서는 조이스틱 미사용)
         let dir = null;
+        if (this.keys['ArrowUp'] || this.keys['KeyW']) dir = 'up';
+        else if (this.keys['ArrowDown'] || this.keys['KeyS']) dir = 'down';
+        else if (this.keys['ArrowLeft'] || this.keys['KeyA']) dir = 'left';
+        else if (this.keys['ArrowRight'] || this.keys['KeyD']) dir = 'right';
 
-        // 1. 조이스틱 입력 확인 (감도 조정)
-        if (this.joystick.active) {
-            const dx = this.joystick.currentX - this.joystick.startX;
-            const dy = this.joystick.currentY - this.joystick.startY;
-            const deadzone = 10; // 임계값 낮춤
-
-            if (Math.abs(dx) > deadzone || Math.abs(dy) > deadzone) {
-                // 4방향 결정 (더 큰 쪽으로)
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    dir = dx > 0 ? 'right' : 'left';
-                } else {
-                    dir = dy > 0 ? 'down' : 'up';
-                }
-            }
-        }
-
-        // 2. 조이스틱 입력이 없으면 키보드 확인
-        if (!dir) {
+        this.direction = dir;
+    }
+}
             if (this.keys['ArrowUp'] || this.keys['KeyW']) {
                 dir = 'up';
             } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {

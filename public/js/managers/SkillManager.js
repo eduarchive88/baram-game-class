@@ -772,35 +772,11 @@ class SkillManager {
     // ============================================================
 
     /**
-     * HUD 스킬바 업데이트 (오버레이 모바일 버전)
+     * HUD 스킬바 업데이트 (초기 패널 버전)
      */
     updateSkillBarHUD() {
-        for (let i = 0; i < 4; i++) {
-            const slotEl = document.getElementById(`skill-slot-${i}`);
-            if (!slotEl) continue;
-
-            const skillId = this.skillBar[i];
-            const skill = skillId ? this.SKILLS[skillId] : null;
-
-            if (skill) {
-                const cd = this.cooldowns[skillId] || 0;
-                const onCooldown = cd > 0;
-                const maxCd = skill.cooldown || 1;
-                const cdPercent = onCooldown ? (cd / maxCd) * 100 : 0;
-
-                slotEl.innerHTML = `
-                    <span class="hud-skill-icon">${skill.icon}</span>
-                    <div class="cooldown-overlay" style="height: ${cdPercent}%"></div>
-                    ${onCooldown ? `<div class="hud-skill-cd" style="position: absolute; z-index: 5; font-size: 0.8rem; font-weight: 800; color: #fff; text-shadow: 1px 1px 2px #000;">${Math.ceil(cd)}</div>` : ''}
-                `;
-                slotEl.style.opacity = onCooldown ? '0.6' : '1.0';
-                slotEl.style.borderColor = onCooldown ? 'rgba(255,255,255,0.2)' : 'var(--gold)';
-            } else {
-                slotEl.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.8rem;">${i + 1}</span>`;
-                slotEl.style.opacity = '0.3';
-                slotEl.style.borderColor = 'rgba(255,255,255,0.1)';
-            }
-        }
+        // 조이스틱 버전의 오버레이 요소가 아닌 사이드 패널이나 하단 바 요소 업데이트
+        // (현재는 스킬북에서 주로 관리하며 인게임 HUD 노출 방식은 이전 사양에 따름)
     }
 }
 

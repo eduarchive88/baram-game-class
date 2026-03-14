@@ -487,20 +487,19 @@ async function startGame(charData, uid) {
 }
 
 function resizeCanvas() {
-    if (!gameCanvas) return;
+    if (!gameCanvas || !gameCanvas.parentElement) return;
 
-    // 부모 컨테이너(game-container)가 fixed, 100vw, 100vh이므로 윈도우 크기 사용
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const parent = gameCanvas.parentElement;
+    const rect = parent.getBoundingClientRect();
 
-    // 줌 배율 설정 (모바일/태블릿에서 더 크게 보이도록)
-    const zoom = width < 768 ? 2.5 : 1.8; 
+    // 픽셀 아트 비율 유지 (줌 배율 1.5로 고정)
+    const zoom = 1.5; 
 
     // 실제 캔버스 드로잉 해상도 설정
-    gameCanvas.width = Math.floor(width / zoom);
-    gameCanvas.height = Math.floor(height / zoom);
+    gameCanvas.width = Math.floor(rect.width / zoom);
+    gameCanvas.height = Math.floor(rect.height / zoom);
     
-    // CSS 크기는 전체 화면에 꽉 차게 설정
+    // CSS 크기는 부모 영역에 맞춤
     gameCanvas.style.width = '100%';
     gameCanvas.style.height = '100%';
     
@@ -671,6 +670,52 @@ function handleNPCInteraction(npc) {
             window.gameUI.hideDialog();
             quizManager.triggerQuiz(localPlayer);
         }, 1500);
+    }
+}
+
+// 캐릭터 정보 UI 업데이트
+function updateCharacterUI(player) {
+    if (!player) return;
+
+    // 레벨/이름
+    const lvEl = document.getElementById('player-level');
+    const nameEl = document.getElementById('player-name');
+    if (lvEl) lvEl.innerText = `Lv.${player.level}`;
+    if (nameEl) nameEl.innerText = player.nickname; // Use nickname for player name
+
+    // HP
+    const hpFill = document.getElementById('hp-fill');
+    const hpText = document.getElementById('hp-text');
+    if (hpFill) hpFill.style.width = `${(player.stats.hp / player.stats.maxHp) * 100}%`;
+    if (hpText) hpText.innerText = `${player.stats.hp}/${player.stats.maxHp}`;
+
+    // MP
+    const mpFill = document.getElementById('mp-fill');
+    const mpText = document.getElementById('mp-text');
+    if (mpFill) mpFill.style.width = `${(player.stats.mp / player.stats.maxMp) * 100}%`;
+    if (mpText) mpText.innerText = `${player.stats.mp}/${player.stats.maxMp}`;
+
+    // EXP
+    const expFill = document.getElementById('exp-fill');
+    const expText = document.getElementById('exp-text');
+    if (expFill) {
+        const nextExp = player.level * 100; // 예시 경험치 테이블
+        const percent = Math.min((player.exp / nextExp) * 100, 100);
+        expFill.style.width = `${percent}%`;
+        if (expText) expText.innerText = `${Math.floor(percent)}%`;
+    }
+
+    // 골드
+    const goldEl = document.getElementById('player-gold');
+    if (goldEl) goldEl.innerText = (player.gold || 0).toLocaleString();
+
+    // 장비 보너스 스탯 표시 (공격력, 방어력)
+    const atkEl = document.getElementById('player-atk');
+    const defEl = document.getElementById('player-def');
+    if (atkEl || defEl) {
+        const eff = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
+        if (atkEl) atkEl.innerText = eff.atk;
+        if (defEl) defEl.innerText = eff.def;
     }
 }
 

@@ -1012,56 +1012,9 @@ a:hover {
 }
 
 /* ===================================================
-   반응형 (모바일/태블릿)
-   =================================================== */
-@media (max-width: 768px) {
-  .admin-nav {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .admin-container {
-    padding: 16px;
-  }
-
-  .admin-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .admin-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stats-row {
-    flex-wrap: wrap;
-  }
-
-  .stat-item {
-    min-width: calc(50% - 10px);
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-row {
-    flex-direction: column;
-  }
-
-  .stat-item {
-    min-width: 100%;
-  }
-
-  .game-title-screen .game-logo h1 {
-    font-size: 1.8rem;
-    letter-spacing: 2px;
-  }
-}
-
-/* ===================================================
-   Phase 2: 게임 컨테이너 및 HUD (모바일 전용 오버레이)
+   Phase 2: 게임 컨테이너 및 레이아웃 (전통적 RPG 스타일)
    =================================================== */
 
-/* 게임 컨테이너 (전체 화면 고정) */
 #game-container {
   display: none;
   position: fixed;
@@ -1069,136 +1022,108 @@ a:hover {
   left: 0;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
   background: #000;
   z-index: 500;
-  flex-direction: column;
+  display: flex; /* 초기 상태: flex 레이아웃 */
+}
+
+/* 메인 게임 영역 (Canvas) */
+#game-main-area {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #game-canvas {
-  display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
-/* HUD 메인 컨테이너 (포인터 이벤트 차단, 자식에서 활성화) */
-#game-hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 10;
-  font-family: 'Noto Sans KR', sans-serif;
-}
-
-.hud-panel {
-  position: absolute;
-  pointer-events: auto;
-}
-
-/* 상단 좌측: 캐릭터 상태 (HP/MP) */
-.hud-top-left {
-  top: 15px;
-  left: 15px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 10px;
-  min-width: 200px;
-  backdrop-filter: blur(5px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-
-/* HUD 캐릭터 이름/레벨 행 */
-.status-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-#hud-name {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 1px 1px 2px #000;
-}
-
-#hud-level {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: var(--gold);
-  background: rgba(240, 192, 64, 0.2);
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-
-/* HUD 바 (HP / MP / EXP) */
-.status-bars-compact {
+/* 우측 사이드 패널 */
+#game-side-panel {
+  width: 260px;
+  background: var(--bg-dark);
+  border-left: 2px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  padding: 15px;
+  gap: 15px;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+/* 인터페이스 패널 공통 */
+.interface-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+/* 상태창 */
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+#player-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.level-badge {
+  background: rgba(240, 192, 64, 0.1);
+  color: var(--gold);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: 1px solid rgba(240, 192, 64, 0.3);
+}
+
+.stat-bar {
+  margin-bottom: 8px;
+}
+
+.stat-bar .label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  display: block;
   margin-bottom: 4px;
 }
 
-.hud-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hud-bar-track {
-  flex: 1;
-  height: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 5px;
+.stat-bar .bar-track {
+  height: 8px;
+  background: #000;
+  border-radius: 4px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.hud-bar-fill {
+.stat-bar .bar-fill {
   height: 100%;
   width: 100%;
   transition: width 0.3s ease;
 }
 
-.hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); }
-.mp-fill { background: linear-gradient(90deg, #1976d2, #2196f3); }
-.exp-fill { background: linear-gradient(90deg, #388e3c, #4caf50); }
+.hp .bar-fill { background: linear-gradient(90deg, #d32f2f, #f44336); }
+.mp .bar-fill { background: linear-gradient(90deg, #1976d2, #2196f3); }
+.exp .bar-fill { background: linear-gradient(90deg, #388e3c, #4caf50); }
 
-.hud-bar-text {
+.stat-bar .value {
   font-size: 0.65rem;
-  color: #eee;
-  min-width: 60px;
-  text-align: right;
-}
-
-/* 상단 우측: 미니맵 및 메뉴 */
-.hud-top-right {
-  top: 15px;
-  right: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.hud-minimap {
-  width: 100px;
-  height: 100px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 2px solid var(--gold);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
 .hud-menu-btns {
   display: flex;
   gap: 8px;
+}
 }
 
 .hud-btn {
