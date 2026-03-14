@@ -633,108 +633,290 @@ a:hover {
 }
 
 /* ===================================================
-   게임 페이지 (index.html) 레이아웃
+   게임 메인 레이아웃 (바람의 나라 클래식 스타일)
    =================================================== */
 
-/* 게임 시작 화면 */
-.game-title-screen {
+#game-wrapper {
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 상단: 게임 화면 영역 */
+#game-main-area {
+  flex: 1;
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  text-align: center;
-  position: relative;
-  z-index: 1;
+  background: #000;
+  border-bottom: 4px solid #3d2b1f; /* 진한 갈색 나무 느낌 */
 }
 
-.game-title-screen .game-logo {
-  margin-bottom: 16px;
+#game-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  image-rendering: pixelated; /* 도트 그래픽 강조 */
 }
 
-.game-title-screen .game-logo h1 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 3.5rem;
-  font-weight: 900;
-  background: linear-gradient(180deg, #ffe070 0%, var(--gold) 40%, var(--gold-dark) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: none;
-  filter: drop-shadow(0 2px 4px rgba(240, 192, 64, 0.3));
-  letter-spacing: 4px;
-}
-
-.game-title-screen .game-logo p {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  margin-top: 8px;
-  letter-spacing: 2px;
-}
-
-/* 캐릭터 생성 폼 */
-.character-create {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: 32px 40px;
-  width: 100%;
-  max-width: 500px;
-  margin-top: 32px;
-  animation: fadeInUp 0.6s ease;
-}
-
-.character-create h3 {
-  font-family: 'Noto Serif KR', serif;
-  color: var(--text-gold);
-  font-size: 1.2rem;
-  margin-bottom: 20px;
-}
-
-/* 직업 선택 카드 */
-.job-selector {
+/* 하단: 인터페이스 영역 */
+#game-interface {
+  height: 200px; /* 고정 하단바 */
+  background: #1a1512; /* 고전적인 갈색톤 */
+  background-image: linear-gradient(to bottom, #2a201c, #1a1512);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: 320px 1fr 280px;
+  gap: 10px;
+  padding: 10px;
+  border-top: 2px solid #5a4030;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  z-index: 50;
 }
 
-.job-card {
-  padding: 16px 8px;
-  background: var(--bg-input);
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-md);
+/* 인터페이스 패널 공통 스타일 */
+.interface-panel {
+  background: rgba(30, 20, 15, 0.8);
+  border: 3px double #8b6b4d; /* 고전 보더 */
+  border-radius: 4px;
+  padding: 10px;
+  color: #d4c4a8;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.6);
+}
+
+/* --- [1] 캐릭터 상태창 --- */
+#interface-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #5a4030;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+}
+
+#hud-name {
+  font-weight: bold;
+  color: #f0c040;
+}
+
+#hud-level {
+  font-size: 0.8rem;
+  color: #a0a0a0;
+}
+
+.status-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  width: 45px;
+  color: #d4c4a8;
+  font-family: 'Noto Serif KR', serif;
+}
+
+.bar-bg {
+  flex: 1;
+  height: 14px;
+  background: #000;
+  border: 1px solid #4a3a2a;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.bar-row.hp .bar-fill { background: linear-gradient(to bottom, #ff3030, #a01010); }
+.bar-row.mp .bar-fill { background: linear-gradient(to bottom, #3080ff, #1040a0); }
+.bar-row.exp .bar-fill { background: linear-gradient(to bottom, #d0d000, #808000); }
+
+.bar-text {
+  position: absolute;
+  width: 100%;
   text-align: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  font-size: 0.65rem;
+  color: #fff;
+  text-shadow: 1px 1px 1px #000;
+  line-height: 12px;
+  pointer-events: none;
 }
 
-.job-card:hover {
-  border-color: var(--border-accent);
-  background: var(--bg-card-hover);
-}
-
-.job-card.selected {
-  border-color: var(--gold);
-  background: rgba(240, 192, 64, 0.08);
-  box-shadow: 0 0 15px var(--gold-glow);
-}
-
-.job-card .job-icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
-}
-
-.job-card .job-name {
+.status-footer {
+  text-align: right;
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  color: #ffe070;
 }
 
-.job-card .job-desc {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 4px;
+/* --- [2] 퀵슬롯 장치 --- */
+#interface-quickslots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickslot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 60px);
+  gap: 8px;
+}
+
+.quickslot-grid .slot {
+  width: 60px;
+  height: 60px;
+  background: #111;
+  border: 2px solid #5a4030;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickslot-grid .slot:hover {
+  border-color: #f0c040;
+  background: #2a201c;
+}
+
+.quickslot-grid .slot .key {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 0.6rem;
+  color: #888;
+}
+
+.quickslot-grid .slot img {
+  width: 40px;
+  height: 40px;
+}
+
+/* --- [3] 액션 버튼 및 메뉴 --- */
+#interface-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: center;
+  justify-content: center;
+}
+
+.ui-btn {
+  width: 54px;
+  height: 54px;
+  background: #2a201c;
+  border: 2px solid #8b6b4d;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, background 0.2s;
+  color: #fff;
+  box-shadow: 0 4px 0 #1a1512;
+}
+
+.ui-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #1a1512;
+}
+
+.ui-btn:hover {
+  background: #3d2b1f;
+  border-color: #f0c040;
+}
+
+.ui-btn.attack-btn {
+  width: 70px;
+  height: 70px;
+  font-size: 2rem;
+  background: linear-gradient(to bottom, #8b4d4d, #4d1a1a);
+  border-color: #ff8080;
+}
+
+/* --- 모바일 대응 (반응형) --- */
+@media (max-width: 900px) {
+  #game-interface {
+    grid-template-columns: 1fr 1fr;
+    height: auto;
+    max-height: 250px;
+  }
+  
+  #interface-quickslots {
+    grid-column: 1 / span 2;
+    order: 3;
+    padding: 5px;
+  }
+  
+  .quickslot-grid {
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+
+  .ui-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+  }
+
+  .ui-btn.attack-btn {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* --- 퀴즈/상점/인벤토리 모던화 (바람 테마 유지) --- */
+.quiz-overlay, .shop-overlay, .inventory-overlay, .overlay {
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(4px);
+}
+
+.quiz-popup, .shop-popup, .inventory-popup, .skillbook-popup {
+  background: #2a201c;
+  border: 4px double #f0c040;
+  box-shadow: 0 0 30px rgba(0,0,0,1);
+  color: #d4c4a8;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+/* 대화창 (월드 UI 내) */
+.dialog-box {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 600px;
+  background: rgba(20, 15, 10, 0.9);
+  border: 2px solid #8b6b4d;
+  padding: 15px;
+  color: #fff;
+  z-index: 100;
 }
 
 /* ===================================================

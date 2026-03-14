@@ -135,47 +135,57 @@ class QuizManager {
      * @param {number} idx - 선택 인덱스
      */
     _selectAnswer(idx) {
-        if (!this.activeQuiz || this.activeQuiz.answered) return;
+        if (!this.activeQuiz || this.activeQuiz.isCorrecting) return;
 
-        this.activeQuiz.answered = true;
-        this.activeQuiz.selectedAnswer = idx;
-        // answer를 정수로 강제 변환하여 비교
-        const correctIdx = parseInt(this.activeQuiz.answer, 10) || 0;
-        this.activeQuiz.correct = (idx === correctIdx);
+        // answer를 정수로 강제 변환하여 비교 (Firestore 데이터 타입 대응)
+        const correctIdx = parseInt(this.activeQuiz.answer, 10);
+        const isCorrect = (idx === correctIdx);
 
         const resultEl = document.getElementById('quiz-result');
         const optionBtns = document.querySelectorAll('.quiz-option');
 
-        // 정답/오답 표시
-        optionBtns.forEach((btn, i) => {
-            btn.disabled = true;
-            if (i === correctIdx) {
-                btn.classList.add('correct');
-            }
-            if (i === idx && !this.activeQuiz.correct) {
-                btn.classList.add('wrong');
-            }
-        });
+        if (isCorrect) {
+            // 정답 처리
+            this.activeQuiz.answered = true;
+            this.activeQuiz.correct = true;
+            
+            optionBtns.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === correctIdx) btn.classList.add('correct');
+            });
 
-        if (this.activeQuiz.correct) {
             resultEl.textContent = '🎉 정답! 보너스 경험치 +30, 골드 +20 지급!';
             resultEl.className = 'quiz-result correct';
+            
+            // 사운드: 정답 (아이템 획득음 활용)
+            soundManager.play('item');
+
             this._giveReward(this.activeQuiz.player, true);
+            this._saveAnswer(this.activeQuiz);
+
+            // 정답일 때만 2.5초 후 닫기
+            setTimeout(() => this.closeQuiz(), 2500);
         } else {
-            // 안전하게 정답 텍스트 가져오기 (undefined 방지)
-            const correctText = (this.activeQuiz.options && this.activeQuiz.options[correctIdx])
-                ? this.activeQuiz.options[correctIdx]
-                : `${correctIdx + 1}번`;
-            resultEl.textContent = `❌ 오답! 정답은 "${correctText}" 입니다.`;
+            // 오답 처리 - 창을 닫지 않고 다시 기회를 줌
+            this.activeQuiz.isCorrecting = true; // 잠시 클릭 방지
+            
+            const selectedBtn = optionBtns[idx];
+            selectedBtn.classList.add('wrong');
+            selectedBtn.disabled = true;
+
+            resultEl.textContent = '❌ 오답입니다! 다시 생각해보세요.';
             resultEl.className = 'quiz-result wrong';
-            this._giveReward(this.activeQuiz.player, false);
+
+            // 사운드: 오답 (피격음 활용)
+            soundManager.play('hit', 0.8);
+
+            // 1초 후 감점 없이 다시 시도 가능하게 함 (버튼은 이미 누른건 비활성화 유지)
+            setTimeout(() => {
+                this.activeQuiz.isCorrecting = false;
+                resultEl.textContent = '다른 답을 선택해보세요.';
+                resultEl.className = 'quiz-result';
+            }, 1500);
         }
-
-        // Firestore에 답변 기록 저장
-        this._saveAnswer(this.activeQuiz);
-
-        // 2초 후 자동 닫기
-        setTimeout(() => this.closeQuiz(), 2500);
     }
 
     /**

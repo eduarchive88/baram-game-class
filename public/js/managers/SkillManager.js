@@ -326,6 +326,9 @@ class SkillManager {
         // 쿨타임 시작
         this.cooldowns[skillId] = skill.cooldown;
 
+        // 사운드: 스킬 시전
+        soundManager.play('skill');
+
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
 

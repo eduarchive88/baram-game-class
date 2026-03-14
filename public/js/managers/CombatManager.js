@@ -166,7 +166,13 @@ class CombatManager {
 
         this.attackCooldown = this.ATTACK_COOLDOWN_TIME;
 
+        // 사운드: 휘두르기 (공격 시도)
+        soundManager.play('attack');
+
         if (hitMonster) {
+            // 사운드: 타격
+            soundManager.play('hit');
+
             // 데미지 계산 (PRD 공식: ATK - DEF/2, 최소 1, 장비 보너스 반영)
             const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
 
@@ -228,6 +234,9 @@ class CombatManager {
                 player.stats.hp -= dmg;
                 if (player.stats.hp < 0) player.stats.hp = 0;
 
+                // 사운드: 플레이어 피격 (낮은 볼륨)
+                soundManager.play('hit', 0.6);
+
                 this._addDamageText(player.x + 16, player.y, dmg, '#ff4040');
 
                 // ===== 사망 판정 =====
@@ -273,6 +282,9 @@ class CombatManager {
             player.stats.mp = player.stats.maxMp;
             player.stats.atk += 3;
             player.stats.def += 2;
+
+            // 사운드: 레벨업
+            soundManager.play('levelup');
 
             this._addDamageText(player.x + 16, player.y - 40, `🎉 LEVEL UP! Lv.${player.level}`, '#FFD700');
             console.log(`[CombatManager] 레벨업! Lv.${player.level}`);

@@ -460,9 +460,20 @@ async function startGame(charData, uid) {
     }
 
     // 게임 루프 시작
-    gameRunning = true;
-    lastTime = performance.now();
     requestAnimationFrame(gameLoop);
+    
+    // 키보드 입력 활성화를 위해 윈도우 포커스
+    window.focus();
+
+    // 사운드 초기화 (사용자 첫 클릭 시 활성화 필요)
+    const initSound = () => {
+        soundManager.init();
+        soundManager.play('click');
+        window.removeEventListener('click', initSound);
+        window.removeEventListener('touchstart', initSound);
+    };
+    window.addEventListener('click', initSound);
+    window.addEventListener('touchstart', initSound);
 
     console.log(`[Main] 🎮 게임 시작! ${charData.nickname} (${charData.job}) @ ${mapManager.currentMap.name}`);
 }
@@ -805,6 +816,7 @@ function renderDialogBox() {
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' && window.gameUI.dialogVisible) {
         window.gameUI.hideDialog();
+        window.focus(); // 대화 닫은 후 키보드 입력 위해 포커스
         e.preventDefault();
     }
 });

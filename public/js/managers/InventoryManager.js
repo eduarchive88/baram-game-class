@@ -130,6 +130,8 @@ class InventoryManager {
 
         // 플레이어 스탯 재계산
         player.equipment = { ...this.equipment };
+        // 사운드: 아이템 장착
+        soundManager.play('item');
         this._save();
 
         return { success: true, message: `${item.name}을(를) 장착했습니다!` };
@@ -149,6 +151,8 @@ class InventoryManager {
         const itemId = this.equipment[slot];
         const item = shopManager.getItem(itemId);
         this.equipment[slot] = null;
+        // 사운드: 아이템 해제
+        soundManager.play('item');
 
         // 플레이어 장비 업데이트
         player.equipment = { ...this.equipment };
@@ -189,6 +193,8 @@ class InventoryManager {
 
         // 수량 차감
         this.removeItem(itemId, 1);
+        // 사운드: 소비 아이템 사용
+        soundManager.play('levelup'); // 또는 적절한 회복음
 
         return { success: true, message: `${item.name} 사용! ${item.desc}` };
     }
