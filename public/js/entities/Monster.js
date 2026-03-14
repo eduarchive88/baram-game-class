@@ -46,8 +46,8 @@ class Monster {
 
         // AI 상태
         this.state = 'idle'; // idle, roaming, chasing, attacking, dead
-        this.aiTimer = Math.random() * 2; // 행동 타이머 (랜덤 오프셋)
-        this.AI_THINK_INTERVAL = 1 + Math.random() * 1.5; // 1~2.5초마다 행동 (더 자주)
+        this.aiTimer = Math.random() * 0.5; // 행동 타이머 (랜덤 오프셋)
+        this.AI_THINK_INTERVAL = 0.5 + Math.random() * 1.0; // 0.5~1.5초마다 행동 (더 자주)
         this.roamRange = config.roamRange || 4; // 스폰에서 배회 가능 범위
         this.aggroRange = config.aggroRange || 5; // 어그로 감지 범위 (타일)
         this.isMoving = false;
@@ -64,7 +64,7 @@ class Monster {
 
         // 죽음 타이머 (사라지기까지)
         this.deathTimer = 0;
-        this.RESPAWN_TIME = 4; // 4초 후 리스폰 (상향 조정)
+        this.RESPAWN_TIME = 1.5; // 1.5초 후 리스폰 (상향 조정)
     }
 
     /**

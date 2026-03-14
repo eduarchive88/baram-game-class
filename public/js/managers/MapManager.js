@@ -52,9 +52,9 @@ class MapManager {
             ],
             // 몬스터 스폰 구역 (CombatManager 호환)
             monsterZones: [
-                { type: 'slime', x: 3, y: 3, width: 10, height: 10, count: 6, level: 1 },
-                { type: 'slime', x: 18, y: 3, width: 10, height: 10, count: 6, level: 1 },
-                { type: 'goblin', x: 3, y: 18, width: 10, height: 10, count: 4, level: 2 },
+                { type: 'slime', x: 3, y: 3, width: 10, height: 10, count: 12, level: 1 },
+                { type: 'slime', x: 18, y: 3, width: 10, height: 10, count: 12, level: 1 },
+                { type: 'goblin', x: 3, y: 18, width: 10, height: 10, count: 8, level: 2 },
             ],
         };
 
@@ -99,10 +99,10 @@ class MapManager {
                 { x: 0, y: 15, targetMap: 'map_001', targetX: 23, targetY: 12, label: '← 바람 마을' },
             ],
             monsterZones: [
-                { type: 'wolf', x: 8, y: 3, width: 12, height: 12, count: 8, level: 3 },
-                { type: 'skeleton', x: 20, y: 5, width: 12, height: 12, count: 6, level: 4 },
-                { type: 'wolf', x: 5, y: 20, width: 12, height: 12, count: 6, level: 3 },
-                { type: 'goblin', x: 20, y: 20, width: 12, height: 12, count: 6, level: 3 },
+                { type: 'wolf', x: 8, y: 3, width: 12, height: 12, count: 16, level: 3 },
+                { type: 'skeleton', x: 20, y: 5, width: 12, height: 12, count: 12, level: 4 },
+                { type: 'wolf', x: 5, y: 20, width: 12, height: 12, count: 12, level: 3 },
+                { type: 'goblin', x: 20, y: 20, width: 12, height: 12, count: 12, level: 3 },
             ],
         };
 

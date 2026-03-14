@@ -163,8 +163,8 @@ class QuizManager {
             this._giveReward(this.activeQuiz.player, true);
             this._saveAnswer(this.activeQuiz);
 
-            // 정답일 때만 1.5초 후 닫기
-            setTimeout(() => this.closeQuiz(), 1500);
+            // 정답일 때만 1.2초 후 닫기 (약간 더 빠르게)
+            setTimeout(() => this.closeQuiz(), 1200);
         } else {
             // 오답 처리 - 창을 닫지 않고 다시 기회를 줌
             this.activeQuiz.isCorrecting = true; // 잠시 클릭 방지
@@ -179,12 +179,12 @@ class QuizManager {
             // 사운드: 오답 (피격음 활용)
             soundManager.play('hit', 0.8);
 
-            // 1초 후 감점 없이 다시 시도 가능하게 함 (버튼은 이미 누른건 비활성화 유지)
+            // 1.2초 후 감점 없이 다시 시도 가능하게 함
             setTimeout(() => {
                 this.activeQuiz.isCorrecting = false;
                 resultEl.textContent = '다른 답을 선택해보세요.';
                 resultEl.className = 'quiz-result';
-            }, 1500);
+            }, 1200);
         }
     }
 
