@@ -59,6 +59,15 @@ class Player {
         this.isAlive = true;
         this.isAttacking = false;
         this.attackTimer = 0;
+
+        // ===== 유령 모드 (사망 페널티) =====
+        this.isDead = false;
+        this.deathTimer = 0;           // 남은 부활 대기 시간 (초)
+        this.DEATH_PENALTY_TIME = 60;  // 사망 페널티: 60초
+        this.deathFadeAlpha = 0;       // 사망 시 페이드 효과
+
+        // ===== 전투 이펙트 시스템 =====
+        this.effects = [];  // [{ type, x, y, timer, duration, ... }]
     }
 
     /**
@@ -107,6 +116,37 @@ class Player {
      * @param {MapManager} map - 맵 관리자
      */
     update(dt, input, map) {
+        // ===== 이펙트 타이머 업데이트 =====
+        this.effects = this.effects.filter(e => {
+            e.timer += dt;
+            return e.timer < e.duration;
+        });
+
+        // ===== 유령 모드 처리 =====
+        if (this.isDead) {
+            this.deathTimer -= dt;
+            this.deathFadeAlpha = Math.min(1, this.deathFadeAlpha + dt * 2);
+
+            // 유령 상태에서도 이동은 가능
+            if (this.isMoving) {
+                this._smoothMove(dt);
+                this._updateAnimation(dt);
+            } else if (this.moveCooldown > 0) {
+                this.moveCooldown -= dt;
+            } else if (input.direction) {
+                this.direction = input.direction;
+                this._tryMove(input.direction, map);
+            } else {
+                this.animFrame = 0;
+            }
+
+            // 부활 타이머 만료 → 부활
+            if (this.deathTimer <= 0) {
+                this._respawn();
+            }
+            return; // 유령 상태에서는 공격/스킬 불가
+        }
+
         // 이동 중이면 목표까지 부드럽게 보간
         if (this.isMoving) {
             this._smoothMove(dt);
@@ -206,10 +246,12 @@ class Player {
      */
     _attack() {
         this.isAttacking = true;
-        this.attackTimer = 0.3; // 공격 모션 시간
+        this.attackTimer = 0.3;
 
-        // 공격 범위 앞 타일의 몬스터 감지 (Phase 3에서 구현)
-        console.log(`[Player] ${this.nickname} 공격! 방향: ${this.direction}`);
+        // 공격 이펙트 생성 (방향에 따라 슬래시)
+        const offsets = { up: [0, -32], down: [0, 32], left: [-32, 0], right: [32, 0] };
+        const [ox, oy] = offsets[this.direction] || [0, 32];
+        this._spawnSlashEffect(this.x + ox, this.y + oy, this.direction);
 
         setTimeout(() => {
             this.isAttacking = false;
@@ -221,9 +263,164 @@ class Player {
      */
     _interactNPC(npc) {
         console.log(`[Player] NPC 대화: ${npc.name} - "${npc.dialog}"`);
-        // 대화 UI 이벤트 발생
         if (window.gameUI) {
             window.gameUI.showDialog(npc.name, npc.dialog);
+        }
+    }
+
+    // ===== 사망 / 부활 시스템 =====
+
+    /**
+     * 사망 처리 (HP가 0이 되었을 때 CombatManager에서 호출)
+     */
+    die() {
+        if (this.isDead) return;
+        this.isDead = true;
+        this.isAlive = false;
+        this.deathTimer = this.DEATH_PENALTY_TIME;
+        this.deathFadeAlpha = 0;
+        this.isAttacking = false;
+        console.log(`[Player] ${this.nickname} 사망! ${this.DEATH_PENALTY_TIME}초 후 부활`);
+    }
+
+    /**
+     * 부활 처리
+     */
+    _respawn() {
+        this.isDead = false;
+        this.isAlive = true;
+        this.stats.hp = Math.floor(this.stats.maxHp * 0.3); // HP 30%로 부활
+        this.stats.mp = Math.floor(this.stats.maxMp * 0.3); // MP 30%로 부활
+        this.deathFadeAlpha = 0;
+
+        // 부활 이펙트
+        this._spawnReviveEffect();
+        console.log(`[Player] ${this.nickname} 부활!`);
+    }
+
+    // ===== 이펙트 생성 헬퍼 =====
+
+    /**
+     * 근접 공격 슬래시 이펙트
+     */
+    _spawnSlashEffect(x, y, dir) {
+        this.effects.push({
+            type: 'slash', x, y, dir,
+            timer: 0, duration: 0.3,
+            color: '#FFD700',
+        });
+        // 파티클 스파크
+        for (let i = 0; i < 5; i++) {
+            this.effects.push({
+                type: 'particle', 
+                x: x + (Math.random() - 0.5) * 20,
+                y: y + (Math.random() - 0.5) * 20,
+                vx: (Math.random() - 0.5) * 80,
+                vy: (Math.random() - 0.5) * 80 - 30,
+                timer: 0, duration: 0.4,
+                color: '#FFD700', size: 2 + Math.random() * 2,
+            });
+        }
+    }
+
+    /**
+     * 스킬 시전 이펙트 (외부에서 호출 가능)
+     * @param {string} skillType - 'magic', 'heal', 'buff', 'aoe'
+     * @param {string} color - 이펙트 색상
+     */
+    spawnSkillEffect(skillType, color) {
+        const cx = this.x;
+        const cy = this.y;
+
+        switch (skillType) {
+            case 'magic': {
+                // 전방 마법 발사체
+                const offsets = { up: [0, -40], down: [0, 40], left: [-40, 0], right: [40, 0] };
+                const [ox, oy] = offsets[this.direction] || [0, 40];
+                this.effects.push({
+                    type: 'magic_bolt', x: cx + ox, y: cy + oy,
+                    timer: 0, duration: 0.5, color: color || '#c080ff',
+                });
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 / 8) * i;
+                    this.effects.push({
+                        type: 'particle',
+                        x: cx + ox + Math.cos(angle) * 8,
+                        y: cy + oy + Math.sin(angle) * 8,
+                        vx: Math.cos(angle) * 60, vy: Math.sin(angle) * 60,
+                        timer: 0, duration: 0.5,
+                        color: color || '#c080ff', size: 2,
+                    });
+                }
+                break;
+            }
+            case 'heal': {
+                // 회복 빛기둥 + 반짝이
+                this.effects.push({
+                    type: 'heal_pillar', x: cx, y: cy,
+                    timer: 0, duration: 0.8, color: color || '#80ff80',
+                });
+                for (let i = 0; i < 12; i++) {
+                    this.effects.push({
+                        type: 'particle',
+                        x: cx + (Math.random() - 0.5) * 24,
+                        y: cy + (Math.random() - 0.5) * 24,
+                        vx: (Math.random() - 0.5) * 30,
+                        vy: -40 - Math.random() * 60,
+                        timer: 0, duration: 0.6 + Math.random() * 0.3,
+                        color: color || '#80ff80', size: 2 + Math.random() * 2,
+                    });
+                }
+                break;
+            }
+            case 'buff': {
+                // 버프 원형 파동
+                this.effects.push({
+                    type: 'buff_ring', x: cx, y: cy,
+                    timer: 0, duration: 0.6, color: color || '#80d0ff',
+                });
+                break;
+            }
+            case 'aoe': {
+                // 광역 폭발
+                this.effects.push({
+                    type: 'aoe_explosion', x: cx, y: cy,
+                    timer: 0, duration: 0.7, color: color || '#ff8040',
+                });
+                for (let i = 0; i < 16; i++) {
+                    const angle = (Math.PI * 2 / 16) * i;
+                    this.effects.push({
+                        type: 'particle',
+                        x: cx + Math.cos(angle) * 12,
+                        y: cy + Math.sin(angle) * 12,
+                        vx: Math.cos(angle) * 100, vy: Math.sin(angle) * 100,
+                        timer: 0, duration: 0.5,
+                        color: color || '#ff8040', size: 3,
+                    });
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * 부활 이펙트
+     */
+    _spawnReviveEffect() {
+        this.effects.push({
+            type: 'heal_pillar', x: this.x, y: this.y,
+            timer: 0, duration: 1.0, color: '#FFD700',
+        });
+        for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 / 20) * i;
+            this.effects.push({
+                type: 'particle',
+                x: this.x + Math.cos(angle) * 16,
+                y: this.y + Math.sin(angle) * 16,
+                vx: Math.cos(angle) * 50, vy: -60 - Math.random() * 40,
+                timer: 0, duration: 0.8,
+                color: '#FFD700', size: 3,
+            });
         }
     }
 
@@ -238,6 +435,13 @@ class Player {
         const screenX = this.x - 16 - camera.x;
         const screenY = this.y - 16 - camera.y;
 
+        ctx.save();
+
+        // ===== 유령 모드 렌더링 =====
+        if (this.isDead) {
+            ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 300) * 0.15; // 깜빡이는 반투명
+        }
+
         // 캐릭터 스프라이트 렌더링
         const charSprites = assetManager.images.characters[this.job];
         if (charSprites) {
@@ -247,22 +451,30 @@ class Player {
             }
         }
 
-        // 공격 이펙트 (간단한 슬래시)
-        if (this.isAttacking) {
+        ctx.restore();
+
+        // ===== 이펙트 렌더링 =====
+        this._renderEffects(ctx, camera);
+
+        // ===== 유령 상태 표시 =====
+        if (this.isDead) {
             ctx.save();
-            ctx.globalAlpha = 0.7;
-            ctx.fillStyle = '#FFD700';
-            let atkX = screenX + 16, atkY = screenY + 16;
-            switch (this.direction) {
-                case 'up': atkY -= 28; break;
-                case 'down': atkY += 28; break;
-                case 'left': atkX -= 28; break;
-                case 'right': atkX += 28; break;
-            }
-            ctx.beginPath();
-            ctx.arc(atkX, atkY, 10, 0, Math.PI * 2);
-            ctx.fill();
+            // 유령 아이콘
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('👻', screenX + 16, screenY - 14);
+
+            // 부활 타이머
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px "Noto Sans KR", sans-serif';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            const timerText = `부활 ${Math.ceil(this.deathTimer)}초`;
+            ctx.strokeText(timerText, screenX + 16, screenY - 4);
+            ctx.fillStyle = '#ff8080';
+            ctx.fillText(timerText, screenX + 16, screenY - 4);
             ctx.restore();
+            return; // 유령 상태에서는 HP바/닉네임 생략
         }
 
         // 닉네임 표시
@@ -278,6 +490,143 @@ class Player {
 
         // HP 바 표시
         this._renderHPBar(ctx, screenX, screenY);
+    }
+
+    /**
+     * 전투 이펙트 렌더링 (슬래시, 파티클, 마법, 힐, 버프, AOE)
+     */
+    _renderEffects(ctx, camera) {
+        this.effects.forEach(e => {
+            const sx = e.x - camera.x;
+            const sy = e.y - camera.y;
+            const progress = e.timer / e.duration;
+
+            ctx.save();
+
+            switch (e.type) {
+                case 'slash': {
+                    // 반원 슬래시 이펙트
+                    const alpha = 1 - progress;
+                    ctx.globalAlpha = alpha * 0.8;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 10;
+
+                    const startAngle = { up: Math.PI, down: 0, left: Math.PI / 2, right: -Math.PI / 2 };
+                    const angle = startAngle[e.dir] || 0;
+                    const sweep = Math.PI * progress * 1.2;
+                    const radius = 12 + progress * 8;
+
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, angle - sweep / 2, angle + sweep / 2);
+                    ctx.stroke();
+
+                    // 내부 빛 채움
+                    ctx.globalAlpha = alpha * 0.3;
+                    ctx.fillStyle = e.color;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'particle': {
+                    // 이동하는 작은 파티클
+                    const px = sx + (e.vx || 0) * e.timer;
+                    const py = sy + (e.vy || 0) * e.timer;
+                    const alpha = 1 - progress;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = e.color;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(px, py, (e.size || 2) * (1 - progress * 0.5), 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'magic_bolt': {
+                    // 마법 구체
+                    const alpha = 1 - progress;
+                    const radius = 8 + Math.sin(progress * Math.PI) * 6;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = e.color;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 외곽 글로우 링
+                    ctx.globalAlpha = alpha * 0.4;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                }
+                case 'heal_pillar': {
+                    // 치유 빛기둥
+                    const alpha = (1 - progress) * 0.6;
+                    const h = 40 * (1 - progress * 0.3);
+                    ctx.globalAlpha = alpha;
+
+                    const gradient = ctx.createLinearGradient(sx, sy - h, sx, sy + 8);
+                    gradient.addColorStop(0, 'transparent');
+                    gradient.addColorStop(0.3, e.color);
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(sx - 6, sy - h, 12, h + 8);
+
+                    // 중심 밝은 점
+                    ctx.globalAlpha = alpha * 1.5;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy - h * 0.5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'buff_ring': {
+                    // 바닥에서 확장되는 링
+                    const radius = 6 + progress * 28;
+                    const alpha = (1 - progress) * 0.7;
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                }
+                case 'aoe_explosion': {
+                    // 광역 폭발 원
+                    const maxR = 48;
+                    const radius = progress * maxR;
+                    const alpha = (1 - progress) * 0.5;
+
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = e.color;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 25;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 내부 링
+                    ctx.globalAlpha = alpha * 0.8;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius * 0.7, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                }
+            }
+
+            ctx.restore();
+        });
     }
 
     /**

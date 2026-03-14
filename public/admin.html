@@ -246,6 +246,29 @@
           </div>
         </div>
 
+        <!-- ========== 등록된 세션 및 학생 목록 ========== -->
+        <div class="card full-width">
+          <div class="card-title">🏫 현재 등록된 세션 및 학생 명단</div>
+          <div id="current-sessions-container" style="max-height:400px; overflow-y:auto;">
+            <table class="data-table" id="current-sessions-table">
+              <thead>
+                <tr>
+                  <th>세션 코드</th>
+                  <th>학년분반</th>
+                  <th>이름</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="current-sessions-body">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--text-muted); padding:32px;">세션 데이터 로딩 중...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- ========== 현재 등록된 퀴즈 목록 ========== -->
         <div class="card full-width">
           <div class="card-title">📝 현재 등록된 퀴즈 목록</div>

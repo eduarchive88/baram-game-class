@@ -131,6 +131,8 @@ class CombatManager {
      * @returns {boolean} 공격 성공 여부
      */
     playerAttack(player) {
+        // 유령 상태에서는 공격 불가
+        if (player.isDead) return false;
         if (this.attackCooldown > 0) return false;
 
         // 플레이어 전방 타일 계산
@@ -201,6 +203,9 @@ class CombatManager {
      * 몬스터의 플레이어 공격 체크 (근접)
      */
     _checkMonsterAttacks(dt, player) {
+        // 유령 상태에서는 몬스터가 공격하지 않음
+        if (player.isDead) return;
+
         this.monsters.forEach(m => {
             if (m.state !== 'attacking' || m.isMoving) return;
 
@@ -209,9 +214,13 @@ class CombatManager {
             const dy = Math.abs(m.tileY - player.tileY);
             if (dx + dy > 1) return;
 
-            // 몬스터 공격은 AI_THINK_INTERVAL마다 (이미 _think에서 처리)
-            // 여기서는 공격 시 데미지만 적용 (aiTimer 리셋 시)
             if (m.aiTimer >= m.AI_THINK_INTERVAL * 0.8) {
+                // 무적 버프 체크
+                if (typeof skillManager !== 'undefined') {
+                    const buffBonus = skillManager.getBuffBonus();
+                    if (buffBonus.invincible > 0) return; // 무적 상태
+                }
+
                 const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
                 const rawDmg = m.stats.atk - Math.floor(effectiveStats.def / 2);
                 const dmg = Math.max(1, rawDmg);
@@ -220,6 +229,12 @@ class CombatManager {
                 if (player.stats.hp < 0) player.stats.hp = 0;
 
                 this._addDamageText(player.x + 16, player.y, dmg, '#ff4040');
+
+                // ===== 사망 판정 =====
+                if (player.stats.hp <= 0 && !player.isDead) {
+                    player.die();
+                    this._addDamageText(player.x + 16, player.y - 20, '💀 사망!', '#ff4040');
+                }
             }
         });
     }
@@ -232,6 +247,12 @@ class CombatManager {
     _onMonsterKill(player, monster) {
         const expGain = monster.stats.exp;
         const goldGain = monster.stats.gold;
+
+        // 유령 상태이면 경험치/골드 획득 불가 (파티원이라도 불가)
+        if (player.isDead) {
+            this._addDamageText(monster.x + 16, monster.y - 16, '👻 경험치 획득 불가', '#888888');
+            return;
+        }
 
         player.exp = (player.exp || 0) + expGain;
         player.gold = (player.gold || 0) + goldGain;

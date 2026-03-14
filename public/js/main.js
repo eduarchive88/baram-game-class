@@ -40,28 +40,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[Main] 게임 초기화 시작');
     setupAuthUI();
 
-    // Firebase Auth 상태 감지
+    // Firebase Auth 상태 감지 (학생은 익명 로그인 대신 localStorage 기반 세션 유지로 변경)
     auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log(`[Main] 로그인됨: ${user.uid}`);
+        const savedStudentUid = localStorage.getItem('studentUid');
+        const savedStudentName = localStorage.getItem('studentName');
 
-            const savedStudentUid = localStorage.getItem('studentUid');
-            const savedStudentName = localStorage.getItem('studentName');
-
-            if (user.isAnonymous && savedStudentUid) {
-                // 학생 로그인
-                await handleLoginSuccess(savedStudentUid, 'student', savedStudentName);
-            } else if (!user.isAnonymous) {
-                // 교사 로그인 -> 관리자 페이지로 (또는 교사도 캐릭터를 만들 수 있다면 그대로)
-                // 만약 교사가 게임에 들어와버렸다면 admin.html로 이동할 수 있는 버튼을 띄우거나,
-                // 여기서는 일단 같이 게임에 접속할 수 있게 하되, admin 이동 기능은 UI로 제공한다고 가정.
-                // 편의상 곧바로 admin.html로 리다이렉트 시킬수도 있으나 교사도 테스트를 위해 게임을 할 수 있게 둠.
-                await handleLoginSuccess(user.uid, 'teacher', user.email.split('@')[0]);
-            }
+        if (user && !user.isAnonymous) {
+            console.log(`[Main] 교사 로그인됨: ${user.uid}`);
+            await handleLoginSuccess(user.uid, 'teacher', user.email.split('@')[0]);
+        } else if (savedStudentUid) {
+            console.log(`[Main] 학생(로컬) 세션 유지: ${savedStudentUid}`);
+            await handleLoginSuccess(savedStudentUid, 'student', savedStudentName);
         } else {
             console.log('[Main] 로그아웃 상태');
-            localStorage.removeItem('studentUid');
-            localStorage.removeItem('studentName');
             showScreen('auth-screen');
             stopGame();
         }
@@ -173,6 +164,9 @@ function setupAuthUI() {
                 btnStudentLogin.disabled = true;
                 btnStudentLogin.textContent = '로그인 중...';
 
+                // (변경) Firebase 설정 우회를 위해 익명 로그인 호출 제거
+                // RTDB 보안 규칙(.read, .write = true)을 통해 직접 접근 허용
+
                 // 세션 존재 여부 및 학생 확인
                 const studentId = `${grade}_${cls}_${num}_${name}`;
                 const studentRef = rtdb.ref(`sessions/${code}/students/${studentId}`);
@@ -187,10 +181,11 @@ function setupAuthUI() {
                 localStorage.setItem('studentUid', studentUid);
                 localStorage.setItem('studentName', name);
 
-                // 익명 로그인으로 RTDB 쓰기 권한 확보
-                await auth.signInAnonymously();
+                // 명시적으로 로그인 성공 핸들러 호출 (onAuthStateChanged는 localStorage가 설정되기 전에 호출될 수 있으므로)
+                await handleLoginSuccess(studentUid, 'student', name);
+
             } catch (err) {
-                errorEl.textContent = '로그인 중 오류가 발생했습니다.';
+                errorEl.textContent = '로그인 오류: ' + (err.message || err.code || '알 수 없는 오류');
                 console.error(err);
             } finally {
                 btnStudentLogin.disabled = false;
@@ -347,7 +342,14 @@ function setupCharacterCreation(uid, role, name) {
 
     const btnLogout = document.getElementById('btn-game-logout');
     if (btnLogout) {
-        btnLogout.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+        btnLogout.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            localStorage.removeItem('studentUid');
+            localStorage.removeItem('studentName');
+            auth.signOut(); 
+            showScreen('auth-screen');
+            stopGame();
+        });
     }
 }
 
@@ -444,6 +446,19 @@ async function startGame(charData, uid) {
         });
     }
 
+    // 스킬 슬롯 터치/클릭 지원 (모바일 및 PC 마우스용)
+    for (let i = 0; i < 4; i++) {
+        const slotEl = document.getElementById(`skill-slot-${i}`);
+        if (slotEl) {
+            slotEl.addEventListener('pointerdown', (e) => {
+                if (localPlayer && !inventoryManager.isOpen && !skillManager.isBookOpen && gameRunning) {
+                    skillManager.useSkill(i, localPlayer, combatManager);
+                    e.preventDefault();
+                }
+            });
+        }
+    }
+
     // 게임 루프 시작
     gameRunning = true;
     lastTime = performance.now();
@@ -454,8 +469,18 @@ async function startGame(charData, uid) {
 
 function resizeCanvas() {
     if (!gameCanvas) return;
-    gameCanvas.width = window.innerWidth;
-    gameCanvas.height = window.innerHeight;
+
+    // 모바일 기기(가로픽셀 작음)에서는 2배~2.5배 줌, PC는 1.5배 줌을 통해 
+    // 바람의나라 특유의 큼직한 도트 감성을 살림
+    const zoom = window.innerWidth < 768 ? 2.5 : 1.5; 
+
+    gameCanvas.width = Math.floor(window.innerWidth / zoom);
+    gameCanvas.height = Math.floor(window.innerHeight / zoom);
+    
+    // CSS 크기는 브라우저 창 100%를 유지하여 화면에 꽉 차게 렌더링
+    gameCanvas.style.width = window.innerWidth + 'px';
+    gameCanvas.style.height = window.innerHeight + 'px';
+    
     gameCtx.imageSmoothingEnabled = false;
 }
 
@@ -556,6 +581,32 @@ function render() {
         gameCtx.fillStyle = '#FFD700';
         gameCtx.font = 'bold 11px "Noto Sans KR", sans-serif';
         gameCtx.fillText(`📍 ${mapManager.currentMap.name} | 👥 ${networkManager.getPlayerCount()}명`, 16, 24);
+        gameCtx.restore();
+    }
+
+    // ===== 유령 모드 배너 =====
+    if (localPlayer && localPlayer.isDead) {
+        gameCtx.save();
+        // 반투명 빨간 오버레이
+        gameCtx.fillStyle = 'rgba(80, 0, 0, 0.35)';
+        gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        // 사망 배너
+        const bannerY = gameCanvas.height / 2 - 30;
+        gameCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        gameCtx.fillRect(0, bannerY, gameCanvas.width, 60);
+
+        gameCtx.textAlign = 'center';
+        gameCtx.fillStyle = '#ff4040';
+        gameCtx.font = 'bold 18px "Noto Sans KR", sans-serif';
+        gameCtx.fillText('👻 유령 상태', gameCanvas.width / 2, bannerY + 24);
+
+        gameCtx.fillStyle = '#ffffff';
+        gameCtx.font = '12px "Noto Sans KR", sans-serif';
+        gameCtx.fillText(
+            `부활까지 ${Math.ceil(localPlayer.deathTimer)}초 | 이동만 가능합니다`,
+            gameCanvas.width / 2, bannerY + 44
+        );
         gameCtx.restore();
     }
 

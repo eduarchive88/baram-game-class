@@ -1157,49 +1157,99 @@ a:hover {
   box-shadow: 0 0 10px rgba(240, 192, 64, 0.3);
 }
 
-/* 액션 버튼 영역 */
+/* 액션 버튼 영역 (클러스터형 배치) */
 .action-buttons {
-  pointer-events: auto;
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
+  position: relative;
+  width: 180px;
+  height: 180px;
+  pointer-events: none;
 }
 
+.action-btn-wrap {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: auto;
+}
+
+.action-btn-wrap span {
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  text-shadow: 1px 1px 4px #000;
+  pointer-events: none;
+}
+
+/* 기본 버튼 스타일 */
 .action-btn {
-  width: 60px;
-  height: 60px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(10, 14, 26, 0.6);
   color: #fff;
-  font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   touch-action: none;
   transition: all 0.1s ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
 }
 
 .action-btn:active,
 .action-btn.pressed {
   transform: scale(0.9);
-  background: rgba(240, 192, 64, 0.3);
+  background: rgba(240, 192, 64, 0.4);
   border-color: var(--gold);
-  box-shadow: 0 0 15px rgba(240, 192, 64, 0.4);
 }
 
-.attack-btn {
+/* 메인 공격 버튼 (우측 하단 큰 사이즈) */
+#btn-attack {
+  width: 68px;
+  height: 68px;
+  font-size: 2rem;
+  background: rgba(255, 74, 90, 0.15);
   border-color: rgba(255, 74, 90, 0.4);
-  background: rgba(255, 74, 90, 0.1);
 }
-
-.attack-btn:active,
-.attack-btn.pressed {
-  background: rgba(255, 74, 90, 0.3);
+#btn-attack:active, #btn-attack.pressed {
+  background: rgba(255, 74, 90, 0.4);
   border-color: var(--red-accent);
   box-shadow: 0 0 15px var(--red-glow);
 }
+.action-btn-wrap:has(#btn-attack) {
+  bottom: 0px;
+  right: 0px;
+}
+
+/* 서브 액션 버튼 (작은 사이즈) */
+.action-btn-wrap:not(:has(#btn-attack)) .action-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.2rem;
+}
+
+/* 각 버튼의 방사형 위치 */
+/* 1. 대화 (공격 위쪽) */
+.action-btn-wrap:has(#btn-interact) {
+  bottom: 84px;
+  right: 8px;
+}
+
+/* 2. 스킬 (공격 왼쪽) */
+.action-btn-wrap:has(#btn-skillbook) {
+  bottom: 8px;
+  right: 84px;
+}
+
+/* 3. 가방 (공격 10시 방향 대각선 위) */
+.action-btn-wrap:has(#btn-inventory) {
+  bottom: 70px;
+  right: 70px;
+}
+
+
 
 /* ===================================================
    Phase 3: EXP 바

@@ -24,11 +24,9 @@ class InputManager {
         // 모바일 감지
         this._detectMobile();
 
-        // 이벤트 바인딩
+        // 이벤트 바인딩 (PC, 모바일 모두 설정하여 크로스 플랫폼 지원)
         this._bindKeyboard();
-        if (this.isMobile) {
-            this._setupMobileControls();
-        }
+        this._setupMobileControls();
     }
 
     /**
@@ -122,18 +120,44 @@ class InputManager {
         joystickZone.addEventListener('touchend', touchEndHandler);
         joystickZone.addEventListener('touchcancel', touchEndHandler);
 
-        // 액션 버튼 (공격/인터랙션)
-        const actionBtn = document.getElementById('btn-action');
-        if (actionBtn) {
-            actionBtn.addEventListener('touchstart', (e) => {
+        // 액션 버튼 (공격)
+        const attackBtn = document.getElementById('btn-attack');
+        if (attackBtn) {
+            const handleAttackStart = (e) => {
                 e.preventDefault();
                 this.actionPressed = true;
-                actionBtn.classList.add('pressed');
-            }, { passive: false });
-            actionBtn.addEventListener('touchend', (e) => {
+                attackBtn.classList.add('pressed');
+            };
+            const handleAttackEnd = (e) => {
+                e.preventDefault();
                 this.actionPressed = false;
-                actionBtn.classList.remove('pressed');
-            });
+                attackBtn.classList.remove('pressed');
+            };
+            attackBtn.addEventListener('touchstart', handleAttackStart, { passive: false });
+            attackBtn.addEventListener('touchend', handleAttackEnd);
+            attackBtn.addEventListener('mousedown', handleAttackStart);
+            attackBtn.addEventListener('mouseup', handleAttackEnd);
+            attackBtn.addEventListener('mouseleave', handleAttackEnd);
+        }
+
+        // 인터랙션 버튼 (대화/수집)
+        const interactBtn = document.getElementById('btn-interact');
+        if (interactBtn) {
+            const handleInteractStart = (e) => {
+                e.preventDefault();
+                this.actionPressed = true;
+                interactBtn.classList.add('pressed');
+            };
+            const handleInteractEnd = (e) => {
+                e.preventDefault();
+                this.actionPressed = false;
+                interactBtn.classList.remove('pressed');
+            };
+            interactBtn.addEventListener('touchstart', handleInteractStart, { passive: false });
+            interactBtn.addEventListener('touchend', handleInteractEnd);
+            interactBtn.addEventListener('mousedown', handleInteractStart);
+            interactBtn.addEventListener('mouseup', handleInteractEnd);
+            interactBtn.addEventListener('mouseleave', handleInteractEnd);
         }
     }
 
@@ -172,39 +196,37 @@ class InputManager {
      * 키보드 또는 조이스틱에서 방향 결정
      */
     update() {
-        if (this.isMobile && this.joystick.active) {
-            // 모바일 조이스틱 방향 계산
+        let dir = null;
+
+        // 1. 조이스틱 입력 확인
+        if (this.joystick.active) {
             const dx = this.joystick.currentX - this.joystick.startX;
             const dy = this.joystick.currentY - this.joystick.startY;
             const deadzone = 15;
 
-            if (Math.abs(dx) < deadzone && Math.abs(dy) < deadzone) {
-                this.direction = null;
-                return;
+            if (Math.abs(dx) > deadzone || Math.abs(dy) > deadzone) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    dir = dx > 0 ? 'right' : 'left';
+                } else {
+                    dir = dy > 0 ? 'down' : 'up';
+                }
             }
-
-            // 4방향 중 가장 큰 축 선택
-            if (Math.abs(dx) > Math.abs(dy)) {
-                this.direction = dx > 0 ? 'right' : 'left';
-            } else {
-                this.direction = dy > 0 ? 'down' : 'up';
-            }
-        } else if (!this.isMobile) {
-            // PC 키보드 방향 처리 (WASD + 방향키)
-            if (this.keys['ArrowUp'] || this.keys['KeyW']) {
-                this.direction = 'up';
-            } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {
-                this.direction = 'down';
-            } else if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
-                this.direction = 'left';
-            } else if (this.keys['ArrowRight'] || this.keys['KeyD']) {
-                this.direction = 'right';
-            } else {
-                this.direction = null;
-            }
-        } else {
-            this.direction = null;
         }
+
+        // 2. 조이스틱 입력이 없으면 키보드 확인
+        if (!dir) {
+            if (this.keys['ArrowUp'] || this.keys['KeyW']) {
+                dir = 'up';
+            } else if (this.keys['ArrowDown'] || this.keys['KeyS']) {
+                dir = 'down';
+            } else if (this.keys['ArrowLeft'] || this.keys['KeyA']) {
+                dir = 'left';
+            } else if (this.keys['ArrowRight'] || this.keys['KeyD']) {
+                dir = 'right';
+            }
+        }
+
+        this.direction = dir;
     }
 
     /**

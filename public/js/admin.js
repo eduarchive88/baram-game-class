@@ -59,6 +59,7 @@ const DOM = {
     studentStatsBody: document.getElementById('student-stats-body'),
     wrongStatsBody: document.getElementById('wrong-stats-body'),
     currentQuizBody: document.getElementById('current-quiz-body'),
+    currentSessionsBody: document.getElementById('current-sessions-body'),
 };
 
 // ============================================================
@@ -128,6 +129,7 @@ auth.onAuthStateChanged((user) => {
             // 통계 데이터 로드
             loadAllStats();
             loadCurrentQuizzes();
+            loadCurrentSessions();
         } else {
             // GM이 아닌 일반 유저 → 접근 차단
             DOM.authOverlay.style.display = 'none';
@@ -492,6 +494,8 @@ DOM.btnConfirmStudentUpload.addEventListener('click', async () => {
         console.log(`[RTDB] 세션 ${sessionCode} 에 학생 ${parsedStudentData.length}명 등록 완료`);
         showToast(`✅ ${parsedStudentData.length}명의 학생이 성공적으로 등록되었습니다!`, 'success');
 
+        loadCurrentSessions();
+
         parsedStudentData = [];
         DOM.studentPreviewSection.style.display = 'none';
         DOM.studentPreviewBody.innerHTML = '';
@@ -705,11 +709,88 @@ async function loadCurrentQuizzes() {
     }
 }
 
+/**
+ * 현재 등록된 세션 및 학생 명단을 RTDB에서 로드하여 렌더링
+ */
+async function loadCurrentSessions() {
+    try {
+        const snapshot = await rtdb.ref('sessions').once('value');
+        const sessions = snapshot.val();
+
+        if (!sessions) {
+            DOM.currentSessionsBody.innerHTML = `
+        <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:32px;">
+          등록된 세션이 없습니다. 엑셀 파일을 업로드해 세션을 생성하세요.
+        </td></tr>`;
+            return;
+        }
+
+        let html = '';
+        for (const [sessionCode, sessionData] of Object.entries(sessions)) {
+            const students = sessionData.students || {};
+            const studentCount = Object.keys(students).length;
+            
+            // 대표 학생 정보 추출 (1명)
+            let sampleGradeClass = '-';
+            let sampleNames = [];
+            
+            const studentList = Object.values(students);
+            if (studentList.length > 0) {
+                sampleGradeClass = `${studentList[0].grade}학년 ${studentList[0].class}반`;
+                sampleNames = studentList.slice(0, 3).map(s => s.name);
+            }
+            
+            const nameDisplay = sampleNames.length > 0 
+                ? sampleNames.join(', ') + (studentList.length > 3 ? ` 외 ${studentList.length - 3}명` : '')
+                : '등록된 학생 없음';
+
+            html += `
+            <tr>
+              <td><span class="badge badge-gold">${escapeHtml(sessionCode)}</span></td>
+              <td>${escapeHtml(sampleGradeClass)}</td>
+              <td>${escapeHtml(nameDisplay)}</td>
+              <td><span class="badge badge-green">활성 (${studentCount}명)</span></td>
+              <td>
+                <button class="btn btn-sm btn-secondary" onclick="deleteSession('${sessionCode}')">삭제</button>
+              </td>
+            </tr>
+            `;
+        }
+
+        DOM.currentSessionsBody.innerHTML = html;
+
+    } catch (err) {
+        console.error('[세션 목록 로드 에러]', err);
+        DOM.currentSessionsBody.innerHTML = `
+      <tr><td colspan="5" style="text-align:center; color:var(--red-accent); padding:32px;">
+        데이터 로드 실패: ${err.message}
+      </td></tr>`;
+    }
+}
+
+/**
+ * 전역으로 호출할 세션 삭제 함수
+ */
+window.deleteSession = async function(sessionCode) {
+    if (!confirm(`정말 세션 [${sessionCode}] 을(를) 삭제하시겠습니까?\n해당 세션의 학생 명단이 모두 삭제됩니다.`)) return;
+    
+    try {
+        await rtdb.ref('sessions/' + sessionCode).remove();
+        showToast(`세션 [${sessionCode}] 이(가) 삭제되었습니다.`, 'success');
+        loadCurrentSessions();
+    } catch (err) {
+        console.error('[세션 삭제 에러]', err);
+        showToast('세션 삭제 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+
 // 통계 새로고침 버튼
 DOM.btnRefreshStats.addEventListener('click', () => {
     showToast('통계를 새로고침합니다...', 'info');
     loadAllStats();
     loadCurrentQuizzes();
+    loadCurrentSessions();
 });
 
 // ============================================================

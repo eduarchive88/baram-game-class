@@ -304,6 +304,9 @@ class SkillManager {
         const skillId = this.skillBar[slotIndex];
         if (!skillId) return { success: false, message: '스킬이 배치되지 않았습니다.' };
 
+        // 유령 상태에서는 스킬 사용 불가
+        if (player.isDead) return { success: false, message: '👻 유령 상태에서는 스킬을 사용할 수 없습니다.' };
+
         const skill = this.SKILLS[skillId];
         if (!skill) return { success: false, message: '알 수 없는 스킬' };
 
@@ -325,6 +328,28 @@ class SkillManager {
 
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
+
+        // ===== 스킬 시전 비주얼 이펙트 =====
+        if (player.spawnSkillEffect) {
+            const effectMap = {
+                'self_heal': 'heal', 'hp_to_mp': 'heal',
+                'attack_multi': 'magic', 'magic_attack': 'magic',
+                'aoe_attack': 'aoe', 'aoe_magic': 'aoe',
+                'buff': 'buff', 'buff_multi': 'buff',
+                'debuff': 'magic',
+            };
+            const colorMap = {
+                'self_heal': '#80ff80', 'hp_to_mp': '#80d0ff',
+                'attack_multi': '#FFD700', 'magic_attack': '#c080ff',
+                'aoe_attack': '#ff8040', 'aoe_magic': '#ff80ff',
+                'buff': '#80d0ff', 'buff_multi': '#80d0ff',
+                'debuff': '#ff80ff',
+            };
+            player.spawnSkillEffect(
+                effectMap[skill.type] || 'magic',
+                colorMap[skill.type] || '#ffffff'
+            );
+        }
 
         return { success: true, message: `${skill.icon} ${skill.name}!` };
     }

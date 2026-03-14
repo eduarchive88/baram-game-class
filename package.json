@@ -6,6 +6,6 @@
     "scripts": {
         "dev": "npx serve public -l 3000",
         "start": "npx serve public",
-        "deploy": "wrangler pages deploy public --project-name baram-game-class"
+        "deploy": "npx wrangler pages deploy public --project-name baram-game-class"
     }
 }
