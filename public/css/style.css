@@ -1167,7 +1167,6 @@ a:hover {
 /* --- 퀴즈/상점/인벤토리 모던화 (바람 테마 유지) --- */
 .quiz-overlay, .shop-overlay, .inventory-overlay, .overlay {
   background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(4px);
 }
 
 .quiz-popup, .shop-popup, .inventory-popup, .skillbook-popup {
