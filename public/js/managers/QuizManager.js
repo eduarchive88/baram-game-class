@@ -29,7 +29,14 @@ class QuizManager {
             const snapshot = await db.collection('quizzes').get();
             this.quizzes = [];
             snapshot.forEach(doc => {
-                this.quizzes.push({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                // answer 필드를 항상 정수로 변환 (Firestore에서 문자열로 올 수 있음)
+                this.quizzes.push({
+                    id: doc.id,
+                    ...data,
+                    answer: parseInt(data.answer, 10) || 0,
+                    options: Array.isArray(data.options) ? data.options : [],
+                });
             });
             this.loaded = true;
             console.log(`[QuizManager] 퀴즈 ${this.quizzes.length}개 로드 완료`);
@@ -132,7 +139,9 @@ class QuizManager {
 
         this.activeQuiz.answered = true;
         this.activeQuiz.selectedAnswer = idx;
-        this.activeQuiz.correct = (idx === this.activeQuiz.answer);
+        // answer를 정수로 강제 변환하여 비교
+        const correctIdx = parseInt(this.activeQuiz.answer, 10) || 0;
+        this.activeQuiz.correct = (idx === correctIdx);
 
         const resultEl = document.getElementById('quiz-result');
         const optionBtns = document.querySelectorAll('.quiz-option');
@@ -140,7 +149,7 @@ class QuizManager {
         // 정답/오답 표시
         optionBtns.forEach((btn, i) => {
             btn.disabled = true;
-            if (i === this.activeQuiz.answer) {
+            if (i === correctIdx) {
                 btn.classList.add('correct');
             }
             if (i === idx && !this.activeQuiz.correct) {
@@ -149,11 +158,15 @@ class QuizManager {
         });
 
         if (this.activeQuiz.correct) {
-            resultEl.textContent = '🎉 정답! 보너스 보상 지급!';
+            resultEl.textContent = '🎉 정답! 보너스 경험치 +30, 골드 +20 지급!';
             resultEl.className = 'quiz-result correct';
             this._giveReward(this.activeQuiz.player, true);
         } else {
-            resultEl.textContent = `❌ 오답! 정답은 "${this.activeQuiz.options[this.activeQuiz.answer]}" 입니다.`;
+            // 안전하게 정답 텍스트 가져오기 (undefined 방지)
+            const correctText = (this.activeQuiz.options && this.activeQuiz.options[correctIdx])
+                ? this.activeQuiz.options[correctIdx]
+                : `${correctIdx + 1}번`;
+            resultEl.textContent = `❌ 오답! 정답은 "${correctText}" 입니다.`;
             resultEl.className = 'quiz-result wrong';
             this._giveReward(this.activeQuiz.player, false);
         }
@@ -162,7 +175,7 @@ class QuizManager {
         this._saveAnswer(this.activeQuiz);
 
         // 2초 후 자동 닫기
-        setTimeout(() => this.closeQuiz(), 2000);
+        setTimeout(() => this.closeQuiz(), 2500);
     }
 
     /**

@@ -49,24 +49,96 @@ class AssetManager {
         try {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
-            const threshold = 230;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // 1단계: 코너 4곳의 색상을 샘플링하여 배경색 추정
+            const corners = [
+                0,                           // 좌상
+                (w - 1) * 4,                  // 우상
+                (h - 1) * w * 4,              // 좌하
+                ((h - 1) * w + (w - 1)) * 4,  // 우하
+            ];
+            let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+            corners.forEach(idx => {
+                if (idx >= 0 && idx < data.length - 2) {
+                    bgR += data[idx];
+                    bgG += data[idx + 1];
+                    bgB += data[idx + 2];
+                    bgCount++;
+                }
+            });
+            if (bgCount > 0) {
+                bgR = Math.floor(bgR / bgCount);
+                bgG = Math.floor(bgG / bgCount);
+                bgB = Math.floor(bgB / bgCount);
+            }
+
+            // 2단계: 배경색과 유사한 픽셀 + 밝은 픽셀 투명화
+            const BG_TOLERANCE = 45;   // 배경색과의 허용 차이
+            const WHITE_THRESHOLD = 200; // 밝은 픽셀 임계값 (기존 230에서 강화)
+            const LIGHT_THRESHOLD = 210; // 연한 파스텔/베이지 임계값
+
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                // r, g, b 가 모두 threshold 이상이면 투명하게
-                if (r > threshold && g > threshold && b > threshold) {
-                    data[i + 3] = 0; // alpha = 0
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                const a = data[i + 3];
+                if (a === 0) continue; // 이미 투명
+
+                // 조건 1: 순백/밝은 회색 제거
+                if (r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD) {
+                    data[i + 3] = 0;
+                    continue;
+                }
+
+                // 조건 2: 추정된 배경색과 유사한 픽셀 제거
+                const dr = Math.abs(r - bgR);
+                const dg = Math.abs(g - bgG);
+                const db = Math.abs(b - bgB);
+                if (dr < BG_TOLERANCE && dg < BG_TOLERANCE && db < BG_TOLERANCE) {
+                    data[i + 3] = 0;
+                    continue;
+                }
+
+                // 조건 3: 연한 색상(채도가 낮고 밝은) 제거
+                const maxC = Math.max(r, g, b);
+                const minC = Math.min(r, g, b);
+                const saturation = maxC === 0 ? 0 : (maxC - minC) / maxC;
+                if (maxC >= LIGHT_THRESHOLD && saturation < 0.15) {
+                    data[i + 3] = 0;
+                    continue;
                 }
             }
-            ctx.putImageData(imageData, 0, 0);
 
-            // 캔버스를 이미지 객체로 변환하여 리턴하는 것이 성능 상 유리하지만, 
-            // ctx.drawImage는 캔버스도 지원하므로 그냥 캔버스를 반환
+            // 3단계: 반투명 경계 부드럽게 처리 (anti-aliasing)
+            const tempData = new Uint8ClampedArray(data);
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = (y * w + x) * 4;
+                    if (tempData[idx + 3] === 0) continue;
+
+                    // 주변 8방향 투명 픽셀 수 확인
+                    let transparentNeighbors = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nIdx = ((y + dy) * w + (x + dx)) * 4;
+                            if (tempData[nIdx + 3] === 0) transparentNeighbors++;
+                        }
+                    }
+                    // 투명 이웃이 5개 이상이면 반투명 처리
+                    if (transparentNeighbors >= 5) {
+                        data[idx + 3] = Math.floor(data[idx + 3] * 0.3);
+                    } else if (transparentNeighbors >= 3) {
+                        data[idx + 3] = Math.floor(data[idx + 3] * 0.7);
+                    }
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
             return canvas;
         } catch (e) {
-            console.warn('[AssetManager] 안티 앨리어싱/CORS 문제로 배경 제거 실패: ', e);
-            return img; // 실패 시 원본 반환
+            console.warn('[AssetManager] 배경 제거 실패:', e);
+            return img;
         }
     }
 
@@ -163,168 +235,327 @@ class AssetManager {
         const tiles = {};
         const S = this.TILE_SIZE;
 
-        // 0: 풀밭 (이동 가능)
+        // 0: 풀밭 (이동 가능) - 고퀄리티 다층 풀
         tiles[0] = this._createTile((ctx) => {
-            // 풀밭 배경
-            ctx.fillStyle = '#3a7a3a';
+            // 베이스 그라데이션
+            const grd = ctx.createLinearGradient(0, 0, S, S);
+            grd.addColorStop(0, '#3a7a3a');
+            grd.addColorStop(0.5, '#358535');
+            grd.addColorStop(1, '#2e7030');
+            ctx.fillStyle = grd;
             ctx.fillRect(0, 0, S, S);
-            // 풀 질감 (랜덤 풀잎)
-            const grassColors = ['#2e6e2e', '#4a8a4a', '#358535', '#408040'];
-            for (let i = 0; i < 20; i++) {
+            // 풀 질감 (다층 풀잎 + 디테일)
+            const grassColors = ['#2a6a2a', '#4a9a4a', '#358535', '#409040', '#2e7e2e'];
+            for (let i = 0; i < 35; i++) {
                 const gx = Math.floor(this._seededRandom(i * 3) * S);
                 const gy = Math.floor(this._seededRandom(i * 3 + 1) * S);
                 ctx.fillStyle = grassColors[i % grassColors.length];
-                ctx.fillRect(gx, gy, 2, 3);
-                // 풀잎 모양
-                ctx.fillRect(gx - 1, gy - 1, 1, 2);
-                ctx.fillRect(gx + 2, gy - 1, 1, 2);
+                // 풀잎 형태 변형
+                if (i % 5 === 0) {
+                    ctx.fillRect(gx, gy, 1, 4); // 긴 풀
+                    ctx.fillRect(gx - 1, gy, 1, 3);
+                } else if (i % 5 === 1) {
+                    ctx.fillRect(gx, gy, 3, 1); // 넓은 풀
+                    ctx.fillRect(gx + 1, gy - 1, 1, 2);
+                } else {
+                    ctx.fillRect(gx, gy, 2, 2);
+                }
+            }
+            // 작은 꽃/돌 디테일 (6% 확률)
+            for (let i = 0; i < 3; i++) {
+                const fx = Math.floor(this._seededRandom(i * 11 + 50) * S);
+                const fy = Math.floor(this._seededRandom(i * 11 + 51) * S);
+                if (i % 3 === 0) {
+                    ctx.fillStyle = '#e0e040'; // 노란 꽃
+                    ctx.fillRect(fx, fy, 2, 2);
+                } else {
+                    ctx.fillStyle = '#7a7a6a'; // 작은 돌
+                    ctx.fillRect(fx, fy, 3, 2);
+                    ctx.fillStyle = '#8a8a7a';
+                    ctx.fillRect(fx, fy, 2, 1);
+                }
             }
         }, assets.grass);
 
-        // 1: 벽/바위 (이동 불가)
+        // 1: 벽/바위 (이동 불가) - 고퀄리티 벽돌
         tiles[1] = this._createTile((ctx) => {
-            // 돌 벽 배경
             ctx.fillStyle = '#5a5a6a';
             ctx.fillRect(0, 0, S, S);
-            // 돌 패턴
-            ctx.fillStyle = '#6a6a7a';
-            ctx.fillRect(1, 1, 14, 10);
-            ctx.fillRect(17, 1, 14, 10);
-            ctx.fillRect(1, 13, 10, 8);
-            ctx.fillRect(13, 13, 10, 8);
-            ctx.fillRect(25, 13, 6, 8);
-            ctx.fillRect(1, 23, 14, 8);
-            ctx.fillRect(17, 23, 14, 8);
-            // 돌 사이 어두운 선
-            ctx.fillStyle = '#4a4a5a';
-            ctx.fillRect(0, 11, S, 2);
-            ctx.fillRect(0, 21, S, 2);
-            ctx.fillRect(15, 0, 2, 12);
-            ctx.fillRect(11, 12, 2, 10);
-            ctx.fillRect(23, 12, 2, 10);
-            ctx.fillRect(15, 22, 2, 10);
-            // 하이라이트
-            ctx.fillStyle = '#7a7a8a';
-            ctx.fillRect(2, 2, 12, 1);
-            ctx.fillRect(18, 2, 12, 1);
+            // 벽돌 패턴 (색상 변이 포함)
+            const brickColors = ['#6a6a7a', '#626278', '#70707e', '#5e5e6e'];
+            const bricks = [
+                [1, 1, 14, 9], [17, 1, 14, 9],
+                [1, 12, 10, 8], [13, 12, 10, 8], [25, 12, 6, 8],
+                [1, 22, 14, 9], [17, 22, 14, 9]
+            ];
+            bricks.forEach((b, i) => {
+                ctx.fillStyle = brickColors[i % brickColors.length];
+                ctx.fillRect(b[0], b[1], b[2], b[3]);
+                // 개별 벽돌 하이라이트
+                ctx.fillStyle = '#7e7e8e';
+                ctx.fillRect(b[0], b[1], b[2], 1);
+                ctx.fillRect(b[0], b[1], 1, b[3]);
+                // 그림자
+                ctx.fillStyle = '#4e4e5e';
+                ctx.fillRect(b[0], b[1] + b[3] - 1, b[2], 1);
+                ctx.fillRect(b[0] + b[2] - 1, b[1], 1, b[3]);
+            });
+            // 시멘트 선
+            ctx.fillStyle = '#4a4a58';
+            ctx.fillRect(0, 10, S, 2);
+            ctx.fillRect(0, 20, S, 2);
+            ctx.fillRect(15, 0, 2, 11);
+            ctx.fillRect(11, 11, 2, 10);
+            ctx.fillRect(23, 11, 2, 10);
+            ctx.fillRect(15, 21, 2, 11);
+            // 이끼/먼지 디테일
+            ctx.fillStyle = '#4a6a4a';
+            ctx.fillRect(3, 28, 2, 2);
+            ctx.fillRect(22, 7, 1, 2);
         }, assets.wall);
 
-        // 2: 흙길 (이동 가능)
+        // 2: 흙길 (이동 가능) - 자갈+발자국 디테일
         tiles[2] = this._createTile((ctx) => {
-            ctx.fillStyle = '#8a7050';
+            const grd = ctx.createRadialGradient(16, 16, 4, 16, 16, 22);
+            grd.addColorStop(0, '#9a8060');
+            grd.addColorStop(1, '#7a6040');
+            ctx.fillStyle = grd;
             ctx.fillRect(0, 0, S, S);
-            // 흙 질감
-            const dirtColors = ['#7a6040', '#9a8060', '#806848'];
-            for (let i = 0; i < 15; i++) {
+            // 자갈 디테일
+            const dirtColors = ['#6a5030', '#a08868', '#806848', '#8a7050', '#705838'];
+            for (let i = 0; i < 25; i++) {
                 const dx = Math.floor(this._seededRandom(i * 5 + 100) * S);
                 const dy = Math.floor(this._seededRandom(i * 5 + 101) * S);
                 ctx.fillStyle = dirtColors[i % dirtColors.length];
-                ctx.fillRect(dx, dy, 3, 2);
-            }
-        }, assets.dirt);
-
-        // 3: 물 (이동 불가)
-        tiles[3] = this._createTile((ctx) => {
-            ctx.fillStyle = '#2050a0';
-            ctx.fillRect(0, 0, S, S);
-            // 물결 패턴
-            ctx.fillStyle = '#3060b0';
-            for (let y = 0; y < S; y += 6) {
-                for (let x = 0; x < S; x += 4) {
-                    const offset = (y % 12 === 0) ? 2 : 0;
-                    ctx.fillRect(x + offset, y, 3, 2);
+                if (i % 4 === 0) {
+                    ctx.fillRect(dx, dy, 4, 3); // 큰 자갈
+                    ctx.fillStyle = '#b09878';
+                    ctx.fillRect(dx, dy, 3, 1); // 하이라이트
+                } else {
+                    ctx.fillRect(dx, dy, 2, 2);
                 }
             }
-            ctx.fillStyle = '#4070c0';
-            ctx.fillRect(4, 8, 5, 1);
-            ctx.fillRect(18, 16, 6, 1);
-            ctx.fillRect(10, 24, 4, 1);
+            // 발자국 느낌 (경로 디테일)
+            ctx.fillStyle = 'rgba(60,40,20,0.2)';
+            ctx.fillRect(10, 8, 4, 3);
+            ctx.fillRect(18, 18, 4, 3);
+        }, assets.dirt);
+
+        // 3: 물 (이동 불가) - 반짝임+수초 디테일
+        tiles[3] = this._createTile((ctx) => {
+            // 깊이감 있는 물 그라데이션
+            const grd = ctx.createLinearGradient(0, 0, S, S);
+            grd.addColorStop(0, '#1848a0');
+            grd.addColorStop(0.5, '#2060b0');
+            grd.addColorStop(1, '#1850a8');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, S, S);
+            // 물결 패턴 (다층)
+            ctx.fillStyle = '#2868b8';
+            for (let y = 0; y < S; y += 5) {
+                for (let x = 0; x < S; x += 3) {
+                    const offset = (y % 10 < 5) ? 1 : -1;
+                    ctx.fillRect(x + offset, y, 2, 1);
+                }
+            }
+            // 밝은 반짝임
+            const sparkles = [[6, 4], [20, 12], [12, 22], [26, 8], [8, 16]];
+            sparkles.forEach(([sx, sy]) => {
+                ctx.fillStyle = 'rgba(140,200,255,0.5)';
+                ctx.fillRect(sx, sy, 2, 1);
+                ctx.fillStyle = 'rgba(200,230,255,0.3)';
+                ctx.fillRect(sx + 1, sy - 1, 1, 1);
+            });
+            // 수초 디테일
+            ctx.fillStyle = '#206030';
+            ctx.fillRect(2, 26, 1, 4);
+            ctx.fillRect(3, 25, 1, 3);
+            ctx.fillRect(27, 28, 1, 3);
         });
 
-        // 4: 포털/계단 (맵 이동 트리거)
+        // 4: 포털/계단 (맵 이동 트리거) - 글로우 개선
         tiles[4] = this._createTile((ctx) => {
-            // 어두운 배경
-            ctx.fillStyle = '#2a2a3a';
+            ctx.fillStyle = '#1a1a2a';
             ctx.fillRect(0, 0, S, S);
-            // 소용돌이 포털 효과
-            ctx.fillStyle = '#6040c0';
-            ctx.beginPath();
-            ctx.arc(16, 16, 12, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#8060e0';
-            ctx.beginPath();
-            ctx.arc(16, 16, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#a080ff';
-            ctx.beginPath();
-            ctx.arc(16, 16, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#d0c0ff';
-            ctx.beginPath();
-            ctx.arc(16, 16, 2, 0, Math.PI * 2);
-            ctx.fill();
+            // 소용돌이 포털 (다중 링)
+            const portalColors = ['#4020a0', '#6040c0', '#8060e0', '#a080ff', '#c0a0ff', '#e0d0ff'];
+            portalColors.forEach((c, i) => {
+                ctx.fillStyle = c;
+                ctx.beginPath();
+                ctx.arc(16, 16, 14 - i * 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            // 소용돌이 선
+            ctx.strokeStyle = 'rgba(200,180,255,0.3)';
+            ctx.lineWidth = 1;
+            for (let a = 0; a < Math.PI * 4; a += 0.3) {
+                const r = a * 2;
+                if (r > 14) break;
+                const x = 16 + Math.cos(a) * r;
+                const y = 16 + Math.sin(a) * r;
+                ctx.fillStyle = 'rgba(200,180,255,0.2)';
+                ctx.fillRect(x, y, 1, 1);
+            }
         }, assets.portal);
 
-        // 5: 나무 타일 바닥 (실내)
+        // 5: 나무 타일 바닥 (실내) - 나무결 디테일
         tiles[5] = this._createTile((ctx) => {
             ctx.fillStyle = '#8a6840';
             ctx.fillRect(0, 0, S, S);
-            // 나무결 패턴
-            ctx.fillStyle = '#7a5830';
+            // 나무판 패턴
             for (let y = 0; y < S; y += 8) {
+                ctx.fillStyle = '#7a5830';
+                ctx.fillRect(0, y + 7, S, 1);
+                // 나무결 라인
+                ctx.fillStyle = '#7e5c34';
+                ctx.fillRect(0, y + 2, S, 1);
+                ctx.fillRect(0, y + 5, S, 1);
+                // 하이라이트
+                ctx.fillStyle = '#9a7850';
                 ctx.fillRect(0, y, S, 1);
             }
-            ctx.fillStyle = '#9a7850';
-            ctx.fillRect(0, 3, S, 2);
-            ctx.fillRect(0, 19, S, 2);
+            // 나무 무늬 점
+            ctx.fillStyle = '#6a4820';
+            ctx.beginPath(); ctx.arc(8, 12, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(24, 4, 1.5, 0, Math.PI * 2); ctx.fill();
         });
 
-        // 6: 나무 (이동 불가, 장식)
+        // 6: 나무 (이동 불가, 장식) - 고퀄리티 나무
         tiles[6] = this._createTile((ctx) => {
             // 풀밭 배경
             ctx.fillStyle = '#3a7a3a';
             ctx.fillRect(0, 0, S, S);
-            // 나무 기둥
+            // 그림자
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); ctx.ellipse(16, 28, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+            // 나무 기둥 (그라데이션)
+            ctx.fillStyle = '#5a3a1a';
+            ctx.fillRect(13, 16, 6, 16);
             ctx.fillStyle = '#6a4a2a';
-            ctx.fillRect(13, 18, 6, 14);
-            // 나무 잎 (원형)
-            ctx.fillStyle = '#2a6a2a';
-            ctx.beginPath(); ctx.arc(16, 12, 11, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#3a8a3a';
-            ctx.beginPath(); ctx.arc(14, 10, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#4a9a4a';
-            ctx.beginPath(); ctx.arc(18, 8, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(14, 16, 4, 16);
+            ctx.fillStyle = '#7a5a3a';
+            ctx.fillRect(15, 18, 1, 10); // 하이라이트
+            // 나무 잎 (3층)
+            ctx.fillStyle = '#1a5a1a';
+            ctx.beginPath(); ctx.arc(16, 13, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#2a7a2a';
+            ctx.beginPath(); ctx.arc(13, 10, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#3a9a3a';
+            ctx.beginPath(); ctx.arc(19, 8, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#4aaa4a';
+            ctx.beginPath(); ctx.arc(15, 6, 4, 0, Math.PI * 2); ctx.fill();
+            // 하이라이트 점
+            ctx.fillStyle = '#5aba5a';
+            ctx.fillRect(11, 7, 2, 1);
+            ctx.fillRect(17, 5, 2, 1);
         });
 
-        // 7: 동굴 바닥 (이동 가능)
+        // 7: 동굴 바닥 (이동 가능) - 광석+균열 디테일
         tiles[7] = this._createTile((ctx) => {
-            ctx.fillStyle = '#4a4050';
+            ctx.fillStyle = '#3a3040';
             ctx.fillRect(0, 0, S, S);
-            const caveColors = ['#3a3040', '#5a5060', '#484058'];
-            for (let i = 0; i < 12; i++) {
+            const caveColors = ['#2a2030', '#4a4058', '#383048', '#504860'];
+            for (let i = 0; i < 20; i++) {
                 const cx = Math.floor(this._seededRandom(i * 7 + 200) * S);
                 const cy = Math.floor(this._seededRandom(i * 7 + 201) * S);
                 ctx.fillStyle = caveColors[i % caveColors.length];
-                ctx.fillRect(cx, cy, 4, 3);
+                ctx.fillRect(cx, cy, 3 + (i % 3), 2 + (i % 2));
             }
+            // 반짝이는 광석 디테일
+            ctx.fillStyle = '#8080a0';
+            ctx.fillRect(8, 14, 2, 1);
+            ctx.fillRect(24, 6, 1, 2);
+            ctx.fillStyle = '#a0a0c0';
+            ctx.fillRect(8, 14, 1, 1);
+            // 균열 라인
+            ctx.strokeStyle = '#2a2030';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(6, 0); ctx.lineTo(10, 8); ctx.lineTo(8, 16);
+            ctx.stroke();
         });
 
-        // 8: 동굴 벽 (이동 불가)
+        // 8: 동굴 벽 (이동 불가) - 종유석+이끼
         tiles[8] = this._createTile((ctx) => {
-            ctx.fillStyle = '#3a3040';
-            ctx.fillRect(0, 0, S, S);
-            ctx.fillStyle = '#4a4050';
-            ctx.fillRect(2, 2, 12, 8);
-            ctx.fillRect(18, 2, 12, 8);
-            ctx.fillRect(2, 14, 8, 7);
-            ctx.fillRect(14, 14, 8, 7);
-            ctx.fillRect(26, 14, 4, 7);
-            ctx.fillRect(2, 24, 12, 7);
-            ctx.fillRect(18, 24, 12, 7);
             ctx.fillStyle = '#2a2030';
+            ctx.fillRect(0, 0, S, S);
+            // 울퉁불퉁한 바위
+            const rockColors = ['#3a3048', '#4a4058', '#3e3850', '#484260'];
+            const rocks = [
+                [2, 2, 12, 8], [18, 2, 12, 8],
+                [2, 13, 8, 7], [14, 13, 8, 7], [26, 13, 4, 7],
+                [2, 23, 12, 8], [18, 23, 12, 8]
+            ];
+            rocks.forEach((r, i) => {
+                ctx.fillStyle = rockColors[i % rockColors.length];
+                ctx.fillRect(r[0], r[1], r[2], r[3]);
+                // 하이라이트
+                ctx.fillStyle = '#5a5870';
+                ctx.fillRect(r[0] + 1, r[1] + 1, r[2] - 2, 1);
+            });
+            // 시멘트 선
+            ctx.fillStyle = '#1a1020';
             ctx.fillRect(0, 10, S, 3);
-            ctx.fillRect(0, 22, S, 2);
-            ctx.fillRect(14, 0, 3, 12);
+            ctx.fillRect(0, 21, S, 2);
+            ctx.fillRect(14, 0, 3, 11);
+            // 이끼 디테일
+            ctx.fillStyle = '#2a4a2a';
+            ctx.fillRect(5, 28, 3, 2);
+            ctx.fillRect(20, 9, 2, 1);
+            // 광석 반짝임
+            ctx.fillStyle = '#b0a0d0';
+            ctx.fillRect(22, 4, 1, 1);
+            ctx.fillRect(6, 16, 1, 1);
+        });
+
+        // 9: 모래 (이동 가능) - 사막/해변용  
+        tiles[9] = this._createTile((ctx) => {
+            const grd = ctx.createLinearGradient(0, 0, S, S);
+            grd.addColorStop(0, '#d4b87a');
+            grd.addColorStop(1, '#c8a862');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, S, S);
+            // 모래알 디테일
+            const sandColors = ['#bfa060', '#dcc090', '#c4a868', '#e0cc98'];
+            for (let i = 0; i < 30; i++) {
+                const sx = Math.floor(this._seededRandom(i * 4 + 300) * S);
+                const sy = Math.floor(this._seededRandom(i * 4 + 301) * S);
+                ctx.fillStyle = sandColors[i % sandColors.length];
+                ctx.fillRect(sx, sy, 1 + (i % 2), 1);
+            }
+            // 바람 자국
+            ctx.fillStyle = 'rgba(200,180,130,0.3)';
+            ctx.fillRect(4, 12, 8, 1);
+            ctx.fillRect(18, 20, 10, 1);
+        });
+
+        // 10: 꽃밭 (이동 가능) - 풀밭+꽃
+        tiles[10] = this._createTile((ctx) => {
+            ctx.fillStyle = '#358535';
+            ctx.fillRect(0, 0, S, S);
+            // 풀 디테일
+            for (let i = 0; i < 15; i++) {
+                const gx = Math.floor(this._seededRandom(i * 3 + 400) * S);
+                const gy = Math.floor(this._seededRandom(i * 3 + 401) * S);
+                ctx.fillStyle = ['#2e7030', '#40a040'][i % 2];
+                ctx.fillRect(gx, gy, 2, 3);
+            }
+            // 다양한 꽃
+            const flowers = [
+                { x: 6, y: 8, c: '#ff6080' },   // 분홍
+                { x: 18, y: 4, c: '#ffff60' },   // 노랑
+                { x: 12, y: 20, c: '#60a0ff' },  // 파랑
+                { x: 26, y: 14, c: '#ff80ff' },  // 보라
+                { x: 4, y: 26, c: '#ffffff' },    // 하양
+            ];
+            flowers.forEach(f => {
+                ctx.fillStyle = f.c;
+                ctx.fillRect(f.x, f.y, 2, 2);
+                ctx.fillRect(f.x - 1, f.y + 1, 1, 1);
+                ctx.fillRect(f.x + 2, f.y + 1, 1, 1);
+                ctx.fillStyle = '#408040';
+                ctx.fillRect(f.x, f.y + 2, 1, 3); // 줄기
+            });
         });
 
         return tiles;

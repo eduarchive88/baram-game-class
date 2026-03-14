@@ -329,26 +329,63 @@ class SkillManager {
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
 
-        // ===== 스킬 시전 비주얼 이펙트 =====
+        // ===== 개별 스킬별 고유 비주얼 이펙트 =====
         if (player.spawnSkillEffect) {
-            const effectMap = {
+            // 개별 스킬 ID별 고유 이펙트/색상 매핑
+            const skillVisualMap = {
+                // ── 전사 ──
+                warrior_heal1:    { fx: 'heal',  color: '#80ff80' },
+                warrior_double:   { fx: 'magic', color: '#FF6B35' },
+                warrior_triple:   { fx: 'magic', color: '#FF4500' },
+                warrior_buff_atk: { fx: 'buff',  color: '#FF8C00' },
+                warrior_ultimate: { fx: 'aoe',   color: '#FF2200' },
+                warrior_super_buff: { fx: 'buff', color: '#FFD700' },
+                // ── 도적 ──
+                thief_buff_atk:   { fx: 'buff',  color: '#E0AAFF' },
+                thief_double:     { fx: 'magic', color: '#C77DFF' },
+                thief_stealth:    { fx: 'buff',  color: '#7B2D8E' },
+                thief_blink:      { fx: 'magic', color: '#9D4EDD' },
+                thief_ultimate:   { fx: 'aoe',   color: '#E040FB' },
+                thief_clone:      { fx: 'buff',  color: '#AA00FF' },
+                // ── 주술사 ──
+                mage_magic1:      { fx: 'magic', color: '#7B68EE' },
+                mage_magic2:      { fx: 'magic', color: '#6A5ACD' },
+                mage_protect:     { fx: 'buff',  color: '#4FC3F7' },
+                mage_magic3:      { fx: 'magic', color: '#9370DB' },
+                mage_curse:       { fx: 'magic', color: '#B71C1C' },
+                mage_paralyze:    { fx: 'magic', color: '#FFEB3B' },
+                mage_ultimate:    { fx: 'aoe',   color: '#FF5722' },
+                // ── 도사 ──
+                poet_mana_drain:  { fx: 'heal',  color: '#80D8FF' },
+                poet_magic1:      { fx: 'magic', color: '#00E676' },
+                poet_protect:     { fx: 'buff',  color: '#69F0AE' },
+                poet_heal1:       { fx: 'heal',  color: '#B9F6CA' },
+                poet_heal2:       { fx: 'heal',  color: '#00E5FF' },
+                poet_group_heal:  { fx: 'heal',  color: '#64FFDA' },
+                poet_resurrect:   { fx: 'heal',  color: '#FFD740' },
+                poet_ultimate:    { fx: 'aoe',   color: '#18FFFF' },
+            };
+
+            // 타입별 폴백 매핑
+            const typeEffectMap = {
                 'self_heal': 'heal', 'hp_to_mp': 'heal',
                 'attack_multi': 'magic', 'magic_attack': 'magic',
                 'aoe_attack': 'aoe', 'aoe_magic': 'aoe',
                 'buff': 'buff', 'buff_multi': 'buff',
                 'debuff': 'magic',
             };
-            const colorMap = {
+            const typeColorMap = {
                 'self_heal': '#80ff80', 'hp_to_mp': '#80d0ff',
                 'attack_multi': '#FFD700', 'magic_attack': '#c080ff',
                 'aoe_attack': '#ff8040', 'aoe_magic': '#ff80ff',
                 'buff': '#80d0ff', 'buff_multi': '#80d0ff',
                 'debuff': '#ff80ff',
             };
-            player.spawnSkillEffect(
-                effectMap[skill.type] || 'magic',
-                colorMap[skill.type] || '#ffffff'
-            );
+
+            const visual = skillVisualMap[skillId];
+            const fxType = visual ? visual.fx : (typeEffectMap[skill.type] || 'magic');
+            const fxColor = visual ? visual.color : (typeColorMap[skill.type] || '#ffffff');
+            player.spawnSkillEffect(fxType, fxColor);
         }
 
         return { success: true, message: `${skill.icon} ${skill.name}!` };

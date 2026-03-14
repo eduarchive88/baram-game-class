@@ -301,24 +301,68 @@ class Player {
     // ===== 이펙트 생성 헬퍼 =====
 
     /**
-     * 근접 공격 슬래시 이펙트
+     * 직업별 고유 평타 이펙트 (각 직업마다 색상/형태/파티클이 다름)
      */
     _spawnSlashEffect(x, y, dir) {
+        const job = this.job;
+
+        // 직업별 색상 및 형태 정의
+        const jobEffects = {
+            '전사': { color: '#FF6B35', glow: '#FFA500', type: 'heavy_slash', particles: 8, pSize: 3 },
+            '도적': { color: '#C77DFF', glow: '#9D4EDD', type: 'quick_slash', particles: 6, pSize: 2 },
+            '주술사': { color: '#7B68EE', glow: '#6A5ACD', type: 'magic_wave', particles: 10, pSize: 2 },
+            '도사': { color: '#00E676', glow: '#69F0AE', type: 'chi_burst', particles: 12, pSize: 2 },
+        };
+        const fx = jobEffects[job] || jobEffects['전사'];
+
+        // 메인 슬래시 이펙트
         this.effects.push({
-            type: 'slash', x, y, dir,
-            timer: 0, duration: 0.3,
-            color: '#FFD700',
+            type: fx.type, x, y, dir,
+            timer: 0, duration: 0.4,
+            color: fx.color, glow: fx.glow,
         });
-        // 파티클 스파크
-        for (let i = 0; i < 5; i++) {
+
+        // 직업별 파티클 패턴
+        for (let i = 0; i < fx.particles; i++) {
+            const angle = (Math.PI * 2 / fx.particles) * i;
+            const spread = job === '전사' ? 30 : job === '도적' ? 20 : 15;
             this.effects.push({
-                type: 'particle', 
-                x: x + (Math.random() - 0.5) * 20,
-                y: y + (Math.random() - 0.5) * 20,
-                vx: (Math.random() - 0.5) * 80,
-                vy: (Math.random() - 0.5) * 80 - 30,
-                timer: 0, duration: 0.4,
-                color: '#FFD700', size: 2 + Math.random() * 2,
+                type: 'particle',
+                x: x + (Math.random() - 0.5) * spread,
+                y: y + (Math.random() - 0.5) * spread,
+                vx: Math.cos(angle) * (50 + Math.random() * 40),
+                vy: Math.sin(angle) * (50 + Math.random() * 40) - 20,
+                timer: 0, duration: 0.35 + Math.random() * 0.15,
+                color: fx.color, size: fx.pSize + Math.random() * 2,
+            });
+        }
+
+        // 도적 전용: 잔상(2중 슬래시)
+        if (job === '도적') {
+            setTimeout(() => {
+                this.effects.push({
+                    type: 'quick_slash', x: x + 4, y: y - 4, dir,
+                    timer: 0, duration: 0.3,
+                    color: '#E0AAFF', glow: '#C77DFF',
+                });
+            }, 80);
+        }
+
+        // 주술사 전용: 마법진 링
+        if (job === '주술사') {
+            this.effects.push({
+                type: 'magic_circle', x, y,
+                timer: 0, duration: 0.5,
+                color: '#7B68EE',
+            });
+        }
+
+        // 도사 전용: 기 파동 링
+        if (job === '도사') {
+            this.effects.push({
+                type: 'chi_ring', x, y,
+                timer: 0, duration: 0.5,
+                color: '#00E676',
             });
         }
     }
@@ -504,30 +548,154 @@ class Player {
             ctx.save();
 
             switch (e.type) {
-                case 'slash': {
-                    // 반원 슬래시 이펙트
+                case 'slash':
+                case 'heavy_slash': {
+                    // 전사: 무거운 대검 슬래시
                     const alpha = 1 - progress;
-                    ctx.globalAlpha = alpha * 0.8;
+                    ctx.globalAlpha = alpha * 0.9;
                     ctx.strokeStyle = e.color;
-                    ctx.lineWidth = 3;
-                    ctx.shadowColor = e.color;
-                    ctx.shadowBlur = 10;
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = e.glow || e.color;
+                    ctx.shadowBlur = 15;
 
                     const startAngle = { up: Math.PI, down: 0, left: Math.PI / 2, right: -Math.PI / 2 };
                     const angle = startAngle[e.dir] || 0;
-                    const sweep = Math.PI * progress * 1.2;
-                    const radius = 12 + progress * 8;
+                    const sweep = Math.PI * progress * 1.5;
+                    const radius = 14 + progress * 12;
 
+                    // 이중 슬래시 아크
                     ctx.beginPath();
                     ctx.arc(sx, sy, radius, angle - sweep / 2, angle + sweep / 2);
                     ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius * 0.7, angle - sweep / 2.5, angle + sweep / 2.5);
+                    ctx.stroke();
 
-                    // 내부 빛 채움
-                    ctx.globalAlpha = alpha * 0.3;
+                    // 충격파 채움
+                    ctx.globalAlpha = alpha * 0.25;
                     ctx.fillStyle = e.color;
                     ctx.beginPath();
-                    ctx.arc(sx, sy, radius * 0.6, 0, Math.PI * 2);
+                    ctx.arc(sx, sy, radius * 0.5, 0, Math.PI * 2);
                     ctx.fill();
+                    break;
+                }
+                case 'quick_slash': {
+                    // 도적: 빠른 연속 베기
+                    const alpha = 1 - progress;
+                    ctx.globalAlpha = alpha * 0.85;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = e.glow || e.color;
+                    ctx.shadowBlur = 10;
+
+                    // X자 크로스 슬래시
+                    const len = 10 + progress * 14;
+                    ctx.beginPath();
+                    ctx.moveTo(sx - len, sy - len);
+                    ctx.lineTo(sx + len, sy + len);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(sx + len, sy - len);
+                    ctx.lineTo(sx - len, sy + len);
+                    ctx.stroke();
+
+                    // 중심 스파크
+                    ctx.globalAlpha = alpha * 0.6;
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 3 * (1 - progress), 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'magic_wave': {
+                    // 주술사: 마법 파동
+                    const alpha = 1 - progress;
+                    const radius = 6 + progress * 18;
+                    ctx.globalAlpha = alpha * 0.7;
+                    ctx.fillStyle = e.color;
+                    ctx.shadowColor = e.glow || e.color;
+                    ctx.shadowBlur = 20;
+
+                    // 펄싱 오브
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius * (0.8 + Math.sin(progress * Math.PI * 3) * 0.2), 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 외곽 글로우
+                    ctx.globalAlpha = alpha * 0.3;
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                }
+                case 'chi_burst': {
+                    // 도사: 기 파동 폭발
+                    const alpha = 1 - progress;
+                    ctx.globalAlpha = alpha * 0.6;
+
+                    // 기 파동 링 확산
+                    const r1 = 8 + progress * 22;
+                    const r2 = 4 + progress * 14;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = e.glow || e.color;
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, r1, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, r2, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // 중심 빛
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 4 * (1 - progress), 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'magic_circle': {
+                    // 주술사 전용 마법진
+                    const alpha = (1 - progress) * 0.5;
+                    const r = 16 + progress * 8;
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 1;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 8;
+                    // 회전하는 마법진
+                    const rot = progress * Math.PI * 4;
+                    for (let i = 0; i < 6; i++) {
+                        const a = (Math.PI * 2 / 6) * i + rot;
+                        ctx.beginPath();
+                        ctx.moveTo(sx + Math.cos(a) * r * 0.4, sy + Math.sin(a) * r * 0.4);
+                        ctx.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r);
+                        ctx.stroke();
+                    }
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+                }
+                case 'chi_ring': {
+                    // 도사 전용 기 파동 링
+                    const alpha = (1 - progress) * 0.6;
+                    const r = 10 + progress * 20;
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = e.color;
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 10;
+                    // 이중 링
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, r * 0.6, 0, Math.PI * 2);
+                    ctx.stroke();
                     break;
                 }
                 case 'particle': {
