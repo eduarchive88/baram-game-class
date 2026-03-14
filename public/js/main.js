@@ -814,18 +814,7 @@ function updateHUD() {
         const percent = Math.floor(Math.min(1, (localPlayer.exp || 0) / requiredExp) * 100);
         mExpPct.textContent = percent;
     }
-
-    // 기타 데스크탑 정보 유지
-    const lvEl = document.getElementById('hud-level');
-    if (lvEl) lvEl.textContent = `Lv.${localPlayer.level}`;
-
-    const goldEl = document.getElementById('hud-gold');
-    if (goldEl) goldEl.textContent = localPlayer.gold;
-
-    const nameEl = document.getElementById('hud-name');
-    if (nameEl) nameEl.textContent = `${localPlayer.nickname} (${localPlayer.job})`;
 }
-
 
 function updatePlayerCount() {
     const countEl = document.getElementById('hud-player-count');
