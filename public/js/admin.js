@@ -61,6 +61,8 @@ const DOM = {
     currentQuizBody: document.getElementById('current-quiz-body'),
     currentSessionsBody: document.getElementById('current-sessions-body'),
     quizSessionUnit: document.getElementById('quiz-session-unit'),
+    filterSessionUnit: document.getElementById('filter-session-unit'),
+    btnDeleteGroup: document.getElementById('btn-delete-group'),
 };
 
 // ============================================================
@@ -738,6 +740,157 @@ async function loadCurrentQuizzes() {
 }
 
 /**
+ * 등록된 퀴즈들로부터 유니크한 차시(session_unit) 목록을 추출하여 필터 드롭다운 업데이트
+ */
+async function updateSessionFilter() {
+    try {
+        const snapshot = await db.collection('quizzes').get();
+        const units = new Set();
+        snapshot.forEach(doc => {
+            units.add(doc.data().session_unit || '기본');
+        });
+
+        const sortedUnits = Array.from(units).sort();
+        const currentValue = DOM.filterSessionUnit.value;
+
+        let html = '<option value="all">전체 차시</option>';
+        sortedUnits.forEach(unit => {
+            html += `<option value="${unit}">${escapeHtml(unit)}</option>`;
+        });
+
+        DOM.filterSessionUnit.innerHTML = html;
+        // 이전에 선택했던 값이 있다면 유지 (없어졌으면 'all')
+        if (Array.from(DOM.filterSessionUnit.options).some(opt => opt.value === currentValue)) {
+            DOM.filterSessionUnit.value = currentValue;
+        } else {
+            DOM.filterSessionUnit.value = 'all';
+        }
+    } catch (err) {
+        console.error('[차시 필터 업데이트 에러]', err);
+    }
+}
+
+/**
+ * 현재 등록된 퀴즈 목록을 Firestore에서 로드하여 렌더링 (필터링 적용)
+ */
+async function loadCurrentQuizzes() {
+    try {
+        const filterValue = DOM.filterSessionUnit.value;
+        let query = db.collection('quizzes');
+        
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            DOM.currentQuizBody.innerHTML = `
+        <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:32px;">
+          등록된 퀴즈가 없습니다. 엑셀 파일을 업로드하세요.
+        </td></tr>`;
+            return;
+        }
+
+        let quizzes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 클라이언트 측 필터링
+        if (filterValue !== 'all') {
+            quizzes = quizzes.filter(q => (q.session_unit || '기본') === filterValue);
+        }
+
+        // 차시별로 정렬
+        quizzes.sort((a, b) => {
+            const unitA = String(a.session_unit || '기본');
+            const unitB = String(b.session_unit || '기본');
+            if (unitA !== unitB) return unitA.localeCompare(unitB);
+            return 0;
+        });
+
+        if (quizzes.length === 0) {
+            DOM.currentQuizBody.innerHTML = `
+        <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">
+          해당 차시에 등록된 퀴즈가 없습니다.
+        </td></tr>`;
+            return;
+        }
+
+        DOM.currentQuizBody.innerHTML = quizzes.map((q) => {
+            const isActive = q.is_active !== false; // 기본값 true
+            const statusBadge = isActive 
+                ? '<span class="badge badge-green">활성</span>' 
+                : '<span class="badge badge-red">비활성</span>';
+            const toggleText = isActive ? '끄기' : '켜기';
+            
+            const correctIdx = parseInt(q.correct_answer) - 1;
+            const answerText = q.options?.[correctIdx] || '오류';
+
+            return `
+      <tr>
+        <td><span class="badge badge-gold">${escapeHtml(q.session_unit || '기본')}</span></td>
+        <td title="${escapeHtml(q.question)}">${escapeHtml(q.question)}</td>
+        <td title="${escapeHtml(answerText)}">${escapeHtml(answerText)}</td>
+        <td><span class="badge badge-gold">${q.reward_gold || 0}전</span></td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm ${isActive ? 'btn-secondary' : 'btn-primary'}" 
+                    onclick="toggleQuizStatus('${q.id}', ${isActive})">${toggleText}</button>
+            <button class="btn btn-sm btn-red" onclick="deleteQuiz('${q.id}')">삭제</button>
+          </div>
+        </td>
+      </tr>
+    `}).join('');
+
+        // 퀴즈 목록 로드 후 필터 목록도 최신화 (새로 추가된 차시가 있을 수 있음)
+        updateSessionFilter();
+
+    } catch (err) {
+        console.error('[퀴즈 목록 로드 에러]', err);
+        DOM.currentQuizBody.innerHTML = `
+      <tr><td colspan="6" style="text-align:center; color:var(--red-accent); padding:32px;">
+        데이터 로드 실패: ${err.message}
+      </td></tr>`;
+    }
+}
+
+/**
+ * 특정 차시(session_unit)의 모든 퀴즈 삭제
+ */
+async function deleteQuizGroup() {
+    const filterValue = DOM.filterSessionUnit.value;
+    if (filterValue === 'all') {
+        showToast('삭제할 차시를 먼저 선택하세요.', 'info');
+        return;
+    }
+
+    if (!confirm(`[${filterValue}] 차시의 모든 퀴즈를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+        return;
+    }
+
+    try {
+        const snapshot = await db.collection('quizzes').where('session_unit', '==', filterValue === '기본' ? null : filterValue).get();
+        // 참고: null 체크가 어려울 수 있으니 모든 퀴즈를 가져와서 필터링하는 것이 안전할 수 있음
+        const allQuizzes = await db.collection('quizzes').get();
+        const targets = allQuizzes.docs.filter(doc => (doc.data().session_unit || '기본') === filterValue);
+
+        if (targets.length === 0) {
+            showToast('삭제할 퀴즈가 없습니다.', 'info');
+            return;
+        }
+
+        const batch = db.batch();
+        targets.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+
+        showToast(`[${filterValue}] 차시의 퀴즈 ${targets.length}개가 삭제되었습니다.`, 'success');
+        
+        // 필터를 'all'로 돌리고 새로고침
+        DOM.filterSessionUnit.value = 'all';
+        loadCurrentQuizzes();
+    } catch (err) {
+        console.error('[그룹 삭제 에러]', err);
+        showToast('그룹 삭제 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+/**
  * 퀴즈 활성화/비활성화 토글
  */
 window.toggleQuizStatus = async function(quizId, currentStatus) {
@@ -852,6 +1005,14 @@ DOM.btnRefreshStats.addEventListener('click', () => {
     loadCurrentQuizzes();
     loadCurrentSessions();
 });
+
+// 차시 필터 변경 이벤트
+DOM.filterSessionUnit.addEventListener('change', () => {
+    loadCurrentQuizzes();
+});
+
+// 그룹 삭제 버튼 이벤트
+DOM.btnDeleteGroup.addEventListener('click', deleteQuizGroup);
 
 // ============================================================
 // 4. 유틸리티 함수
