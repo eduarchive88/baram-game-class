@@ -204,12 +204,12 @@ class InventoryManager {
     // ============================================================
 
     /**
-     * 인벤토리 + 장비 RTDB 저장
+     * 인벤토리 + 장비 RTDB 저장 (Player.saveUserData로 통합)
      */
     _save() {
         if (!localPlayer || !localPlayer.uid) return;
-        rtdb.ref('userData/' + localPlayer.uid + '/inventory').set(this.items);
-        rtdb.ref('userData/' + localPlayer.uid + '/equipment').set(this.equipment);
+        // 개별 저장이 아닌 플레이어 전체 상태 저장을 호출하여 일관성 유지
+        localPlayer.saveUserData();
     }
 
     /**

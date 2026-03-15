@@ -323,11 +323,7 @@ class CombatManager {
 
         // RTDB에 플레이어 데이터 저장
         if (player.uid) {
-            rtdb.ref('userData/' + player.uid).update({
-                level: player.level,
-                exp: player.exp,
-                gold: player.gold,
-            });
+            player.saveUserData();
         }
 
         // 드롭 아이템 (20% 확률)

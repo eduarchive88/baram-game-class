@@ -71,6 +71,48 @@ class Player {
     }
 
     /**
+     * 플레이어 상태 실시간 저장
+     */
+    async saveUserData() {
+        if (!this.uid) return;
+        
+        try {
+            const data = {
+                level: this.level,
+                exp: this.exp,
+                gold: this.gold,
+                map: this.map || 'map_000',
+                x: this.tileX,
+                y: this.tileY,
+                stats: {
+                    hp: this.stats.hp,
+                    maxHp: this.stats.maxHp,
+                    mp: this.stats.mp,
+                    maxMp: this.stats.maxMp,
+                    atk: this.stats.atk,
+                    def: this.stats.def
+                },
+                // 인벤토리 및 장비 정보 포함
+                inventory: (typeof inventoryManager !== 'undefined') ? inventoryManager.items : [],
+                equipment: (typeof inventoryManager !== 'undefined') ? inventoryManager.equipment : { weapon: null, armor: null, accessory: null },
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            // 1. 전역 유저 데이터 저장
+            await rtdb.ref(`userData/${this.uid}`).update(data);
+            
+            // 2. 현재 세션 내 데이터 백업 (교사 확인용)
+            if (typeof networkManager !== 'undefined' && networkManager.sessionCode) {
+                await rtdb.ref(`sessions/${networkManager.sessionCode}/users/${this.uid}`).update(data);
+            }
+            
+            console.log(`[Player] ${this.nickname} 데이터 저장 완료`);
+        } catch (err) {
+            console.error('[Player] 데이터 저장 오류:', err);
+        }
+    }
+
+    /**
      * 장비 및 버프 보너스를 포함한 실제 스탯 계산
      * @returns {Object} { atk, def, ... }
      */
@@ -273,20 +315,24 @@ class Player {
     /**
      * 사망 처리 (HP가 0이 되었을 때 CombatManager에서 호출)
      */
-    die() {
+    async die() {
         if (this.isDead) return;
         this.isDead = true;
         this.isAlive = false;
         this.deathTimer = this.DEATH_PENALTY_TIME;
         this.deathFadeAlpha = 0;
         this.isAttacking = false;
+        
         console.log(`[Player] ${this.nickname} 사망! ${this.DEATH_PENALTY_TIME}초 후 부활`);
+        
+        // 사망 상태 저장
+        await this.saveUserData();
     }
 
     /**
      * 부활 처리
      */
-    _respawn() {
+    async _respawn() {
         this.isDead = false;
         this.isAlive = true;
         this.stats.hp = Math.floor(this.stats.maxHp * 0.3); // HP 30%로 부활
@@ -296,6 +342,9 @@ class Player {
         // 부활 이펙트
         this._spawnReviveEffect();
         console.log(`[Player] ${this.nickname} 부활!`);
+        
+        // 부활 상태 저장
+        await this.saveUserData();
     }
 
     // ===== 이펙트 생성 헬퍼 =====

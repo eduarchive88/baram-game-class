@@ -128,11 +128,12 @@ class ShopManager {
     }
 
     /**
-     * 골드 RTDB 저장
+     * 골드 RTDB 저장 (Player.saveUserData로 통합)
      */
     _savePlayerGold(player) {
-        if (player.uid) {
-            rtdb.ref('userData/' + player.uid + '/gold').set(player.gold);
+        if (player && player.uid) {
+            // 개별 저장이 아닌 플레이어 전체 상태 저장을 호출하여 일관성 유지
+            player.saveUserData();
         }
     }
 

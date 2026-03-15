@@ -491,8 +491,12 @@ async function startGame(charData, uid) {
         if (confirm('정말로 로그아웃 하시겠습니까?')) {
             localStorage.removeItem('studentUid');
             localStorage.removeItem('studentName');
-            auth.signOut().then(() => {
-                location.reload(); // 세션 초기화 및 초기 화면 이동 위해 페이지 리로드
+            
+            // 데이터 최종 저장 후 로그아웃
+            localPlayer.saveUserData().then(() => {
+                auth.signOut().then(() => {
+                    location.reload(); 
+                });
             });
         }
     };
@@ -514,6 +518,10 @@ async function startGame(charData, uid) {
     
     // 키보드 입력 활성화를 위해 윈도우 포커스
     window.focus();
+
+    if (!networkManager.teacherPresent && charData.role === 'student') {
+        console.log('[Main] 교사 대기 중... (로컬 모드 동작)');
+    }
 
     // 사운드 초기화 (사용자 첫 클릭 시 활성화 필요)
     const initSound = () => {
@@ -702,6 +710,7 @@ function handleNPCInteraction(npc) {
     if (npc.id === 'npc_innkeeper') {
         localPlayer.stats.hp = localPlayer.stats.maxHp;
         localPlayer.stats.mp = localPlayer.stats.maxMp;
+        localPlayer.saveUserData(); // 즉시 저장
     }
 
     // 대장장이 → 상점 오픈
@@ -779,6 +788,7 @@ function handlePortal(portal) {
     // 새 맵 로드
     mapManager.loadMap(portal.targetMap);
     localPlayer.setPosition(portal.targetX, portal.targetY);
+    localPlayer.saveUserData(); // 이동 후 위치 즉시 저장
 
     // 몬스터 리스폰
     combatManager.spawnMonsters(mapManager.currentMap);
