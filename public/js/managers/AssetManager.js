@@ -163,7 +163,7 @@ class AssetManager {
             monster_slime: await this.loadImage('/assets/rpg_monster_slime_1773294505327.png'),
             monster_wolf: await this.loadImage('/assets/rpg_monster_wolf_1773294519586.png'),
             monster_goblin: await this.loadImage('/assets/rpg_monster_goblin_1773294533102.png'),
-            monster_skeleton: await this.loadImage('/assets/rpg_monster_skeleton.png')
+            monster_skeleton: await this.loadImage('/assets/rpg_monster_skeleton_1773295334250.png')
         };
 
         // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
@@ -999,6 +999,32 @@ class AssetManager {
         const sprites = this.images.monsters?.[type];
         if (!sprites) return null;
         return sprites[frame % sprites.length] || null;
+    }
+
+    /**
+     * 캐릭터 스프라이트 접근자
+     * @param {string} job - 직업명 (한국어)
+     * @param {string|number} direction - 방향명 혹은 인덱스
+     * @param {number} frame - 애니메이션 프레임
+     */
+    getSprite(job, direction, frame) {
+        const directions = ['down', 'left', 'right', 'up'];
+        const dirKey = typeof direction === 'number' ? directions[direction] : direction;
+        
+        // 직업명이 영어로 들어올 경우를 대비한 매핑
+        const jobMapping = {
+            'warrior': '전사', 'rogue': '도적', 'shaman': '주술사', 'healer': '도사',
+            'thief': '도적', 'mage': '주술사', 'poet': '도사'
+        };
+        const searchJob = jobMapping[job] || job;
+        
+        const sheet = this.images.characters?.[searchJob] || this.images.characters?.['전사'];
+        if (!sheet) return null;
+        
+        const frames = sheet[dirKey];
+        if (!frames) return null;
+        
+        return frames[frame % frames.length] || null;
     }
 
     // ============================================================
