@@ -68,16 +68,41 @@ class Monster {
     }
 
     /**
+     * 서버로부터 전송된 상태 업데이트
+     * @param {Object} data - { x, y, hp, state, direction }
+     */
+    updateFromServer(data) {
+        if (!data) return;
+
+        // 타겟 위치 업데이트 (부드러운 이동을 위해 targetX/Y만 변경)
+        if (data.x !== undefined && data.y !== undefined) {
+            this.tileX = data.x;
+            this.tileY = data.y;
+            this.targetX = data.x * 32;
+            this.targetY = data.y * 32;
+            this.isMoving = true;
+        }
+
+        if (data.hp !== undefined) this.stats.hp = data.hp;
+        if (data.state !== undefined) this.state = data.state;
+        if (data.direction !== undefined) this.direction = data.direction;
+    }
+
+    /**
      * 매 프레임 업데이트
      * @param {number} dt - 델타 타임
      * @param {MapManager} map - 맵 관리자
      * @param {Player} player - 로컬 플레이어 (어그로 판정용)
+     * @param {boolean} isMaster - 마스터(교사) 권한 여부
      */
-    update(dt, map, player) {
+    update(dt, map, player, isMaster = false) {
         if (this.state === 'dead') {
-            this.deathTimer += dt;
-            if (this.deathTimer >= this.RESPAWN_TIME) {
-                this._respawn();
+            // 마스터(교사)만 리스폰을 계산함
+            if (isMaster) {
+                this.deathTimer += dt;
+                if (this.deathTimer >= this.RESPAWN_TIME) {
+                    this._respawn();
+                }
             }
             return;
         }
@@ -90,11 +115,13 @@ class Monster {
             this._smoothMove(dt);
         }
 
-        // AI 로직
-        this.aiTimer += dt;
-        if (this.aiTimer >= this.AI_THINK_INTERVAL && !this.isMoving) {
-            this.aiTimer = 0;
-            this._think(map, player);
+        // AI 로직 (마스터/교사일 때만 직접 계산)
+        if (isMaster) {
+            this.aiTimer += dt;
+            if (this.aiTimer >= this.AI_THINK_INTERVAL && !this.isMoving) {
+                this.aiTimer = 0;
+                this._think(map, player);
+            }
         }
 
         // 걷기 애니메이션

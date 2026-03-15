@@ -588,7 +588,7 @@ function update(dt) {
     mapManager.updateCamera(localPlayer.x, localPlayer.y);
 
     // 전투 업데이트 (몬스터 AI + 데미지)
-    combatManager.update(dt, mapManager, localPlayer);
+    combatManager.update(dt, mapManager, localPlayer, networkManager);
 
     // 퀴즈 업데이트 (사망 체크 등)
     quizManager.update(localPlayer);

@@ -87,33 +87,64 @@ class CombatManager {
      * @param {number} dt - 델타 타임
      * @param {MapManager} map - 맵 관리자
      * @param {Player} player - 로컬 플레이어
+     * @param {NetworkManager} network - 네트워크 관리자 (환경 동기화용)
      */
-    update(dt, map, player) {
+    update(dt, map, player, network = null) {
+        const isMaster = network && network.isTeacher;
+        const teacherPresent = network && network.teacherPresent;
+
         // 공격 쿨다운 감소
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
         // 몬스터 AI 업데이트 및 상태 이상(디버프/기절) 처리
         this.monsters.forEach(m => {
-            if (m.state === 'dead') return;
-
-            // 디버프 타이머 갱신
-            if (m.debuffs) {
-                m.debuffs = m.debuffs.filter(db => {
-                    db.remaining -= dt;
-                    return db.remaining > 0;
-                });
+            // 마스터(교사)이거나, 교사가 없을 때는 로컬 모드로 동작
+            // 단, 교사가 접속 중인데 내가 학생이라면 교사의 데이터를 기다려야 함
+            if (isMaster || !teacherPresent) {
+                m.update(dt, map, player, isMaster);
+            } else {
+                // 학생이고 교사가 접속 중일 때: 부드러운 이동 애니메이션만 진행 (AI 생각은 중지)
+                if (m.isMoving) m._smoothMove(dt);
             }
-
-            // 기절(마비) 상태 처리
-            if (m.stunTimer && m.stunTimer > 0) {
-                m.stunTimer -= dt;
-                return; // 기절 중에는 AI(움직임, 공격) 중지
-            }
-
-            m.update(dt, map, player);
         });
 
+        // 환경 동기화 (서버 <-> 클라이언트)
+        if (network && network.envRef) {
+            const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
+            
+            if (isMaster) {
+                // [교사] 몬스터 상태 서버에 전송 (최적화를 위해 일부만 전송하거나 주기 조절 가능)
+                const monsterData = {};
+                this.monsters.forEach(m => {
+                    monsterData[m.id] = {
+                        x: m.tileX,
+                        y: m.tileY,
+                        hp: m.stats.hp,
+                        state: m.state,
+                        direction: m.direction
+                    };
+                });
+                mapEnvRef.child('monsters').set(monsterData);
+            } else if (teacherPresent) {
+                // [학생] 교사가 접속 중일 때만 서버 데이터 수신 (리스너는 초기 1회만 등록하는 것이 좋음 - 여기서는 단순화)
+                if (!this._envListenerAttached) {
+                    mapEnvRef.child('monsters').on('value', (snap) => {
+                        const serverMonsters = snap.val();
+                        if (serverMonsters) {
+                            this.monsters.forEach(m => {
+                                if (serverMonsters[m.id]) {
+                                    m.updateFromServer(serverMonsters[m.id]);
+                                }
+                            });
+                        }
+                    });
+                    this._envListenerAttached = true;
+                }
+            }
+        }
+
         // 몬스터 -> 플레이어 근접 공격 체크
+        // (동기화 이슈 방지를 위해 각자 로컬에서 데미지 판정 - 혹은 교사만 판정하도록 변경 가능)
         this._checkMonsterAttacks(dt, player);
 
         // 데미지 텍스트 업데이트

@@ -19,11 +19,38 @@ class NetworkManager {
         this.currentMapId = null;
         // 위치 업데이트 주기 (ms)
         this.SYNC_INTERVAL = 100; // 100ms = 초당 10번
-        this.lastSyncTime = 0;
-        // 리스너 해제용
-        this._listeners = [];
+        // 세션 관련
+        this.sessionCode = null;
+        this.isTeacher = false;
+        this.envRef = null;
+        this.teacherPresent = false;
 
         console.log('[NetworkManager] 초기화 완료');
+    }
+
+    /**
+     * 세션 정보 설정 및 환경 Ref 초기화
+     * @param {string} sessionCode 
+     * @param {boolean} isTeacher 
+     */
+    initSession(sessionCode, isTeacher) {
+        this.sessionCode = sessionCode;
+        this.isTeacher = isTeacher;
+        this.envRef = rtdb.ref(`sessions/${sessionCode}/environment`);
+        
+        // 교사 존재 여부 감시 (실제로 교사가 접속 중인지)
+        const teacherPresenceRef = rtdb.ref(`sessions/${sessionCode}/teacher_online`);
+        
+        if (this.isTeacher) {
+            teacherPresenceRef.set(true);
+            teacherPresenceRef.onDisconnect().remove(); // 교사 종료 시 제거
+            this.teacherPresent = true;
+        } else {
+            teacherPresenceRef.on('value', (snap) => {
+                this.teacherPresent = snap.val() === true;
+                console.log(`[NetworkManager] 교사 접속 상태: ${this.teacherPresent}`);
+            });
+        }
     }
 
     /**
@@ -38,7 +65,9 @@ class NetworkManager {
 
         this.localUid = uid;
         this.currentMapId = mapId;
-        this.playersRef = rtdb.ref(`maps/${mapId}/players`);
+        
+        // 맵별 플레이어 정보 (세션 하위로 관리)
+        this.playersRef = rtdb.ref(`sessions/${this.sessionCode}/maps/${mapId}/players`);
 
         // 로컬 플레이어 접속 등록
         const myRef = this.playersRef.child(uid);
