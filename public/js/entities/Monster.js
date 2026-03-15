@@ -64,7 +64,7 @@ class Monster {
 
         // 죽음 타이머 (사라지기까지)
         this.deathTimer = 0;
-        this.RESPAWN_TIME = 1.5; // 1.5초 후 리스폰 (상향 조정)
+        this.RESPAWN_TIME = 0.8; // 0.8초 후 리스폰 (상향 조정)
     }
 
     /**

@@ -485,6 +485,28 @@ async function startGame(charData, uid) {
         }
     }
 
+    // 로그아웃 버튼 연결
+    const handleLogout = (e) => {
+        if (e) e.preventDefault();
+        if (confirm('정말로 로그아웃 하시겠습니까?')) {
+            localStorage.removeItem('studentUid');
+            localStorage.removeItem('studentName');
+            auth.signOut().then(() => {
+                location.reload(); // 세션 초기화 및 초기 화면 이동 위해 페이지 리로드
+            });
+        }
+    };
+
+    const btnHudLogout = document.getElementById('hud-btn-logout');
+    if (btnHudLogout) {
+        btnHudLogout.addEventListener('click', handleLogout);
+    }
+
+    const btnSideLogout = document.getElementById('btn-side-logout');
+    if (btnSideLogout) {
+        btnSideLogout.addEventListener('click', handleLogout);
+    }
+
 
     // 게임 루프 시작
     gameRunning = true;
@@ -832,6 +854,19 @@ function updateHUD() {
         const requiredExp = localPlayer.level * 100;
         const percent = Math.floor(Math.min(1, (localPlayer.exp || 0) / requiredExp) * 100);
         mExpPct.textContent = percent;
+    }
+
+    // --- 직업 아이콘 업데이트 ---
+    const avatarEl = document.getElementById('hud-avatar');
+    if (avatarEl && localPlayer.job) {
+        const jobIcons = {
+            '전사': '⚔️',
+            '도적': '🗡️',
+            '주술사': '🪄',
+            '도사': '🌿',
+            '평민': '👤'
+        };
+        avatarEl.textContent = jobIcons[localPlayer.job] || '👤';
     }
 }
 

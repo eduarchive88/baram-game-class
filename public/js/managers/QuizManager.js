@@ -166,25 +166,40 @@ class QuizManager {
             // 정답일 때만 1.2초 후 닫기 (약간 더 빠르게)
             setTimeout(() => this.closeQuiz(), 1200);
         } else {
-            // 오답 처리 - 창을 닫지 않고 다시 기회를 줌
-            this.activeQuiz.isCorrecting = true; // 잠시 클릭 방지
+            // 오답 처리 - 3초간 다음 기회 제한 (패널티)
+            this.activeQuiz.isCorrecting = true; // 클릭 방지
             
             const selectedBtn = optionBtns[idx];
             selectedBtn.classList.add('wrong');
             selectedBtn.disabled = true;
 
-            resultEl.textContent = '❌ 오답입니다! 다시 생각해보세요.';
+            const penaltyTime = 3; // 3초 패널티
+            let remaining = penaltyTime;
+            
+            resultEl.textContent = `❌ 오답입니다! ${remaining}초 후 다시 시도할 수 있습니다.`;
             resultEl.className = 'quiz-result wrong';
 
             // 사운드: 오답 (피격음 활용)
             soundManager.play('hit', 0.8);
 
-            // 1.2초 후 감점 없이 다시 시도 가능하게 함
-            setTimeout(() => {
-                this.activeQuiz.isCorrecting = false;
-                resultEl.textContent = '다른 답을 선택해보세요.';
-                resultEl.className = 'quiz-result';
-            }, 1200);
+            // 카운트다운 타이머
+            const timer = setInterval(() => {
+                remaining--;
+                if (remaining > 0) {
+                    resultEl.textContent = `❌ 오답입니다! ${remaining}초 후 다시 시도할 수 있습니다.`;
+                } else {
+                    clearInterval(timer);
+                    this.activeQuiz.isCorrecting = false;
+                    resultEl.textContent = '다른 답을 선택해보세요.';
+                    resultEl.className = 'quiz-result';
+                    // 버튼들 상태 복구 (틀린 버튼 제외)
+                    optionBtns.forEach((btn, i) => {
+                        if (!btn.classList.contains('wrong')) {
+                            btn.disabled = false;
+                        }
+                    });
+                }
+            }, 1000);
         }
     }
 

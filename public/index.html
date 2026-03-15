@@ -152,7 +152,7 @@
                 <!-- 상단 좌측: 캐릭터 간략 정보 -->
                 <div class="hud-top-left">
                     <div class="hud-player-profile">
-                        <div class="hud-avatar">👤</div>
+                        <div id="hud-avatar" class="hud-avatar">👤</div>
                         <div class="hud-stats-compact">
                             <div class="hud-name-row">
                                 <span id="hud-level" class="hud-badge">Lv.1</span>
@@ -175,6 +175,7 @@
                     <button id="hud-btn-inventory" class="hud-circle-btn" title="인벤토리">🎒</button>
                     <button id="hud-btn-skillbook" class="hud-circle-btn" title="스킬">✨</button>
                     <button id="hud-btn-settings" class="hud-circle-btn" title="설정">⚙️</button>
+                    <button id="hud-btn-logout" class="hud-circle-btn" title="로그아웃" style="background: var(--red-accent);">🚪</button>
                 </div>
 
                 <!-- 하단 좌측: 가상 조이스틱 -->
@@ -222,6 +223,7 @@
                 <div class="status-header">
                     <span id="player-level" class="level-badge">Lv.1</span>
                     <span id="player-name">플레이어</span>
+                    <button id="btn-side-logout" class="mini-logout-btn" title="로그아웃">🚪</button>
                 </div>
                 <div class="status-bars">
                     <div class="stat-bar hp">
