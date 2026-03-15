@@ -74,12 +74,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function handleLoginSuccess(uid, role, name) {
     const charData = await loadCharacterData(uid);
-    if (charData) {
-        showScreen('game-container');
-        startGame(charData, uid);
+    const sessionCode = localStorage.getItem('lastSessionCode');
+
+    if (role === 'student' && sessionCode) {
+        // 세션 활성화 상태 감시
+        const sessionRef = rtdb.ref(`sessions/${sessionCode}`);
+        sessionRef.on('value', async (snapshot) => {
+            const sessionData = snapshot.val();
+            const isActive = sessionData && sessionData.is_active === true;
+
+            if (isActive) {
+                hideWaitingOverlay();
+                if (charData) {
+                    showScreen('game-container');
+                    startGame(charData, uid);
+                } else {
+                    showScreen('character-screen');
+                    setupCharacterCreation(uid, role, name);
+                }
+                // 활성화되었으면 더 이상 감시할 필요 없음 (진입 후에는 게임 로직에서 처리)
+                // sessionRef.off('value'); // 필요 시 해제
+            } else {
+                showWaitingOverlay();
+            }
+        });
     } else {
-        showScreen('character-screen');
-        setupCharacterCreation(uid, role, name);
+        // 교사이거나 세션 코드가 없는 경우 (예외)
+        if (charData) {
+            showScreen('game-container');
+            startGame(charData, uid);
+        } else {
+            showScreen('character-screen');
+            setupCharacterCreation(uid, role, name);
+        }
+    }
+}
+
+/**
+ * 선선생님 대기 오버레이 표시
+ */
+function showWaitingOverlay() {
+    let overlay = document.getElementById('waiting-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'waiting-overlay';
+        overlay.innerHTML = `
+            <div class="waiting-box">
+                <div class="waiting-icon">⏳</div>
+                <h2>선생님의 승인을 기다리고 있습니다</h2>
+                <p>교사가 세션을 활성화하면 자동으로 게임이 시작됩니다.</p>
+                <div class="waiting-spinner"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'flex';
+}
+
+/**
+ * 대기 오버레이 숨김
+ */
+function hideWaitingOverlay() {
+    const overlay = document.getElementById('waiting-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
 }
 
@@ -200,6 +258,7 @@ function setupAuthUI() {
                 const studentUid = `session_${code}_${studentId}`;
                 localStorage.setItem('studentUid', studentUid);
                 localStorage.setItem('studentName', name);
+                localStorage.setItem('lastSessionCode', code); // 세션 코드 저장
 
                 // 명시적으로 로그인 성공 핸들러 호출 (onAuthStateChanged는 localStorage가 설정되기 전에 호출될 수 있으므로)
                 await handleLoginSuccess(studentUid, 'student', name);

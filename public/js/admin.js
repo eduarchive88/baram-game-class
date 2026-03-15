@@ -678,66 +678,6 @@ function renderWrongStats(logs, quizMap) {
     }).join('');
 }
 
-/**
- * 현재 등록된 퀴즈 목록을 Firestore에서 로드하여 렌더링
- */
-async function loadCurrentQuizzes() {
-    try {
-        const snapshot = await db.collection('quizzes').get();
-
-        if (snapshot.empty) {
-            DOM.currentQuizBody.innerHTML = `
-        <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">
-          등록된 퀴즈가 없습니다. 엑셀 파일을 업로드하세요.
-        </td></tr>`;
-            return;
-        }
-
-        const quizzes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // 차시별로 정렬
-        quizzes.sort((a, b) => {
-            const unitA = String(a.session_unit || '기본');
-            const unitB = String(b.session_unit || '기본');
-            return unitA.localeCompare(unitB);
-        });
-
-        DOM.currentQuizBody.innerHTML = quizzes.map((q) => {
-            const isActive = q.is_active !== false; // 기본값 true
-            const statusBadge = isActive 
-                ? '<span class="badge badge-green">활성</span>' 
-                : '<span class="badge badge-red">비활성</span>';
-            const toggleText = isActive ? '끄기' : '켜기';
-            
-            // 정답 텍스트 추출 (1~4번 중 하나)
-            const correctIdx = parseInt(q.correct_answer) - 1;
-            const answerText = q.options?.[correctIdx] || '오류';
-
-            return `
-      <tr>
-        <td><span class="badge badge-gold">${escapeHtml(q.session_unit || '기본')}</span></td>
-        <td title="${escapeHtml(q.question)}">${escapeHtml(q.question)}</td>
-        <td title="${escapeHtml(answerText)}">${escapeHtml(answerText)}</td>
-        <td><span class="badge badge-gold">${q.reward_gold || 0}전</span></td>
-        <td>${statusBadge}</td>
-        <td>
-          <div style="display:flex; gap:4px;">
-            <button class="btn btn-sm ${isActive ? 'btn-secondary' : 'btn-primary'}" 
-                    onclick="toggleQuizStatus('${q.id}', ${isActive})">${toggleText}</button>
-            <button class="btn btn-sm btn-red" onclick="deleteQuiz('${q.id}')">삭제</button>
-          </div>
-        </td>
-      </tr>
-    `}).join('');
-
-    } catch (err) {
-        console.error('[퀴즈 목록 로드 에러]', err);
-        DOM.currentQuizBody.innerHTML = `
-      <tr><td colspan="6" style="text-align:center; color:var(--red-accent); padding:32px;">
-        데이터 로드 실패: ${err.message}
-      </td></tr>`;
-    }
-}
 
 /**
  * 등록된 퀴즈들로부터 유니크한 차시(session_unit) 목록을 추출하여 필터 드롭다운 업데이트
@@ -942,7 +882,14 @@ async function loadCurrentSessions() {
         for (const [sessionCode, sessionData] of Object.entries(sessions)) {
             const students = sessionData.students || {};
             const studentCount = Object.keys(students).length;
+            const isActive = sessionData.is_active === true;
             
+            const statusBadge = isActive 
+                ? '<span class="badge badge-green">활성</span>' 
+                : '<span class="badge badge-red">비활성</span>';
+            const toggleText = isActive ? '비활성화' : '활성화';
+            const btnClass = isActive ? 'btn-secondary' : 'btn-primary';
+
             // 대표 학생 정보 추출 (1명)
             let sampleGradeClass = '-';
             let sampleNames = [];
@@ -962,9 +909,12 @@ async function loadCurrentSessions() {
               <td><span class="badge badge-gold">${escapeHtml(sessionCode)}</span></td>
               <td>${escapeHtml(sampleGradeClass)}</td>
               <td>${escapeHtml(nameDisplay)}</td>
-              <td><span class="badge badge-green">활성 (${studentCount}명)</span></td>
+              <td>${statusBadge} (${studentCount}명)</td>
               <td>
-                <button class="btn btn-sm btn-secondary" onclick="deleteSession('${sessionCode}')">삭제</button>
+                <div style="display:flex; gap:4px;">
+                  <button class="btn btn-sm ${btnClass}" onclick="toggleSessionActive('${sessionCode}', ${isActive})">${toggleText}</button>
+                  <button class="btn btn-sm btn-red" onclick="deleteSession('${sessionCode}')">삭제</button>
+                </div>
               </td>
             </tr>
             `;
@@ -978,6 +928,22 @@ async function loadCurrentSessions() {
       <tr><td colspan="5" style="text-align:center; color:var(--red-accent); padding:32px;">
         데이터 로드 실패: ${err.message}
       </td></tr>`;
+    }
+}
+
+/**
+ * 세션 활성화/비활성화 토글
+ */
+window.toggleSessionActive = async function(sessionCode, currentStatus) {
+    try {
+        await rtdb.ref(`sessions/${sessionCode}`).update({
+            is_active: !currentStatus
+        });
+        showToast(`세션 [${sessionCode}] 상태가 변경되었습니다.`, 'success');
+        loadCurrentSessions();
+    } catch (err) {
+        console.error('[세션 상태 변경 에러]', err);
+        showToast('상태 변경 중 오류가 발생했습니다.', 'error');
     }
 }
 
