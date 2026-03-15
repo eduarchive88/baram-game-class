@@ -73,33 +73,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleLoginSuccess(uid, role, name) {
+    console.log(`[Main] 로그인 성공 핸들러 실행: ${uid} (${role})`);
     const charData = await loadCharacterData(uid);
     const sessionCode = localStorage.getItem('lastSessionCode');
 
     if (role === 'student' && sessionCode) {
-        // 세션 활성화 상태 감시
+        console.log(`[Main] 학생 세션 감시 시작: ${sessionCode}`);
         const sessionRef = rtdb.ref(`sessions/${sessionCode}`);
+        
+        // 기존 리스너가 있다면 제거 (중복 방지)
+        sessionRef.off('value');
+
         sessionRef.on('value', async (snapshot) => {
             const sessionData = snapshot.val();
             const isActive = sessionData && sessionData.is_active === true;
+            console.log(`[Main] 세션 상태 업데이트 - ${sessionCode}: ${isActive ? '활성' : '비활성'}`);
 
             if (isActive) {
                 hideWaitingOverlay();
+                // 이미 게임이 실행 중이면 중복 실행 방지
+                if (gameRunning) {
+                    console.log('[Main] 게임이 이미 실행 중입니다.');
+                    return;
+                }
+
                 if (charData) {
+                    console.log('[Main] 캐릭터 데이터 존재, 게임 시작');
                     showScreen('game-container');
                     startGame(charData, uid);
                 } else {
+                    console.log('[Main] 캐릭터 데이터 없음, 캐릭터 생성 화면으로 이동');
                     showScreen('character-screen');
                     setupCharacterCreation(uid, role, name);
                 }
-                // 활성화되었으면 더 이상 감시할 필요 없음 (진입 후에는 게임 로직에서 처리)
-                // sessionRef.off('value'); // 필요 시 해제
             } else {
+                console.log('[Main] 세션 비활성 상태 - 대기 화면 표시');
                 showWaitingOverlay();
+                stopGame(); // 세션이 비활성화되면 게임 중단
+                showScreen('auth-screen'); // 인증 화면 배경 유지 (위에 오버레이가 덮음)
             }
         });
     } else {
-        // 교사이거나 세션 코드가 없는 경우 (예외)
+        // 교사 혹은 세션 정보 없는 경우 즉시 진입
         if (charData) {
             showScreen('game-container');
             startGame(charData, uid);
