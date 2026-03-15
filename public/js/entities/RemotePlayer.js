@@ -30,6 +30,9 @@ class RemotePlayer {
         this.hp = data.hp || 150;
         this.maxHp = data.maxHp || 150;
 
+        // 사망(유령) 상태
+        this.isDead = data.isDead || false;
+
         // 애니메이션
         this.animFrame = 0;
         this.animTimer = 0;
@@ -55,6 +58,7 @@ class RemotePlayer {
         this.level = data.level || this.level;
         this.hp = data.hp || this.hp;
         this.maxHp = data.maxHp || this.maxHp;
+        this.isDead = (data.isDead === true); // 사망 상태 업데이트
         this.nickname = data.nickname || this.nickname;
         this.job = data.job || this.job;
     }
@@ -102,14 +106,32 @@ class RemotePlayer {
         const dirMap = { down: 0, left: 1, right: 2, up: 3 };
         const dirIdx = dirMap[this.direction] || 0;
 
+        ctx.save();
+        
+        // 유령 모드 연출 (반투명 + 깜빡임)
+        if (this.isDead) {
+            ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 300) * 0.15;
+        }
+
         // 스프라이트 가져오기
         const sprite = assetManager.getSprite(this.job, dirIdx, this.animFrame);
         if (sprite) {
-            ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(sprite, Math.floor(screenX), Math.floor(screenY), TILE_SIZE, TILE_SIZE);
         } else {
             // 폴백: 사각형으로 표시
             ctx.fillStyle = '#808080';
-            ctx.fillRect(screenX + 8, screenY + 4, 16, 24);
+            ctx.fillRect(Math.floor(screenX) + 8, Math.floor(screenY) + 4, 16, 24);
+        }
+
+        ctx.restore();
+
+        // 유령 아이콘 표시
+        if (this.isDead) {
+            ctx.save();
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('👻', screenX + TILE_SIZE / 2, screenY - 15);
+            ctx.restore();
         }
 
         // 닉네임 표시
@@ -130,6 +152,8 @@ class RemotePlayer {
      * HP 바 렌더링
      */
     _renderHPBar(ctx, screenX, screenY) {
+        if (this.isDead) return; // 사망 시 HP 바 숨김
+
         const barW = 28;
         const barH = 3;
         const barX = screenX + 2;

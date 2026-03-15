@@ -74,8 +74,15 @@ class Monster {
     updateFromServer(data) {
         if (!data) return;
 
-        // 타겟 위치 업데이트 (부드러운 이동을 위해 targetX/Y만 변경)
-        if (data.x !== undefined && data.y !== undefined) {
+        // 픽셀 좌표가 있을 경우 우선 사용 (더 부드러운 동기화)
+        if (data.px !== undefined && data.py !== undefined) {
+            this.targetX = data.px;
+            this.targetY = data.py;
+            this.tileX = data.tx !== undefined ? data.tx : Math.floor(data.px / 32);
+            this.tileY = data.ty !== undefined ? data.ty : Math.floor(data.py / 32);
+            this.isMoving = true;
+        } else if (data.x !== undefined && data.y !== undefined) {
+            // 하위 호환성 (x, y가 타일 좌표인 경우)
             this.tileX = data.x;
             this.tileY = data.y;
             this.targetX = data.x * 32;

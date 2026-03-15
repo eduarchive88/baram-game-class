@@ -50,6 +50,7 @@ class CombatManager {
      * @param {Object} mapData - 맵 데이터 (monsterZones 포함)
      */
     spawnMonsters(mapData) {
+        this.cleanupSync(); // 기존 동기화 리스너 및 설정 초기화
         this.monsters = [];
         if (!mapData.monsterZones) return;
 
@@ -90,20 +91,19 @@ class CombatManager {
      * @param {NetworkManager} network - 네트워크 관리자 (환경 동기화용)
      */
     update(dt, map, player, network = null) {
-        const isMaster = network && network.isTeacher;
-        const teacherPresent = network && network.teacherPresent;
-
+        // 내가 이 맵의 몬스터들을 제어할 권한이 있는지 확인 (교사 우선, 없으면 선출된 마스터)
+        const isMaster = network && network.isMaster();
+        
         // 공격 쿨다운 감소
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        // 몬스터 AI 업데이트 및 상태 이상(디버프/기절) 처리
+        // 몬스터 AI 업데이트
         this.monsters.forEach(m => {
-            // 마스터(교사)이거나, 교사가 없을 때는 로컬 모드로 동작
-            // 단, 교사가 접속 중인데 내가 학생이라면 교사의 데이터를 기다려야 함
-            if (isMaster || !teacherPresent) {
-                m.update(dt, map, player, isMaster);
+            // 마스터 권한이 있는 클라이언트만 AI를 계산함
+            if (isMaster) {
+                m.update(dt, map, player, true);
             } else {
-                // 학생이고 교사가 접속 중일 때: 부드러운 이동 애니메이션만 진행 (AI 생각은 중지)
+                // 마스터가 아닐 때는 부드러운 이동 애니메이션만 진행 (AI 생각은 중지)
                 if (m.isMoving) m._smoothMove(dt);
             }
         });
@@ -113,27 +113,31 @@ class CombatManager {
             const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
             
             if (isMaster) {
-                // [교사] 몬스터 상태 서버에 전송 (최적화를 위해 주기를 둠)
+                // [마스터] 몬스터 상태 서버에 전송 (100ms마다)
                 this._syncTimer = (this._syncTimer || 0) + dt;
-                if (this._syncTimer >= 0.1) { // 100ms마다 동기화
+                if (this._syncTimer >= 0.1) {
                     this._syncTimer = 0;
                     const monsterData = {};
                     this.monsters.forEach(m => {
                         monsterData[m.id] = {
-                            x: m.tileX,
-                            y: m.tileY,
+                            tx: m.tileX,
+                            ty: m.tileY,
+                            px: Math.floor(m.x), // 픽셀 좌표 추가
+                            py: Math.floor(m.y),
                             hp: m.stats.hp,
                             state: m.state,
                             direction: m.direction
                         };
                     });
-                    // set 대신 update를 사용하여 네트워크 부하 감소
                     mapEnvRef.child('monsters').update(monsterData);
                 }
-            } else if (teacherPresent) {
-                // [학생] 교사가 접속 중일 때만 서버 데이터 수신
+            } else {
+                // [슬레이브] 마스터가 보내주는 데이터를 수신하여 로컬 몬스터 상태 업데이트
                 if (!this._envListenerAttached) {
                     mapEnvRef.child('monsters').on('value', (snap) => {
+                        // 내가 도중에 마스터로 승격되었다면 수신 중단
+                        if (network.isMaster()) return;
+
                         const serverMonsters = snap.val();
                         if (serverMonsters) {
                             this.monsters.forEach(m => {
@@ -143,6 +147,7 @@ class CombatManager {
                             });
                         }
                     });
+                    this._currentMapEnvRef = mapEnvRef;
                     this._envListenerAttached = true;
                 }
             }
@@ -407,9 +412,22 @@ class CombatManager {
     }
 
     /**
+     * 동기화 리스너 및 관련 정보 정리
+     */
+    cleanupSync() {
+        if (this._currentMapEnvRef) {
+            this._currentMapEnvRef.child('monsters').off('value');
+            this._currentMapEnvRef = null;
+        }
+        this._envListenerAttached = false;
+        this._syncTimer = 0;
+    }
+
+    /**
      * 자원 정리
      */
     destroy() {
+        this.cleanupSync();
         this.monsters = [];
         this.damageTexts = [];
     }

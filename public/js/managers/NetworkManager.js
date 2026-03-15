@@ -163,6 +163,7 @@ class NetworkManager {
             tileY: player.tileY,
             direction: player.direction,
             isMoving: player.isMoving,
+            isDead: player.isDead, // 사망(유령) 상태 추가
             level: player.level,
             hp: player.stats.hp,
             maxHp: player.stats.maxHp,
@@ -219,10 +220,37 @@ class NetworkManager {
     }
 
     /**
-     * 현재 접속 중인 플레이어 수 (나 포함)
+     * 마스터 클라이언트 UID 반환
+     * 1. 교사가 있으면 교사가 마스터
+     * 2. 교사가 없으면 접속자 중 UID가 사전순으로 가장 앞선 사람이 마스터
      */
-    getPlayerCount() {
-        return this.remotePlayers.size + 1;
+    getMasterUid() {
+        // 교사가 접속 중이면 교사가 1순위
+        if (this.teacherPresent) {
+            // 교사의 UID는 보통 고정되어 있거나 teachers/ 경로에서 확인 가능하지만,
+            // 현재 시스템에서는 교사가 접속 시 teacher_online에 기록하므로
+            // 교사인 클라이언트 자신이 마스터가 됨.
+            if (this.isTeacher) return this.localUid;
+            
+            // 학생 입장에서는 교사가 마스터이므로, 
+            // 몬스터 AI 제어권은 '교사'에게 있음을 알림.
+            // (구체적인 교사 UID를 몰라도 '교사 존재' 만으로 학생은 AI 중단 가능)
+            return 'TEACHER_OR_UNKNOWN'; 
+        }
+
+        // 교사가 없으면 접속자(나 포함) 중 UID 최소값 선출
+        let allUids = [this.localUid, ...this.remotePlayers.keys()];
+        allUids.sort();
+        return allUids[0];
+    }
+
+    /**
+     * 현재 내가 마스터인지 확인
+     */
+    isMaster() {
+        if (this.isTeacher && this.teacherPresent) return true;
+        if (this.teacherPresent && !this.isTeacher) return false;
+        return this.getMasterUid() === this.localUid;
     }
 
     /**
