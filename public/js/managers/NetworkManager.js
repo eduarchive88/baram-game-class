@@ -24,6 +24,8 @@ class NetworkManager {
         this.isTeacher = false;
         this.envRef = null;
         this.teacherPresent = false;
+        // 리스너 추적 배열 (초기화 누락 수정)
+        this._listeners = [];
 
         console.log('[NetworkManager] 초기화 완료');
     }
