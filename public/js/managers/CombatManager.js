@@ -113,20 +113,25 @@ class CombatManager {
             const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
             
             if (isMaster) {
-                // [교사] 몬스터 상태 서버에 전송 (최적화를 위해 일부만 전송하거나 주기 조절 가능)
-                const monsterData = {};
-                this.monsters.forEach(m => {
-                    monsterData[m.id] = {
-                        x: m.tileX,
-                        y: m.tileY,
-                        hp: m.stats.hp,
-                        state: m.state,
-                        direction: m.direction
-                    };
-                });
-                mapEnvRef.child('monsters').set(monsterData);
+                // [교사] 몬스터 상태 서버에 전송 (최적화를 위해 주기를 둠)
+                this._syncTimer = (this._syncTimer || 0) + dt;
+                if (this._syncTimer >= 0.1) { // 100ms마다 동기화
+                    this._syncTimer = 0;
+                    const monsterData = {};
+                    this.monsters.forEach(m => {
+                        monsterData[m.id] = {
+                            x: m.tileX,
+                            y: m.tileY,
+                            hp: m.stats.hp,
+                            state: m.state,
+                            direction: m.direction
+                        };
+                    });
+                    // set 대신 update를 사용하여 네트워크 부하 감소
+                    mapEnvRef.child('monsters').update(monsterData);
+                }
             } else if (teacherPresent) {
-                // [학생] 교사가 접속 중일 때만 서버 데이터 수신 (리스너는 초기 1회만 등록하는 것이 좋음 - 여기서는 단순화)
+                // [학생] 교사가 접속 중일 때만 서버 데이터 수신
                 if (!this._envListenerAttached) {
                     mapEnvRef.child('monsters').on('value', (snap) => {
                         const serverMonsters = snap.val();

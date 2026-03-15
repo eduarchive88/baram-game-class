@@ -102,12 +102,8 @@ class RemotePlayer {
         const dirMap = { down: 0, left: 1, right: 2, up: 3 };
         const dirIdx = dirMap[this.direction] || 0;
 
-        // 직업 매핑
-        const jobMap = { '전사': 'warrior', '도적': 'rogue', '주술사': 'shaman', '도사': 'healer' };
-        const jobKey = jobMap[this.job] || 'warrior';
-
         // 스프라이트 가져오기
-        const sprite = assetManager.getSprite(jobKey, dirIdx, this.animFrame);
+        const sprite = assetManager.getSprite(this.job, dirIdx, this.animFrame);
         if (sprite) {
             ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE);
         } else {
