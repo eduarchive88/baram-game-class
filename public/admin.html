@@ -126,11 +126,13 @@
         </div>
 
         <!-- ========== 엑셀 업로드 섹션 ========== -->
-        <div class="card full-width">
-          <div class="card-title">📊 일일 퀴즈 업로드 (엑셀)</div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <label for="quiz-session-unit" style="font-weight:bold; color:var(--text-gold);">퀴즈 차시 설정:</label>
+            <input type="text" id="quiz-session-unit" class="input-field" placeholder="예: 1차시" style="max-width:150px;">
+          </div>
           <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px;">
             A열(문제), B~E열(보기 1~4), F열(정답번호 1~4), G열(보상 금전) 형식의 엑셀 파일을 업로드하세요.<br>
-            <strong style="color:var(--red-accent);">⚠️ 업로드 시 기존 퀴즈 데이터가 모두 교체됩니다.</strong>
+            <strong style="color:var(--text-gold);">💡 선택한 차시로 퀴즈가 그룹화되어 저장됩니다.</strong>
           </p>
 
           <!-- 드래그 앤 드롭 영역 -->
@@ -271,19 +273,25 @@
 
         <!-- ========== 현재 등록된 퀴즈 목록 ========== -->
         <div class="card full-width">
-          <div class="card-title">📝 현재 등록된 퀴즈 목록</div>
-          <div id="current-quiz-container" style="max-height:400px; overflow-y:auto;">
+          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>📝 전체 퀴즈 관리 (목록)</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <label for="filter-session-unit" style="font-size:0.9rem; color:var(--text-muted);">차시 필터:</label>
+              <select id="filter-session-unit" class="input-field" style="width:auto; padding:4px 8px; height:auto;">
+                <option value="all">전체 차시</option>
+              </select>
+            </div>
+          </div>
+          <div id="current-quiz-container" style="max-height:500px; overflow-y:auto;">
             <table class="data-table" id="current-quiz-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th>차시</th>
                   <th>문제</th>
-                  <th>보기 1</th>
-                  <th>보기 2</th>
-                  <th>보기 3</th>
-                  <th>보기 4</th>
                   <th>정답</th>
                   <th>보상</th>
+                  <th>상태</th>
+                  <th>관리</th>
                 </tr>
               </thead>
               <tbody id="current-quiz-body">

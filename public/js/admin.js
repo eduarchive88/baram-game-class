@@ -60,6 +60,7 @@ const DOM = {
     wrongStatsBody: document.getElementById('wrong-stats-body'),
     currentQuizBody: document.getElementById('current-quiz-body'),
     currentSessionsBody: document.getElementById('current-sessions-body'),
+    quizSessionUnit: document.getElementById('quiz-session-unit'),
 };
 
 // ============================================================
@@ -302,8 +303,10 @@ DOM.btnConfirmUpload.addEventListener('click', async () => {
         return;
     }
 
+    const sessionUnit = DOM.quizSessionUnit.value.trim() || '기본';
+
     // 확인 다이얼로그
-    if (!confirm(`${parsedQuizData.length}개의 퀴즈를 업로드합니다.\n기존 퀴즈는 모두 삭제됩니다. 계속하시겠습니까?`)) {
+    if (!confirm(`[${sessionUnit}] 차시로 ${parsedQuizData.length}개의 퀴즈를 업로드합니다.\n기존 퀴즈는 그대로 유지되며, 새로운 퀴즈들이 추가됩니다. 계속하시겠습니까?`)) {
         return;
     }
 
@@ -312,12 +315,9 @@ DOM.btnConfirmUpload.addEventListener('click', async () => {
     DOM.uploadStatusText.textContent = '기존 퀴즈 삭제 중...';
 
     try {
-        // Step 1: 기존 quizzes 컬렉션 전체 삭제
-        const existingDocs = await db.collection('quizzes').get();
-        const batch1 = db.batch();
-        existingDocs.docs.forEach(doc => batch1.delete(doc.ref));
-        await batch1.commit();
-        console.log(`[Firestore] 기존 퀴즈 ${existingDocs.size}개 삭제 완료`);
+        // Step 1: (기존 로직은 전체 삭제였으나, 요청에 따라 차시별로 관리하기 위해 삭제 로직 제거 또는 선택적 삭제 고려)
+        // 사용자가 "매번 일일히 지우는게 아니라"라고 했으므로 추가하는 방식으로 변경
+        console.log(`[Firestore] 새 퀴즈 업로드 시작 (차시: ${sessionUnit})`);
 
         // Step 2: 새 퀴즈 데이터 일괄 생성 (Batch Write, 500개 제한)
         DOM.uploadStatusText.textContent = '새 퀴즈 업로드 중...';
@@ -327,7 +327,12 @@ DOM.btnConfirmUpload.addEventListener('click', async () => {
             const batch2 = db.batch();
             chunk.forEach(quiz => {
                 const docRef = db.collection('quizzes').doc();
-                batch2.set(docRef, quiz);
+                batch2.set(docRef, {
+                    ...quiz,
+                    session_unit: sessionUnit,
+                    is_active: true,
+                    created_at: firebase.firestore.FieldValue.serverTimestamp()
+                });
             });
             await batch2.commit();
         }
@@ -340,6 +345,7 @@ DOM.btnConfirmUpload.addEventListener('click', async () => {
         DOM.previewSection.style.display = 'none';
         DOM.previewBody.innerHTML = '';
         DOM.fileInput.value = '';
+        DOM.quizSessionUnit.value = '';
 
         // 통계 및 퀴즈 목록 새로고침
         loadCurrentQuizzes();
@@ -686,26 +692,80 @@ async function loadCurrentQuizzes() {
         }
 
         const quizzes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 차시별로 정렬
+        quizzes.sort((a, b) => {
+            const unitA = String(a.session_unit || '기본');
+            const unitB = String(b.session_unit || '기본');
+            return unitA.localeCompare(unitB);
+        });
 
-        DOM.currentQuizBody.innerHTML = quizzes.map((q, idx) => `
+        DOM.currentQuizBody.innerHTML = quizzes.map((q) => {
+            const isActive = q.is_active !== false; // 기본값 true
+            const statusBadge = isActive 
+                ? '<span class="badge badge-green">활성</span>' 
+                : '<span class="badge badge-red">비활성</span>';
+            const toggleText = isActive ? '끄기' : '켜기';
+            
+            // 정답 텍스트 추출 (1~4번 중 하나)
+            const correctIdx = parseInt(q.correct_answer) - 1;
+            const answerText = q.options?.[correctIdx] || '오류';
+
+            return `
       <tr>
-        <td>${idx + 1}</td>
-        <td>${escapeHtml(q.question)}</td>
-        <td>${escapeHtml(q.options?.[0] || '')}</td>
-        <td>${escapeHtml(q.options?.[1] || '')}</td>
-        <td>${escapeHtml(q.options?.[2] || '')}</td>
-        <td>${escapeHtml(q.options?.[3] || '')}</td>
-        <td><span class="badge badge-green">${q.correct_answer}</span></td>
+        <td><span class="badge badge-gold">${escapeHtml(q.session_unit || '기본')}</span></td>
+        <td title="${escapeHtml(q.question)}">${escapeHtml(q.question)}</td>
+        <td title="${escapeHtml(answerText)}">${escapeHtml(answerText)}</td>
         <td><span class="badge badge-gold">${q.reward_gold || 0}전</span></td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm ${isActive ? 'btn-secondary' : 'btn-primary'}" 
+                    onclick="toggleQuizStatus('${q.id}', ${isActive})">${toggleText}</button>
+            <button class="btn btn-sm btn-red" onclick="deleteQuiz('${q.id}')">삭제</button>
+          </div>
+        </td>
       </tr>
-    `).join('');
+    `}).join('');
 
     } catch (err) {
         console.error('[퀴즈 목록 로드 에러]', err);
         DOM.currentQuizBody.innerHTML = `
-      <tr><td colspan="8" style="text-align:center; color:var(--red-accent); padding:32px;">
+      <tr><td colspan="6" style="text-align:center; color:var(--red-accent); padding:32px;">
         데이터 로드 실패: ${err.message}
       </td></tr>`;
+    }
+}
+
+/**
+ * 퀴즈 활성화/비활성화 토글
+ */
+window.toggleQuizStatus = async function(quizId, currentStatus) {
+    try {
+        await db.collection('quizzes').doc(quizId).update({
+            is_active: !currentStatus
+        });
+        showToast(`퀴즈 상태가 변경되었습니다.`, 'success');
+        loadCurrentQuizzes();
+    } catch (err) {
+        console.error('[퀴즈 상태 변경 에러]', err);
+        showToast('상태 변경 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+/**
+ * 퀴즈 개별 삭제
+ */
+window.deleteQuiz = async function(quizId) {
+    if (!confirm('정말 이 퀴즈를 삭제하시겠습니까?')) return;
+    
+    try {
+        await db.collection('quizzes').doc(quizId).delete();
+        showToast('퀴즈가 삭제되었습니다.', 'success');
+        loadCurrentQuizzes();
+    } catch (err) {
+        console.error('[퀴즈 삭제 에러]', err);
+        showToast('퀴즈 삭제 중 오류가 발생했습니다.', 'error');
     }
 }
 

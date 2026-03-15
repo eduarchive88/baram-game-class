@@ -30,6 +30,9 @@ class QuizManager {
             this.quizzes = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
+                // 활성화된 퀴즈만 로드 (is_active가 false가 아닌 경우)
+                if (data.is_active === false) return;
+
                 // answer 필드를 항상 정수로 변환 (Firestore에서 문자열로 올 수 있음)
                 this.quizzes.push({
                     id: doc.id,
