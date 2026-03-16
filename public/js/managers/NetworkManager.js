@@ -243,8 +243,6 @@ class NetworkManager {
      * 현재 내가 마스터인지 확인
      */
     isMaster() {
-        if (this.isTeacher && this.teacherPresent) return true;
-        if (this.teacherPresent && !this.isTeacher) return false;
         return this.getMasterUid() === this.localUid;
     }
 

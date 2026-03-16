@@ -62,6 +62,7 @@ class RemotePlayer {
         this.isDead = (data.isDead === true); // 사망 상태 업데이트
         this.nickname = data.nickname || this.nickname;
         this.job = data.job || this.job;
+        this.role = data.role || this.role; // 역할 동기화 추가
     }
 
     /**

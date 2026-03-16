@@ -43,6 +43,9 @@ class CombatManager {
         };
 
         this._lastIsMaster = false; // 마스터 권한 상태 추적용
+        this._currentMapEnvRef = null;
+        this._envListenerAttached = false;
+        this._syncTimer = 0;
 
         console.log('[CombatManager] 초기화 완료');
     }
@@ -93,49 +96,27 @@ class CombatManager {
      * @param {NetworkManager} network - 네트워크 관리자 (환경 동기화용)
      */
     update(dt, map, player, network = null) {
-        // 내가 이 맵의 몬스터들을 제어할 권한이 있는지 확인 (교사 우선, 없으면 선출된 마스터)
+        // 내가 이 맵의 몬스터들을 제어할 권한이 있는지 확인
         const isMaster = network && network.isMaster();
         
         // 공격 쿨다운 감소
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        // 몬스터 AI 업데이트
-        // 몬스터 업데이트
+        // 몬스터 업데이트 (기본 동작: 애니메이션, 보간 등)
         this.monsters.forEach(m => {
-            // 모든 클라이언트가 몬스터의 기본적인 상태(애니메이션, 보간 등)를 업데이트함
-            // 4번째 인자(isMaster)는 AI 실행 여부를 결정함
             m.update(dt, map, player, isMaster);
         });
 
-        // 환경 동기화 (서버 <-> 클라이언트)
+        // 환경 동기화 로직
         if (network && network.envRef) {
             const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
             
-            if (isMaster) {
-                // [마스터] 몬스터 상태 서버에 전송 (100ms마다)
-                this._syncTimer = (this._syncTimer || 0) + dt;
-                if (this._syncTimer >= 0.1) {
-                    this._syncTimer = 0;
-                    const monsterData = {};
-                    this.monsters.forEach(m => {
-                        monsterData[m.id] = {
-                            tx: m.tileX,
-                            ty: m.tileY,
-                            px: Math.floor(m.x), // 픽셀 좌표 추가
-                            py: Math.floor(m.y),
-                            hp: m.stats.hp,
-                            state: m.state,
-                            direction: m.direction
-                        };
-                    });
-                    mapEnvRef.child('monsters').update(monsterData);
-                }
-            } else {
-                // [슬레이브] 마스터가 보내주는 데이터를 수신하여 로컬 몬스터 상태 업데이트
-                if (!this._envListenerAttached) {
-                    console.log('[CombatManager] 서버 몬스터 데이터 리스너 작동');
+            // 1. [슬레이브] 서버 데이터 수신
+            if (!isMaster) {
+                if (this._currentMapEnvRef !== mapEnvRef || !this._envListenerAttached) {
+                    this.cleanupSync();
+                    
                     mapEnvRef.child('monsters').on('value', (snap) => {
-                        // 내가 도중에 마스터로 승격되었다면 수신 중단 (브로드캐스트 루프 방지)
                         if (network.isMaster()) return;
 
                         const serverMonsters = snap.val();
@@ -147,39 +128,60 @@ class CombatManager {
                             });
                         }
                     });
+                    
                     this._currentMapEnvRef = mapEnvRef;
                     this._envListenerAttached = true;
+                    this._lastIsMaster = false;
+                    console.log(`[CombatManager] [${map.currentMapId}] 슬레이브 수신 모드 가동`);
+                }
+            } 
+            // 2. [마스터] 서버 데이터 송신
+            else {
+                if (this._lastIsMaster !== true || this._currentMapEnvRef !== mapEnvRef) {
+                    this.cleanupSync();
+                    
+                    mapEnvRef.child('monsters').once('value', (snap) => {
+                        const serverMonsters = snap.val();
+                        if (serverMonsters) {
+                            this.monsters.forEach(m => {
+                                if (serverMonsters[m.id]) m.updateFromServer(serverMonsters[m.id]);
+                            });
+                        }
+                    });
+
+                    this._currentMapEnvRef = mapEnvRef;
+                    this._lastIsMaster = true;
+                    this._syncTimer = 0;
+                    console.log(`[CombatManager] [${map.currentMapId}] 마스터 송신 모드 가동`);
                 }
 
-                // 만약 방금 마스터에서 슬레이브로 강등되었다면, 마스터 전용 타이머 초기화
-                this._lastIsMaster = false;
-            }
-
-            // 마스터 권한이 막 생겼을 때, 서버의 기존 몬스터 위치를 한 번 가져와서 동기화 (몬스터 점프 방지)
-            if (isMaster && this._lastIsMaster === false) {
-                console.log('[CombatManager] 마스터 권한 획득 - 초기 위치 동기화 시도');
-                mapEnvRef.child('monsters').once('value', (snap) => {
-                    const serverMonsters = snap.val();
-                    if (serverMonsters) {
-                        this.monsters.forEach(m => {
-                            if (serverMonsters[m.id]) {
-                                m.updateFromServer(serverMonsters[m.id]);
-                            }
-                        });
-                    }
-                });
-                this._lastIsMaster = true;
+                this._syncTimer = (this._syncTimer || 0) + dt;
+                if (this._syncTimer >= 0.1) {
+                    this._syncTimer = 0;
+                    const monsterData = {};
+                    this.monsters.forEach(m => {
+                        monsterData[m.id] = {
+                            px: Math.round(m.x),
+                            py: Math.round(m.y),
+                            tx: m.tileX,
+                            ty: m.tileY,
+                            hp: m.stats.hp,
+                            state: m.state,
+                            direction: m.direction
+                        };
+                    });
+                    mapEnvRef.child('monsters').set(monsterData);
+                }
             }
         }
 
         // 몬스터 -> 플레이어 근접 공격 체크
-        // (동기화 이슈 방지를 위해 각자 로컬에서 데미지 판정 - 혹은 교사만 판정하도록 변경 가능)
         this._checkMonsterAttacks(dt, player);
 
         // 데미지 텍스트 업데이트
         this.damageTexts = this.damageTexts.filter(t => {
             t.timer += dt;
-            t.y -= 30 * dt; // 위로 떠오름
+            t.y -= 30 * dt;
             t.alpha = 1 - (t.timer / t.duration);
             return t.timer < t.duration;
         });
@@ -191,17 +193,14 @@ class CombatManager {
      * @returns {boolean} 공격 성공 여부
      */
     playerAttack(player) {
-        // 유령 상태에서는 공격 불가
         if (player.isDead) return false;
         if (this.attackCooldown > 0) return false;
 
-        // 플레이어 전방 타일 계산
         const offsets = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
         const [ox, oy] = offsets[player.direction] || [0, 1];
         const targetTileX = player.tileX + ox;
         const targetTileY = player.tileY + oy;
 
-        // 해당 타일에 있는 몬스터 찾기
         let hitMonster = null;
         for (const m of this.monsters) {
             if (m.state === 'dead') continue;
@@ -212,7 +211,6 @@ class CombatManager {
         }
 
         if (!hitMonster) {
-            // 인접 타일 확대 검색 (이동 중일 수 있으므로)
             for (const m of this.monsters) {
                 if (m.state === 'dead') continue;
                 const dx = Math.abs(m.tileX - player.tileX);
@@ -225,24 +223,16 @@ class CombatManager {
         }
 
         this.attackCooldown = this.ATTACK_COOLDOWN_TIME;
-
-        // 사운드: 휘두르기 (공격 시도)
         soundManager.play('attack');
 
         if (hitMonster) {
-            // 사운드: 타격
             soundManager.play('hit');
-
-            // 데미지 계산 (PRD 공식: ATK - DEF/2, 최소 1, 장비 보너스 반영)
             const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
 
-            // 몬스터 방어력(DEF) 디버프 적용
             let monsterDef = hitMonster.stats.def;
             if (hitMonster.debuffs) {
                 hitMonster.debuffs.forEach(db => {
-                    if (db.stat === 'def') {
-                        monsterDef += db.value; // 음수값 더함 (예: -15)
-                    }
+                    if (db.stat === 'def') monsterDef += db.value;
                 });
             }
             if (monsterDef < 0) monsterDef = 0;
@@ -251,11 +241,9 @@ class CombatManager {
             const dmg = Math.max(1, rawDmg + Math.floor(Math.random() * 5));
             const killed = hitMonster.takeDamage(dmg);
 
-            // 데미지 텍스트
             this._addDamageText(hitMonster.x + 16, hitMonster.y, dmg, '#FFD700');
 
             if (killed) {
-                // 몬스터 처치 보상
                 this._onMonsterKill(player, hitMonster);
             }
 
@@ -269,22 +257,19 @@ class CombatManager {
      * 몬스터의 플레이어 공격 체크 (근접)
      */
     _checkMonsterAttacks(dt, player) {
-        // 유령 상태에서는 몬스터가 공격하지 않음
         if (player.isDead) return;
 
         this.monsters.forEach(m => {
             if (m.state !== 'attacking' || m.isMoving) return;
 
-            // 인접 확인
             const dx = Math.abs(m.tileX - player.tileX);
             const dy = Math.abs(m.tileY - player.tileY);
             if (dx + dy > 1) return;
 
             if (m.aiTimer >= m.AI_THINK_INTERVAL * 0.8) {
-                // 무적 버프 체크
                 if (typeof skillManager !== 'undefined') {
                     const buffBonus = skillManager.getBuffBonus();
-                    if (buffBonus.invincible > 0) return; // 무적 상태
+                    if (buffBonus.invincible > 0) return;
                 }
 
                 const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
@@ -294,12 +279,9 @@ class CombatManager {
                 player.stats.hp -= dmg;
                 if (player.stats.hp < 0) player.stats.hp = 0;
 
-                // 사운드: 플레이어 피격 (낮은 볼륨)
                 soundManager.play('hit', 0.6);
-
                 this._addDamageText(player.x + 16, player.y, dmg, '#ff4040');
 
-                // ===== 사망 판정 =====
                 if (player.stats.hp <= 0 && !player.isDead) {
                     player.die();
                     this._addDamageText(player.x + 16, player.y - 20, '💀 사망!', '#ff4040');
@@ -317,7 +299,6 @@ class CombatManager {
         const expGain = monster.stats.exp;
         const goldGain = monster.stats.gold;
 
-        // 유령 상태이면 경험치/골드 획득 불가 (파티원이라도 불가)
         if (player.isDead) {
             this._addDamageText(monster.x + 16, monster.y - 16, '👻 경험치 획득 불가', '#888888');
             return;
@@ -326,36 +307,29 @@ class CombatManager {
         player.exp = (player.exp || 0) + expGain;
         player.gold = (player.gold || 0) + goldGain;
 
-        // 경험치 텍스트
         this._addDamageText(monster.x + 16, monster.y - 16, `+${expGain} EXP`, '#80ff80');
         this._addDamageText(monster.x + 16, monster.y - 28, `+${goldGain} 전`, '#FFD700');
 
-        // 레벨업 체크 (100 * 현재레벨 EXP 필요)
         const requiredExp = player.level * 100;
         if (player.exp >= requiredExp) {
             player.exp -= requiredExp;
             player.level++;
-            // 스탯 증가
             player.stats.maxHp += 15;
-            player.stats.hp = player.stats.maxHp; // HP 풀 회복
+            player.stats.hp = player.stats.maxHp;
             player.stats.maxMp += 5;
             player.stats.mp = player.stats.maxMp;
             player.stats.atk += 3;
             player.stats.def += 2;
 
-            // 사운드: 레벨업
             soundManager.play('levelup');
-
             this._addDamageText(player.x + 16, player.y - 40, `🎉 LEVEL UP! Lv.${player.level}`, '#FFD700');
             console.log(`[CombatManager] 레벨업! Lv.${player.level}`);
         }
 
-        // RTDB에 플레이어 데이터 저장
         if (player.uid) {
             player.saveUserData();
         }
 
-        // 드롭 아이템 (20% 확률)
         if (typeof inventoryManager !== 'undefined' && Math.random() < 0.2) {
             const dropTable = {
                 slime: ['c01'],
@@ -366,14 +340,13 @@ class CombatManager {
             };
             const drops = dropTable[monster.type] || ['c01'];
             const dropId = drops[Math.floor(Math.random() * drops.length)];
-            const dropItem = shopManager ? shopManager.getItem(dropId) : null;
+            const dropItem = typeof shopManager !== 'undefined' ? shopManager.getItem(dropId) : null;
             if (dropItem && inventoryManager.canAddItem(dropId)) {
                 inventoryManager.addItem(dropId, 1);
                 this._addDamageText(monster.x + 16, monster.y - 40, `🎁 ${dropItem.name} 획득!`, '#ff80ff');
             }
         }
 
-        // 퀴즈 트리거 (50% 확률)
         if (Math.random() < 0.5 && typeof quizManager !== 'undefined') {
             setTimeout(() => quizManager.triggerQuiz(player), 500);
         }
@@ -381,25 +354,17 @@ class CombatManager {
         console.log(`[CombatManager] ${monster.name} 처치! +${expGain}EXP +${goldGain}G`);
     }
 
-    /**
-     * 데미지 텍스트 추가
-     */
     _addDamageText(x, y, text, color) {
         this.damageTexts.push({
             x: x, y: y,
             text: String(text),
             color: color || '#fff',
             timer: 0,
-            duration: 1.2, // 1.2초간 표시
+            duration: 1.2,
             alpha: 1,
         });
     }
 
-    /**
-     * 데미지 텍스트 렌더링
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {Object} camera
-     */
     renderDamageTexts(ctx, camera) {
         this.damageTexts.forEach(t => {
             const sx = t.x - camera.x;
@@ -409,30 +374,18 @@ class CombatManager {
             ctx.globalAlpha = Math.max(0, t.alpha);
             ctx.font = 'bold 12px "Noto Sans KR", sans-serif';
             ctx.textAlign = 'center';
-
-            // 그림자
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillText(t.text, sx + 1, sy + 1);
-
-            // 텍스트
             ctx.fillStyle = t.color;
             ctx.fillText(t.text, sx, sy);
             ctx.restore();
         });
     }
 
-    /**
-     * 몬스터 렌더링
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {Object} camera
-     */
     renderMonsters(ctx, camera) {
         this.monsters.forEach(m => m.render(ctx, camera));
     }
 
-    /**
-     * 동기화 리스너 및 관련 정보 정리
-     */
     cleanupSync() {
         if (this._currentMapEnvRef) {
             this._currentMapEnvRef.child('monsters').off('value');
@@ -442,9 +395,6 @@ class CombatManager {
         this._syncTimer = 0;
     }
 
-    /**
-     * 자원 정리
-     */
     destroy() {
         this.cleanupSync();
         this.monsters = [];
