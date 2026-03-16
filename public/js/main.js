@@ -70,7 +70,30 @@ document.addEventListener('DOMContentLoaded', () => {
             stopGame();
         }
     });
+
+    // 로그아웃 버튼들 초기 연결 (어디서든 작동하도록)
+    setupLogoutButtons();
 });
+
+/**
+ * 로그아웃 버튼들 이벤트 연결
+ */
+function setupLogoutButtons() {
+    ['hud-btn-logout', 'btn-side-logout', 'btn-game-logout'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            // 기존 리스너 제거 위해 클론 교체 (중복 방지)
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (confirm('정말로 로그아웃 하시겠습니까?')) {
+                    globalLogout();
+                }
+            });
+        }
+    });
+}
 
 async function handleLoginSuccess(uid, role, name) {
     console.log(`[Main] 로그인 성공 핸들러 실행: ${uid} (${role})`);
@@ -95,7 +118,7 @@ async function handleLoginSuccess(uid, role, name) {
                 if (gameRunning) return;
 
                 if (charData) {
-                    console.log('[Main] 캐릭터 데이터 존재, 게임 시작');
+                    console.log('[Main] 세션 활성화 - 게임 복귀');
                     showScreen('game-container');
                     startGame(charData, uid);
                 } else {
@@ -106,9 +129,8 @@ async function handleLoginSuccess(uid, role, name) {
             } else {
                 console.log('[Main] 세션 비활성 상태 - 접근 차단');
                 stopGame(); // 게임 루프 및 네트워크 중단
-                showWaitingOverlay(); // 비활성 안내 오버레이 (최상위)
-                // 배경은 인증 화면이지만 오버레이에 가려짐
-                showScreen('auth-screen'); 
+                showScreen('auth-screen'); // 먼저 인증 화면으로 보냄
+                showWaitingOverlay(); // 그 위에 최상위 오버레이 표시
             }
         });
     } else if (role === 'teacher') {
@@ -126,7 +148,6 @@ async function handleLoginSuccess(uid, role, name) {
         stopGame();
         showScreen('auth-screen');
     }
-}
 }
 
 /**
@@ -211,8 +232,8 @@ function showScreen(screenId) {
     if (screenId !== 'game-container') {
         const overlays = document.querySelectorAll('.overlay, .shop-overlay, .inventory-overlay, .quiz-overlay');
         overlays.forEach(o => o.style.display = 'none');
-        // 로그인/캐릭터 화면으로 완전히 나갈 때는 대기 오버레이도 숨김 (강제 로그아웃 등 대비)
-        if (screenId === 'auth-screen') hideWaitingOverlay();
+        // 로그인/캐릭터 화면으로 완전히 나갈 때 대기 오버레이를 숨길 수 있으나,
+        // 세션 비활성화 시에는 showWaitingOverlay가 showScreen 이후에 호출되어야 함을 보장.
     }
 }
 
@@ -221,18 +242,23 @@ function showScreen(screenId) {
  */
 function globalLogout() {
     console.log('[Main] 전역 로그아웃 실행');
+    
+    // 로컬 저장소 완전 초기화
     localStorage.removeItem('studentUid');
     localStorage.removeItem('studentName');
+    localStorage.removeItem('lastSessionCode');
+    localStorage.removeItem('characterData');
+    localStorage.removeItem('userRole');
     
     const finish = () => {
-        auth.signOut().then(() => {
-            location.reload(); 
-        }).catch(() => {
-            location.reload(); // 에러나도 강제 새로고침
+        auth.signOut().finally(() => {
+            console.log('[Main] 로그아웃 완료, 페이지 새로고침');
+            // 캐시 방지를 위해 타임스탬프 추가하여 리로드
+            window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
         });
     };
 
-    if (localPlayer) {
+    if (localPlayer && typeof localPlayer.saveUserData === 'function') {
         localPlayer.saveUserData().then(finish).catch(finish);
     } else {
         finish();
@@ -635,27 +661,7 @@ async function startGame(charData, uid) {
             });
         }
     }
-
-    // 로그아웃 버튼 연결 (모든 화면 요소 사전에 연결)
-    const setupLogoutButtons = () => {
-        ['hud-btn-logout', 'btn-side-logout', 'btn-game-logout'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                // 기존 리스너 제거 위해 클론 교체 (중복 방지)
-                const newBtn = btn.cloneNode(true);
-                btn.parentNode.replaceChild(newBtn, btn);
-                newBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (confirm('정말로 로그아웃 하시겠습니까?')) {
-                        globalLogout();
-                    }
-                });
-            }
-        });
-    };
-    setupLogoutButtons();
-
-
+    
     // 게임 루프 시작
     gameRunning = true;
     requestAnimationFrame(gameLoop);

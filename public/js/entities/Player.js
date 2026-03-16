@@ -552,20 +552,23 @@ class Player {
         // ===== 유령 상태 표시 =====
         if (this.isDead) {
             ctx.save();
-            // 유령 아이콘
-            ctx.font = '14px sans-serif';
+            // 유령 아이콘 (크기 확대 및 그림자 추가)
+            ctx.font = '20px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('👻', screenX + 16, screenY - 14);
+            ctx.shadowColor = 'rgba(255, 0, 0, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.fillText('👻', screenX + 16, screenY - 18);
 
             // 부활 타이머
+            ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 9px "Noto Sans KR", sans-serif';
+            ctx.font = 'bold 10px "Noto Sans KR", sans-serif';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
             const timerText = `부활 ${Math.ceil(this.deathTimer)}초`;
-            ctx.strokeText(timerText, screenX + 16, screenY - 4);
+            ctx.strokeText(timerText, screenX + 16, screenY - 6);
             ctx.fillStyle = '#ff8080';
-            ctx.fillText(timerText, screenX + 16, screenY - 4);
+            ctx.fillText(timerText, screenX + 16, screenY - 6);
             ctx.restore();
             return; // 유령 상태에서는 HP바/닉네임 생략
         }
