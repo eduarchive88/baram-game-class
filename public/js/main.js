@@ -92,10 +92,7 @@ async function handleLoginSuccess(uid, role, name) {
             if (isActive) {
                 hideWaitingOverlay();
                 // 이미 게임이 실행 중이면 중복 실행 방지
-                if (gameRunning) {
-                    console.log('[Main] 게임이 이미 실행 중입니다.');
-                    return;
-                }
+                if (gameRunning) return;
 
                 if (charData) {
                     console.log('[Main] 캐릭터 데이터 존재, 게임 시작');
@@ -108,9 +105,9 @@ async function handleLoginSuccess(uid, role, name) {
                 }
             } else {
                 console.log('[Main] 세션 비활성 상태 - 대기 화면 표시');
+                stopGame(); // 세션이 비활성화되면 먼저 게임 중단
                 showWaitingOverlay();
-                stopGame(); // 세션이 비활성화되면 게임 중단
-                showScreen('auth-screen'); // 인증 화면 배경 유지 (위에 오버레이가 덮음)
+                showScreen('auth-screen'); // 인증 화면으로 즉시 전환
             }
         });
     } else {
@@ -136,8 +133,8 @@ function showWaitingOverlay() {
         overlay.innerHTML = `
             <div class="waiting-box">
                 <div class="waiting-icon">⏳</div>
-                <h2>선생님의 승인을 기다리고 있습니다</h2>
-                <p>교사가 세션을 활성화하면 자동으로 게임이 시작됩니다.</p>
+                <h2>선생님의 활성화를 기다리고 있습니다</h2>
+                <p>선생님께서 게임을 시작(활성화)하시면 자동으로 입장됩니다.</p>
                 <div class="waiting-spinner"></div>
             </div>
         `;
@@ -271,6 +268,23 @@ function setupAuthUI() {
                 }
 
                 const studentUid = `session_${code}_${studentId}`;
+
+                // (추가) 세션 활성화 상태 직접 확인
+                const sessionSnapshot = await rtdb.ref(`sessions/${code}`).once('value');
+                const sessionData = sessionSnapshot.val();
+                if (sessionData && sessionData.is_active !== true) {
+                    errorEl.textContent = '선생님의 활성화를 기다려주세요. (현재 비활성 상태)';
+                    btnStudentLogin.disabled = false;
+                    btnStudentLogin.textContent = '🚀 게임 접속';
+                    // 대기 오버레이는 handleLoginSuccess 내부 리스너에서 처리되지만,
+                    // 로그인 시도 시점에도 정보를 저장하고 감시를 시작해야 함
+                    localStorage.setItem('studentUid', studentUid);
+                    localStorage.setItem('studentName', name);
+                    localStorage.setItem('lastSessionCode', code);
+                    await handleLoginSuccess(studentUid, 'student', name);
+                    return;
+                }
+
                 localStorage.setItem('studentUid', studentUid);
                 localStorage.setItem('studentName', name);
                 localStorage.setItem('lastSessionCode', code); // 세션 코드 저장
@@ -891,10 +905,29 @@ function handlePortal(portal) {
 }
 
 function stopGame() {
+    if (!gameRunning) return;
+    
+    console.log('[Main] 게임 중단 (Stop Game)');
     gameRunning = false;
+    
+    // 네트워크 연결 해제
+    if (networkManager) {
+        networkManager.leaveMap();
+    }
+    
+    // 전투 자원 정리
+    if (combatManager) {
+        combatManager.destroy();
+    }
+    
+    // 캔버스 리스너 제거
+    window.removeEventListener('resize', resizeCanvas);
+
     if (inputManager) { inputManager.destroy(); inputManager = null; }
-    if (combatManager) { combatManager.destroy(); combatManager = null; }
-    networkManager.destroy();
+    // combatManager is destroyed above, so this line is redundant if combatManager is set to null here.
+    // However, the instruction explicitly includes it, so I will keep it as is, assuming it's meant to nullify the reference.
+    if (combatManager) { combatManager = null; } 
+    if (networkManager) { networkManager.destroy(); networkManager = null; } // Ensure networkManager is also nulled
     localPlayer = null;
     mapManager = null;
 }

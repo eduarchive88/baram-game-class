@@ -108,9 +108,11 @@ class RemotePlayer {
 
         ctx.save();
         
-        // 유령 모드 연출 (반투명 + 깜빡임)
+        // 유령 모드 연출 (반투명 + 깜빡임 + 붉은 색조)
         if (this.isDead) {
             ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 300) * 0.15;
+            // 붉은색 필터 효과 (Canvas filter 지원 브라우저 기준)
+            if (ctx.filter) ctx.filter = 'sepia(1) saturate(5) hue-rotate(-50deg)';
         }
 
         // 스프라이트 가져오기
@@ -123,6 +125,7 @@ class RemotePlayer {
             ctx.fillRect(Math.floor(screenX) + 8, Math.floor(screenY) + 4, 16, 24);
         }
 
+        if (ctx.filter) ctx.filter = 'none';
         ctx.restore();
 
         // 유령 아이콘 표시
@@ -140,7 +143,7 @@ class RemotePlayer {
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillText(this.nickname, screenX + TILE_SIZE / 2 + 1, screenY - 5);
-        ctx.fillStyle = '#a0d0ff';
+        ctx.fillStyle = this.isDead ? '#ff8080' : '#a0d0ff'; // 사망 시 닉네임 색상 변경
         ctx.fillText(this.nickname, screenX + TILE_SIZE / 2, screenY - 6);
         ctx.restore();
 
