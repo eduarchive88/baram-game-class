@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "baram-game-class"
+  },
   "targets": {},
   "etags": {}
 }
