@@ -107,11 +107,12 @@ async function handleLoginSuccess(uid, role, name) {
                 console.log('[Main] 세션 비활성 상태 - 접근 차단');
                 stopGame(); // 게임 루프 및 네트워크 중단
                 showWaitingOverlay(); // 비활성 안내 오버레이 (최상위)
-                showScreen('auth-screen'); // 배경은 로그인 화면으로 전환
+                // 배경은 인증 화면이지만 오버레이에 가려짐
+                showScreen('auth-screen'); 
             }
         });
-    } else {
-        // 교사 혹은 세션 정보 없는 경우 즉시 진입
+    } else if (role === 'teacher') {
+        // 교사는 세션 체크 없이 즉시 진입 가능
         if (charData) {
             showScreen('game-container');
             startGame(charData, uid);
@@ -119,7 +120,13 @@ async function handleLoginSuccess(uid, role, name) {
             showScreen('character-screen');
             setupCharacterCreation(uid, role, name);
         }
+    } else {
+        // 학생인데 세션 코드가 없는 경우 (에러 상황)
+        console.warn('[Main] 학생인데 세션 코드가 없음');
+        stopGame();
+        showScreen('auth-screen');
     }
+}
 }
 
 /**
@@ -138,20 +145,33 @@ function showWaitingOverlay() {
             z-index: 10000;
             color: white;
             text-align: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
         `;
         overlay.innerHTML = `
-            <div class="waiting-box" style="padding: 40px; border: 2px solid #f0c040; border-radius: 12px; background: #141828; box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+            <div class="waiting-box" style="padding: 40px; border: 2px solid #f0c040; border-radius: 12px; background: #141828; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 400px; width: 90%;">
                 <div class="waiting-icon" style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
                 <h2 style="font-family: 'Noto Serif KR', serif; color: #f0c040; margin-bottom: 15px;">선생님이 게임을 닫았습니다.</h2>
-                <p style="color: #8890b0; line-height: 1.6;">선생님께서 게임 세션을 활성화하시면<br>자동으로 다시 입장하실 수 있습니다.</p>
-                <div class="waiting-spinner" style="width: 40px; height: 40px; border: 4px solid #2a3055; border-top-color: #f0c040; border-radius: 50%; margin: 25px auto 0; animation: spin 1s linear infinite;"></div>
+                <p style="color: #8890b0; line-height: 1.6; margin-bottom: 25px;">선생님께서 게임 세션을 활성화하시면<br>자동으로 다시 입장하실 수 있습니다.</p>
+                
+                <div class="waiting-spinner" style="width: 40px; height: 40px; border: 4px solid #2a3055; border-top-color: #f0c040; border-radius: 50%; margin: 0 auto 30px; animation: spin 1s linear infinite;"></div>
+                
+                <button id="btn-waiting-logout" style="width: 100%; padding: 12px; background: #2a3055; border: 1px solid #3d4a8a; border-radius: 8px; color: #e8e8f0; font-weight: bold; cursor: pointer;">게임 종료 및 로그아웃</button>
             </div>
             <style>
                 @keyframes spin { to { transform: rotate(360deg); } }
             </style>
         `;
         document.body.appendChild(overlay);
+
+        // 오버레이 내부 로그아웃 버튼 이벤트
+        const btnLogout = overlay.querySelector('#btn-waiting-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                if (confirm('게임을 종료하고 로그아웃 하시겠습니까?')) {
+                    globalLogout();
+                }
+            });
+        }
     }
     overlay.style.display = 'flex';
 }
@@ -178,6 +198,7 @@ function showScreen(screenId) {
                 el.style.display = (id === 'game-container') ? 'flex' : 'block';
                 el.style.visibility = 'visible';
                 el.style.opacity = '1';
+                el.style.zIndex = '10'; // 기본 레이어
             } else {
                 el.style.display = 'none';
                 el.style.visibility = 'hidden';
@@ -190,6 +211,31 @@ function showScreen(screenId) {
     if (screenId !== 'game-container') {
         const overlays = document.querySelectorAll('.overlay, .shop-overlay, .inventory-overlay, .quiz-overlay');
         overlays.forEach(o => o.style.display = 'none');
+        // 로그인/캐릭터 화면으로 완전히 나갈 때는 대기 오버레이도 숨김 (강제 로그아웃 등 대비)
+        if (screenId === 'auth-screen') hideWaitingOverlay();
+    }
+}
+
+/**
+ * 전역 로그아웃 함수
+ */
+function globalLogout() {
+    console.log('[Main] 전역 로그아웃 실행');
+    localStorage.removeItem('studentUid');
+    localStorage.removeItem('studentName');
+    
+    const finish = () => {
+        auth.signOut().then(() => {
+            location.reload(); 
+        }).catch(() => {
+            location.reload(); // 에러나도 강제 새로고침
+        });
+    };
+
+    if (localPlayer) {
+        localPlayer.saveUserData().then(finish).catch(finish);
+    } else {
+        finish();
     }
 }
 
@@ -590,31 +636,24 @@ async function startGame(charData, uid) {
         }
     }
 
-    // 로그아웃 버튼 연결
-    const handleLogout = (e) => {
-        if (e) e.preventDefault();
-        if (confirm('정말로 로그아웃 하시겠습니까?')) {
-            localStorage.removeItem('studentUid');
-            localStorage.removeItem('studentName');
-            
-            // 데이터 최종 저장 후 로그아웃
-            localPlayer.saveUserData().then(() => {
-                auth.signOut().then(() => {
-                    location.reload(); 
+    // 로그아웃 버튼 연결 (모든 화면 요소 사전에 연결)
+    const setupLogoutButtons = () => {
+        ['hud-btn-logout', 'btn-side-logout', 'btn-game-logout'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                // 기존 리스너 제거 위해 클론 교체 (중복 방지)
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('정말로 로그아웃 하시겠습니까?')) {
+                        globalLogout();
+                    }
                 });
-            });
-        }
+            }
+        });
     };
-
-    const btnHudLogout = document.getElementById('hud-btn-logout');
-    if (btnHudLogout) {
-        btnHudLogout.addEventListener('click', handleLogout);
-    }
-
-    const btnSideLogout = document.getElementById('btn-side-logout');
-    if (btnSideLogout) {
-        btnSideLogout.addEventListener('click', handleLogout);
-    }
+    setupLogoutButtons();
 
 
     // 게임 루프 시작
