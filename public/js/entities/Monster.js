@@ -65,11 +65,12 @@ class Monster {
         // 죽음 타이머 (사라지기까지)
         this.deathTimer = 0;
         this.RESPAWN_TIME = 0.8; // 0.8초 후 리스폰 (상향 조정)
+        this.killerUid = null; // 몬스터를 죽인 플레이어의 UID
     }
 
     /**
      * 서버로부터 전송된 상태 업데이트
-     * @param {Object} data - { x, y, hp, state, direction }
+     * @param {Object} data - { x, y, hp, state, direction, killerUid }
      */
     updateFromServer(data) {
         if (!data) return;
@@ -94,6 +95,7 @@ class Monster {
         
         if (data.state !== undefined) this.state = data.state;
         if (data.direction !== undefined) this.direction = data.direction;
+        if (data.killerUid !== undefined) this.killerUid = data.killerUid; // 사망시킨 플레이어 UID
         
         // 사망 상태 즉각 반영
         if (this.state === 'dead') {

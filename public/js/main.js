@@ -146,6 +146,7 @@ async function handleLoginSuccess(uid, role, name) {
         // 교사는 세션 체크 없이 즉시 진입 가능
         if (charData) {
             showScreen('game-container');
+            setupTeacherPanel(); // 교사 패널 로드
             startGame(charData, uid);
         } else {
             showScreen('character-screen');
@@ -156,6 +157,36 @@ async function handleLoginSuccess(uid, role, name) {
         console.warn('[Main] 학생인데 세션 코드가 없음');
         stopGame();
         showScreen('auth-screen');
+    }
+}
+
+/**
+ * 교사용 제어 패널 설정
+ */
+function setupTeacherPanel() {
+    const panel = document.getElementById('teacher-panel');
+    const btnToggle = document.getElementById('btn-toggle-monsters');
+    const btnDash = document.getElementById('btn-admin-dash');
+
+    if (panel) panel.style.display = 'block';
+
+    if (btnToggle) {
+        btnToggle.onclick = () => {
+            if (!combatManager || !mapManager.currentMap) return;
+            const newState = !(combatManager.monstersEnabled !== false);
+            const sessionCode = localStorage.getItem('lastSessionCode');
+            const mapId = mapManager.currentMapId || 'default';
+
+            if (sessionCode) {
+                rtdb.ref(`sessions/${sessionCode}/environment/${mapId}/monstersEnabled`).set(newState);
+                btnToggle.textContent = newState ? '👾 몬스터 멈춤' : '🚀 몬스터 재개';
+                btnToggle.style.background = newState ? '#2a3055' : '#803030';
+            }
+        };
+    }
+
+    if (btnDash) {
+        btnDash.onclick = () => { window.location.href = 'admin.html'; };
     }
 }
 

@@ -205,6 +205,18 @@
                 </div>
             </div>
 
+            <!-- ==================== 교사 전용 제어 패널 (Floating) ==================== -->
+            <div id="teacher-panel" style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(20, 24, 40, 0.9); border: 2px solid #f0c040; border-radius: 8px; padding: 10px 15px; color: white; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: auto;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #f0c040; font-weight: bold; font-size: 0.9rem;">👨‍🏫 교사 관리</span>
+                    <div style="height: 15px; width: 1px; background: #3d4a8a;"></div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-toggle-monsters" style="padding: 4px 10px; font-size: 0.8rem; background: #2a3055; border: 1px solid #3d4a8a; color: white; cursor: pointer; border-radius: 4px;">👾 몬스터 멈춤</button>
+                        <button id="btn-admin-dash" style="padding: 4px 10px; font-size: 0.8rem; background: #3d4a8a; border: 1px solid #5061b3; color: white; cursor: pointer; border-radius: 4px;">📊 대시보드</button>
+                    </div>
+                </div>
+            </div>
+
             
             <!-- 게임 내 팝업 (NPC 대화 등) -->
             <div id="world-ui">

@@ -287,17 +287,20 @@ class Player {
      * 공격 액션
      */
     _attack() {
+        if (this.isAttacking) return; // 연속 공격 방지
+        
         this.isAttacking = true;
-        this.attackTimer = 0.3;
+        this.attackTimer = 0.4; // 0.4초 동안 공격 상태 유지 (네트워크 동기화 보장)
 
         // 공격 이펙트 생성 (방향에 따라 슬래시)
         const offsets = { up: [0, -32], down: [0, 32], left: [-32, 0], right: [32, 0] };
         const [ox, oy] = offsets[this.direction] || [0, 32];
         this._spawnSlashEffect(this.x + ox, this.y + oy, this.direction);
 
+        // 400ms 후 공격 상태 해제
         setTimeout(() => {
             this.isAttacking = false;
-        }, 300);
+        }, 400);
     }
 
     /**

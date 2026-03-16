@@ -104,13 +104,23 @@ class CombatManager {
 
         // 몬스터 업데이트 (기본 동작: 애니메이션, 보간 등)
         this.monsters.forEach(m => {
-            m.update(dt, map, player, isMaster);
+            // 몬스터 활성화 여부 반영 (마스터의 AI 중단용)
+            m.update(dt, map, player, isMaster && (this.monstersEnabled !== false));
         });
 
         // 환경 동기화 로직
         if (network && network.envRef) {
             const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
             
+            // 몬스터 활성화 상태 감시 (교사 제어용)
+            if (this._lastMapId !== map.currentMapId) {
+                this._lastMapId = map.currentMapId;
+                mapEnvRef.child('monstersEnabled').on('value', snap => {
+                    this.monstersEnabled = (snap.val() !== false); // 기본값 true
+                    console.log(`[CombatManager] 몬스터 활성화 상태: ${this.monstersEnabled}`);
+                });
+            }
+
             // 1. [슬레이브] 서버 데이터 수신
             if (!isMaster) {
                 if (this._currentMapEnvRef !== mapEnvRef || !this._envListenerAttached) {
@@ -122,8 +132,13 @@ class CombatManager {
                         const serverMonsters = snap.val();
                         if (serverMonsters) {
                             this.monsters.forEach(m => {
-                                if (serverMonsters[m.id]) {
-                                    m.updateFromServer(serverMonsters[m.id]);
+                                const sData = serverMonsters[m.id];
+                                if (sData) {
+                                    // [추가] 내가 죽인 몬스터라면 보상 지급
+                                    if (sData.state === 'dead' && m.state !== 'dead' && sData.killerUid === network.localUid) {
+                                        this._onMonsterKill(player, m);
+                                    }
+                                    m.updateFromServer(sData);
                                 }
                             });
                         }
@@ -135,11 +150,12 @@ class CombatManager {
                     console.log(`[CombatManager] [${map.currentMapId}] 슬레이브 수신 모드 가동`);
                 }
             } 
-            // 2. [마스터] 서버 데이터 송신
+            // 2. [마스터] 서버 데이터 송신 + 공격 판정 수신
             else {
                 if (this._lastIsMaster !== true || this._currentMapEnvRef !== mapEnvRef) {
                     this.cleanupSync();
                     
+                    // 마스터로 전환 시 초기 몬스터 정보 로드 후 동기화 시작
                     mapEnvRef.child('monsters').once('value', (snap) => {
                         const serverMonsters = snap.val();
                         if (serverMonsters) {
@@ -149,10 +165,26 @@ class CombatManager {
                         }
                     });
 
+                    // 마스터용 공격 판정 리스너 (학생들의 공격 처기)
+                    const hitsRef = mapEnvRef.child('hits');
+                    hitsRef.on('child_added', (snap) => {
+                        const data = snap.val();
+                        if (data && data.monsterId) {
+                            const monster = this.monsters.find(m => m.id === data.monsterId);
+                            if (monster && monster.state !== 'dead') {
+                                // 마스터가 직접 데미지 적용
+                                monster.takeDamage(data.damage, data.attackerUid);
+                                this._addDamageText(monster.x + 16, monster.y, data.damage, '#FFD700');
+                            }
+                        }
+                        // 처리 후 제거
+                        hitsRef.child(snap.key).remove();
+                    });
+
                     this._currentMapEnvRef = mapEnvRef;
                     this._lastIsMaster = true;
                     this._syncTimer = 0;
-                    console.log(`[CombatManager] [${map.currentMapId}] 마스터 송신 모드 가동`);
+                    console.log(`[CombatManager] [${map.currentMapId}] 마스터 송신 및 판정 모드 가동`);
                 }
 
                 this._syncTimer = (this._syncTimer || 0) + dt;
@@ -167,7 +199,8 @@ class CombatManager {
                             ty: m.tileY,
                             hp: m.stats.hp,
                             state: m.state,
-                            direction: m.direction
+                            direction: m.direction,
+                            killerUid: m.killerUid || null // 사망자 정보 포함
                         };
                     });
                     mapEnvRef.child('monsters').update(monsterData);
@@ -239,12 +272,28 @@ class CombatManager {
 
             const rawDmg = effectiveStats.atk - Math.floor(monsterDef / 2);
             const dmg = Math.max(1, rawDmg + Math.floor(Math.random() * 5));
-            const killed = hitMonster.takeDamage(dmg);
 
-            this._addDamageText(hitMonster.x + 16, hitMonster.y, dmg, '#FFD700');
-
-            if (killed) {
-                this._onMonsterKill(player, hitMonster);
+            // [변경] 마스터 여부에 따라 처리 분기
+            if (networkManager.isMaster()) {
+                const killed = hitMonster.takeDamage(dmg);
+                this._addDamageText(hitMonster.x + 16, hitMonster.y, dmg, '#FFD700');
+                if (killed) {
+                    this._onMonsterKill(player, hitMonster);
+                }
+            } else {
+                // 슬레이브는 서버에 '판정 요청'만 전송
+                if (this._currentMapEnvRef) {
+                    this._currentMapEnvRef.child('hits').push({
+                        monsterId: hitMonster.id,
+                        damage: dmg,
+                        attackerUid: networkManager.localUid,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    // 로컬에서는 사운드만 재생 (데미지 텍스트는 마스터 브로드캐스트 대기하거나 즉시 표시 가능)
+                    // 현재는 마스터가 브로드캐스트하는 HP 변화를 통해 몬스터 HP가 깎이는것을 보게 됨.
+                    // 즉각적인 피드백을 위해 데미지 텍스트만 미리 보여줌
+                    this._addDamageText(hitMonster.x + 16, hitMonster.y, dmg, '#FFD700');
+                }
             }
 
             return true;

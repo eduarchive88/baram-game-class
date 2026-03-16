@@ -26,6 +26,7 @@ class NetworkManager {
         this.teacherPresent = false;
         // 리스너 추적 배열 (초기화 누락 수정)
         this._listeners = [];
+        this.masterUid = null; // 현재 맵의 공식 마스터 UID (DB 기반)
 
         console.log('[NetworkManager] 초기화 완료');
     }
@@ -114,14 +115,50 @@ class NetworkManager {
             this._removeRemotePlayer(snap.key);
         });
 
+        // 5. 마스터 관리 리스너
+        const masterRef = rtdb.ref(`sessions/${this.sessionCode}/maps/${mapId}/master`);
+        const onMasterChanged = masterRef.on('value', (snap) => {
+            this.masterUid = snap.val();
+            console.log(`[NetworkManager] 현재 마스터: ${this.masterUid}`);
+            
+            // 학생인데 마스터가 없고 내가 1순위라면 마스터 시도
+            if (!this.isTeacher && !this.masterUid) {
+                this._claimMasterPower(masterRef);
+            }
+        });
+
         // 리스너 추적 (해제용)
         this._listeners.push(
             { ref: this.playersRef, event: 'child_added', cb: onChildAdded },
             { ref: this.playersRef, event: 'child_changed', cb: onChildChanged },
-            { ref: this.playersRef, event: 'child_removed', cb: onChildRemoved }
+            { ref: this.playersRef, event: 'child_removed', cb: onChildRemoved },
+            { ref: masterRef, event: 'value', cb: onMasterChanged }
         );
 
+        // 교사라면 즉시 마스터 권한 탈취
+        if (this.isTeacher) {
+            masterRef.set(this.localUid);
+            masterRef.onDisconnect().remove();
+        }
+
         console.log(`[NetworkManager] 맵 접속: ${mapId} / UID: ${uid}`);
+    }
+
+    /**
+     * 마스터 권한 획득 시도 (학생 간 경쟁 방지 Transaction)
+     */
+    _claimMasterPower(masterRef) {
+        masterRef.transaction((currentMaster) => {
+            if (currentMaster === null) {
+                return this.localUid;
+            }
+            return; // 이미 누가 있으면 포기
+        }, (error, committed, snapshot) => {
+            if (committed) {
+                console.log('[NetworkManager] 마스터 권한 획득 성공!');
+                masterRef.onDisconnect().remove();
+            }
+        });
     }
 
     /**
@@ -137,12 +174,21 @@ class NetworkManager {
         // 로컬 플레이어 데이터 삭제
         if (this.playersRef && this.localUid) {
             this.playersRef.child(this.localUid).remove();
+            
+            // 내가 마스터였다면 마스터 비우기 (다음 사람을 위해)
+            const masterRef = rtdb.ref(`sessions/${this.sessionCode}/maps/${this.currentMapId}/master`);
+            masterRef.once('value').then(snap => {
+                if (snap.val() === this.localUid) {
+                    masterRef.remove();
+                }
+            });
         }
 
         // 원격 플레이어 초기화
         this.remotePlayers.clear();
         this.playersRef = null;
         this.currentMapId = null;
+        this.masterUid = null;
     }
 
     /**
@@ -222,35 +268,15 @@ class NetworkManager {
     }
 
     getMasterUid() {
-        if (!this.localUid) return null;
-
-        // 현재 맵의 모든 플레이어 UID (나 포함)
-        let players = [
-            { uid: this.localUid, role: this.role || 'student' }, // roles -> role 통일
-            ...Array.from(this.remotePlayers.entries()).map(([uid, p]) => ({
-                uid: uid,
-                role: p.role || 'student' 
-            }))
-        ];
-
-        // 1순위: 교사(teacher) 중 UID가 가장 작은 사람
-        let teachers = players
-            .filter(p => p.role === 'teacher')
-            .map(p => p.uid)
-            .sort();
-        
-        if (teachers.length > 0) return teachers[0];
-
-        // 2순위: 학생/기타 접속자 중 UID가 가장 작은 사람
-        let allUids = players.map(p => p.uid).sort();
-        return allUids.length > 0 ? allUids[0] : this.localUid;
+        return this.masterUid;
     }
 
     /**
      * 현재 내가 마스터인지 확인
      */
     isMaster() {
-        return this.getMasterUid() === this.localUid;
+        if (!this.localUid || !this.masterUid) return false;
+        return this.masterUid === this.localUid;
     }
 
     /**
