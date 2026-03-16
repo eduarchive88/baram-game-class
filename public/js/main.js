@@ -180,11 +180,16 @@ function showScreen(screenId) {
                 el.style.opacity = '1';
             } else {
                 el.style.display = 'none';
-    if (screenId === 'game-container') {
-        const authScreen = document.getElementById('auth-screen');
-        const charScreen = document.getElementById('character-screen');
-        if (authScreen) authScreen.style.display = 'none';
-        if (charScreen) charScreen.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+            }
+        }
+    });
+
+    // 화면 전환 시마다 잠재적인 팝업들 닫기
+    if (screenId !== 'game-container') {
+        const overlays = document.querySelectorAll('.overlay, .shop-overlay, .inventory-overlay, .quiz-overlay');
+        overlays.forEach(o => o.style.display = 'none');
     }
 }
 
