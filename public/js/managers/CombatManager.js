@@ -42,6 +42,8 @@ class CombatManager {
             },
         };
 
+        this._lastIsMaster = false; // 마스터 권한 상태 추적용
+
         console.log('[CombatManager] 초기화 완료');
     }
 
@@ -98,14 +100,11 @@ class CombatManager {
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
         // 몬스터 AI 업데이트
+        // 몬스터 업데이트
         this.monsters.forEach(m => {
-            // 마스터 권한이 있는 클라이언트만 AI를 계산함
-            if (isMaster) {
-                m.update(dt, map, player, true);
-            } else {
-                // 마스터가 아닐 때는 부드러운 이동 애니메이션만 진행 (AI 생각은 중지)
-                if (m.isMoving) m._smoothMove(dt);
-            }
+            // 모든 클라이언트가 몬스터의 기본적인 상태(애니메이션, 보간 등)를 업데이트함
+            // 4번째 인자(isMaster)는 AI 실행 여부를 결정함
+            m.update(dt, map, player, isMaster);
         });
 
         // 환경 동기화 (서버 <-> 클라이언트)
@@ -134,8 +133,9 @@ class CombatManager {
             } else {
                 // [슬레이브] 마스터가 보내주는 데이터를 수신하여 로컬 몬스터 상태 업데이트
                 if (!this._envListenerAttached) {
+                    console.log('[CombatManager] 서버 몬스터 데이터 리스너 작동');
                     mapEnvRef.child('monsters').on('value', (snap) => {
-                        // 내가 도중에 마스터로 승격되었다면 수신 중단
+                        // 내가 도중에 마스터로 승격되었다면 수신 중단 (브로드캐스트 루프 방지)
                         if (network.isMaster()) return;
 
                         const serverMonsters = snap.val();
@@ -150,6 +150,25 @@ class CombatManager {
                     this._currentMapEnvRef = mapEnvRef;
                     this._envListenerAttached = true;
                 }
+
+                // 만약 방금 마스터에서 슬레이브로 강등되었다면, 마스터 전용 타이머 초기화
+                this._lastIsMaster = false;
+            }
+
+            // 마스터 권한이 막 생겼을 때, 서버의 기존 몬스터 위치를 한 번 가져와서 동기화 (몬스터 점프 방지)
+            if (isMaster && this._lastIsMaster === false) {
+                console.log('[CombatManager] 마스터 권한 획득 - 초기 위치 동기화 시도');
+                mapEnvRef.child('monsters').once('value', (snap) => {
+                    const serverMonsters = snap.val();
+                    if (serverMonsters) {
+                        this.monsters.forEach(m => {
+                            if (serverMonsters[m.id]) {
+                                m.updateFromServer(serverMonsters[m.id]);
+                            }
+                        });
+                    }
+                });
+                this._lastIsMaster = true;
             }
         }
 

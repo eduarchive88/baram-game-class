@@ -122,8 +122,8 @@ class Monster {
             this._smoothMove(dt);
         }
 
-        // AI 로직 (마스터/교사일 때 직접 계산하거나, 교사가 아예 없는 방에서 로컬 모드로 작동)
-        if (isMaster || (typeof networkManager !== 'undefined' && !networkManager.teacherPresent)) {
+        // AI 로직 및 사망/리스폰 타이머 (마스터/교사일 때만 계산)
+        if (isMaster) {
             this.aiTimer += dt;
             if (this.aiTimer >= this.AI_THINK_INTERVAL && !this.isMoving) {
                 this.aiTimer = 0;

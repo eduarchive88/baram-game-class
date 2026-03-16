@@ -8,6 +8,7 @@ class RemotePlayer {
         this.uid = uid;
         this.nickname = data.nickname || '???';
         this.job = data.job || '전사';
+        this.role = data.role || 'student'; // 역할 추가
         this.level = data.level || 1;
 
         // 현재 서버 위치 (픽셀)
