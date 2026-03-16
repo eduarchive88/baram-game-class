@@ -15,6 +15,7 @@ let gameCtx = null;           // 캔버스 컨텍스트
 let gameRunning = false;      // 게임 루프 실행 중 여부
 let lastTime = 0;             // 이전 프레임 시간
 let hudUpdateCounter = 0;     // HUD 업데이트 카운터
+let isInitializing = false;   // 게임 초기화 중 로딩 중복 방지 플래그
 
 // 게임 UI 전역 객체 (NPC 대화 등)
 window.gameUI = {
@@ -114,18 +115,26 @@ async function handleLoginSuccess(uid, role, name) {
 
             if (isActive) {
                 hideWaitingOverlay();
-                // 이미 게임이 실행 중이면 중복 실행 방지
-                if (gameRunning) return;
-
-                if (charData) {
-                    console.log('[Main] 세션 활성화 - 게임 복귀');
-                    showScreen('game-container');
-                    startGame(charData, uid);
-                } else {
-                    console.log('[Main] 캐릭터 데이터 없음, 캐릭터 생성 화면으로 이동');
-                    showScreen('character-screen');
-                    setupCharacterCreation(uid, role, name);
+                
+                // 캐릭터 데이터가 없는 경우 (최초 진입)
+                if (!charData) {
+                    // 데이터가 실제로 아직 없는지 재확인 (방금 생성했을 수 있음)
+                    const freshCharData = await loadCharacterData(uid);
+                    if (!freshCharData) {
+                        console.log('[Main] 캐릭터 데이터 없음, 캐릭터 생성 화면으로 이동');
+                        showScreen('character-screen');
+                        setupCharacterCreation(uid, role, name);
+                        return;
+                    }
+                    charData = freshCharData;
                 }
+
+                // 게임이 이미 실행 중이거나 초기화 중이면 중복 실행 방지
+                if (gameRunning || isInitializing) return;
+
+                console.log('[Main] 세션 활성화 - 게임 접속/복귀');
+                showScreen('game-container');
+                startGame(charData, uid);
             } else {
                 console.log('[Main] 세션 비활성 상태 - 접근 차단');
                 stopGame(); // 게임 루프 및 네트워크 중단
@@ -541,15 +550,16 @@ function setupCharacterCreation(uid, role, name) {
     if (btnLogout) {
         btnLogout.addEventListener('click', (e) => { 
             e.preventDefault(); 
-            localStorage.removeItem('studentUid');
-            localStorage.removeItem('studentName');
-            auth.signOut(); 
-            showScreen('auth-screen');
-            stopGame();
+            if (confirm('로그아웃 하시겠습니까?')) {
+                globalLogout();
+            }
         });
     }
 }
 
+/**
+ * 캐릭터 데이터 로드
+ */
 async function loadCharacterData(uid) {
     try {
         const snapshot = await rtdb.ref('userData/' + uid).once('value');
@@ -560,75 +570,135 @@ async function loadCharacterData(uid) {
     }
 }
 
-// ============================================================
-// 게임 시작 / 게임 루프
-// ============================================================
+/**
+ * 게임 시작 핵심 로직
+ */
 async function startGame(charData, uid) {
+    if (gameRunning || isInitializing) return;
+    
+    // (중요) 세션 코드 확인
+    const sessionCode = localStorage.getItem('lastSessionCode');
+    const role = localStorage.getItem('userRole') || charData.role;
+
     console.log('[Main] 게임 시작 준비...');
+    isInitializing = true;
 
-    // 캔버스 설정
-    gameCanvas = document.getElementById('game-canvas');
-    gameCtx = gameCanvas.getContext('2d');
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    // UI 상태 리셋 (이전 세션의 찌꺼기 제거)
+    if (typeof quizManager !== 'undefined' && quizManager) quizManager.closeQuiz();
+    if (typeof shopManager !== 'undefined' && shopManager) shopManager.close();
+    if (typeof inventoryManager !== 'undefined' && inventoryManager) inventoryManager.close();
+    if (typeof skillManager !== 'undefined' && skillManager) skillManager.closeBook();
 
-    // 에셋 로딩
-    await assetManager.loadAll();
+    try {
+        // 캔버스 설정
+        gameCanvas = document.getElementById('game-canvas');
+        if (!gameCanvas) throw new Error('Canvas not found');
+        gameCtx = gameCanvas.getContext('2d');
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-    // 퀴즈 데이터 로드 (비동기, 게임 시작을 블록하지 않음)
-    quizManager.loadQuizzes();
+        // 에셋 로딩
+        await assetManager.loadAll();
+        
+        // 로딩 후 세션이 비활성화되었는지 재체크 (학생인 경우)
+        if (role === 'student' && sessionCode) {
+            const activeSnapshot = await rtdb.ref(`sessions/${sessionCode}/is_active`).once('value');
+            if (activeSnapshot.val() !== true) {
+                console.log('[Main] 로딩 중 세션 비활성화됨 - 중단');
+                return;
+            }
+        }
 
-    // 매니저 초기화
-    mapManager = new MapManager(gameCanvas, gameCtx);
-    inputManager = new InputManager();
-    combatManager = new CombatManager();
+        // 퀴즈 데이터 로드 (비동기)
+        quizManager.loadQuizzes();
 
-    // 플레이어 생성
-    localPlayer = new Player(charData.nickname, charData.job, uid);
-    localPlayer.level = charData.level || 1;
-    localPlayer.exp = charData.exp || 0;
-    localPlayer.gold = charData.gold || 100;
+        // 매니저 초기화
+        mapManager = new MapManager(gameCanvas, gameCtx);
+        inputManager = new InputManager();
+        combatManager = new CombatManager();
 
-    // 인벤토리/장비 로드
-    inventoryManager.loadFromData(charData);
-    localPlayer.equipment = { ...inventoryManager.equipment };
+        // 플레이어 생성
+        localPlayer = new Player(charData.nickname, charData.job, uid);
+        localPlayer.level = charData.level || 1;
+        localPlayer.exp = charData.exp || 0;
+        localPlayer.gold = charData.gold || 100;
 
-    // 스킬 로드
-    skillManager.loadFromData(charData, localPlayer);
+        // 인벤토리/장비 로드
+        inventoryManager.loadFromData(charData);
+        localPlayer.equipment = { ...inventoryManager.equipment };
 
-    // 맵 로드
-    const spawnMap = charData.map || 'map_000';
-    await mapManager.loadMap(spawnMap);
-    const spawnX = charData.x || mapManager.currentMap.spawnX;
-    const spawnY = charData.y || mapManager.currentMap.spawnY;
-    localPlayer.setPosition(spawnX, spawnY);
+        // 스킬 로드
+        skillManager.loadFromData(charData, localPlayer);
 
-    // 몬스터 스폰
-    combatManager.spawnMonsters(mapManager.currentMap);
+        // 맵 로드
+        const spawnMap = charData.map || 'map_000';
+        await mapManager.loadMap(spawnMap);
+        
+        // 맵 로드 후 세션 또 체크 (긴 로딩 대비)
+        if (role === 'student' && sessionCode) {
+            const activeSnapshot = await rtdb.ref(`sessions/${sessionCode}/is_active`).once('value');
+            if (activeSnapshot.val() !== true) {
+                console.log('[Main] 맵 로딩 중 세션 비활성화됨 - 중단');
+                return;
+            }
+        }
 
-    // 네트워크 접속
-    networkManager.joinMap(spawnMap, uid, {
-        nickname: charData.nickname,
-        job: charData.job,
-        x: localPlayer.x,
-        y: localPlayer.y,
-        direction: 'down',
-        level: localPlayer.level,
-        hp: localPlayer.stats.hp,
-        maxHp: localPlayer.stats.maxHp,
-    });
+        const spawnX = charData.x || mapManager.currentMap.spawnX;
+        const spawnY = charData.y || mapManager.currentMap.spawnY;
+        localPlayer.setPosition(spawnX, spawnY);
 
-    // 접속자 수 표시
-    updatePlayerCount();
+        // 몬스터 스폰
+        combatManager.spawnMonsters(mapManager.currentMap);
 
-    // HUD 초기화
-    updateHUD();
-    skillManager.updateSkillBarHUD();
+        // 네트워크 접속
+        networkManager.joinMap(spawnMap, uid, {
+            nickname: charData.nickname,
+            job: charData.job,
+            x: localPlayer.x,
+            y: localPlayer.y,
+            direction: 'down',
+            level: localPlayer.level,
+            hp: localPlayer.stats.hp,
+            maxHp: localPlayer.stats.maxHp,
+        });
 
-    // 모바일 HUD 버튼들 연결
+        // UI 업데이트
+        updatePlayerCount();
+        updateHUD();
+        skillManager.updateSkillBarHUD();
+
+        // 모바일 HUD 버튼들 연결
+        setupHUDButtons();
+
+        // 게임 루프 시작
+        lastTime = performance.now();
+        gameRunning = true;
+        requestAnimationFrame(gameLoop);
+        
+        window.focus();
+        console.log(`[Main] 🎮 게임 시작! ${charData.nickname} (${charData.job})`);
+
+        // 사운드 초기화 리스너
+        setupSoundInit();
+
+    } catch (err) {
+        console.error('[Main] 게임 시작 오류:', err);
+        alert('게임 시작 중 오류가 발생했습니다: ' + err.message);
+        stopGame();
+    } finally {
+        isInitializing = false;
+    }
+}
+
+/**
+ * HUD 버튼들 이벤트 연결 (startGame에서 분리)
+ */
+function setupHUDButtons() {
     const btnInv = document.getElementById('hud-btn-inventory');
     if (btnInv) {
-        btnInv.addEventListener('click', () => {
+        const newBtn = btnInv.cloneNode(true);
+        btnInv.parentNode.replaceChild(newBtn, btnInv);
+        newBtn.addEventListener('click', () => {
             if (inventoryManager.isOpen) inventoryManager.close();
             else inventoryManager.open(localPlayer);
         });
@@ -636,24 +706,21 @@ async function startGame(charData, uid) {
 
     const btnSkillbook = document.getElementById('hud-btn-skillbook');
     if (btnSkillbook) {
-        btnSkillbook.addEventListener('click', () => {
+        const newBtn = btnSkillbook.cloneNode(true);
+        btnSkillbook.parentNode.replaceChild(newBtn, btnSkillbook);
+        newBtn.addEventListener('click', () => {
             if (skillManager.isBookOpen) skillManager.closeBook();
             else skillManager.openBook(localPlayer);
         });
     }
 
-    const btnSettings = document.getElementById('hud-btn-settings');
-    if (btnSettings) {
-        btnSettings.addEventListener('click', () => {
-            alert('옵션 창은 준비 중입니다.');
-        });
-    }
-
-    // 스킬 슬롯 터치/클릭 지원 (모바일 전용 HUD 스킬 버튼)
+    // 스킬 슬롯 터치/클릭 지원
     for (let i = 0; i < 4; i++) {
         const slotEl = document.getElementById(`hud-skill-${i}`);
         if (slotEl) {
-            slotEl.addEventListener('pointerdown', (e) => {
+            const newSlot = slotEl.cloneNode(true);
+            slotEl.parentNode.replaceChild(newSlot, slotEl);
+            newSlot.addEventListener('pointerdown', (e) => {
                 if (localPlayer && !inventoryManager.isOpen && !skillManager.isBookOpen && gameRunning) {
                     skillManager.useSkill(i, localPlayer, combatManager);
                     e.preventDefault();
@@ -661,19 +728,12 @@ async function startGame(charData, uid) {
             });
         }
     }
-    
-    // 게임 루프 시작
-    gameRunning = true;
-    requestAnimationFrame(gameLoop);
-    
-    // 키보드 입력 활성화를 위해 윈도우 포커스
-    window.focus();
+}
 
-    if (!networkManager.teacherPresent && charData.role === 'student') {
-        console.log('[Main] 교사 대기 중... (로컬 모드 동작)');
-    }
-
-    // 사운드 초기화 (사용자 첫 클릭 시 활성화 필요)
+/**
+ * 사운드 초기화 리스너 등록
+ */
+function setupSoundInit() {
     const initSound = () => {
         soundManager.init();
         soundManager.play('click');
@@ -682,8 +742,6 @@ async function startGame(charData, uid) {
     };
     window.addEventListener('click', initSound);
     window.addEventListener('touchstart', initSound);
-
-    console.log(`[Main] 🎮 게임 시작! ${charData.nickname} (${charData.job}) @ ${mapManager.currentMap.name}`);
 }
 
 function resizeCanvas() {
@@ -718,18 +776,17 @@ function resizeCanvas() {
 function gameLoop(timestamp) {
     if (!gameRunning) return;
 
-    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
-    lastTime = timestamp;
+    try {
+        const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+        lastTime = timestamp;
 
-    // 퀴즈/상점/인벤토리/스킬북 팝업 중에는 게임 일시정지
-    // 기존 파워 (퀴즈/상점 등) 중단 로직 제거 -> 실시간 진행 지원
-    // if (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen) {
-    //     requestAnimationFrame(gameLoop);
-    //     return;
-    // }
-
-    update(dt);
-    render();
+        update(dt);
+        render();
+    } catch (err) {
+        console.error('[GameLoop] Error:', err);
+        // 치명적 오류 발생 시 게임 중단 고려 가능하지만, 일단 에러 로그만 남기고 루프는 유지 시도
+    }
+    
     requestAnimationFrame(gameLoop);
 }
 
@@ -967,31 +1024,38 @@ function handlePortal(portal) {
 }
 
 function stopGame() {
-    if (!gameRunning) return;
-    
-    console.log('[Main] 게임 중단 (Stop Game)');
+    console.log('[Main] 게임 중단 시도 (Stop Game)');
     gameRunning = false;
+    isInitializing = false; // 진행 중인 초기화도 중단된 것으로 간주
+
+    // UI 상태 리셋 (입력 차단 방지)
+    if (typeof quizManager !== 'undefined' && quizManager) quizManager.closeQuiz();
+    if (typeof shopManager !== 'undefined' && shopManager) shopManager.close();
+    if (typeof inventoryManager !== 'undefined' && inventoryManager) inventoryManager.close();
+    if (typeof skillManager !== 'undefined' && skillManager) skillManager.closeBook();
     
     // 네트워크 연결 해제
-    if (networkManager) {
+    if (typeof networkManager !== 'undefined' && networkManager && typeof networkManager.leaveMap === 'function') {
         networkManager.leaveMap();
+        if (typeof networkManager.destroy === 'function') networkManager.destroy();
     }
     
     // 전투 자원 정리
-    if (combatManager) {
+    if (typeof combatManager !== 'undefined' && combatManager && typeof combatManager.destroy === 'function') {
         combatManager.destroy();
     }
     
-    // 캔버스 리스너 제거
-    window.removeEventListener('resize', resizeCanvas);
+    // 입력 관리자 정리
+    if (typeof inputManager !== 'undefined' && inputManager && typeof inputManager.destroy === 'function') {
+        inputManager.destroy();
+    }
 
-    if (inputManager) { inputManager.destroy(); inputManager = null; }
-    // combatManager is destroyed above, so this line is redundant if combatManager is set to null here.
-    // However, the instruction explicitly includes it, so I will keep it as is, assuming it's meant to nullify the reference.
-    if (combatManager) { combatManager = null; } 
-    if (networkManager) { networkManager.destroy(); networkManager = null; } // Ensure networkManager is also nulled
+    // 참조 제거 (가급적 let 변수만)
     localPlayer = null;
     mapManager = null;
+    
+    window.removeEventListener('resize', resizeCanvas);
+    console.log('[Main] 게임 중단 완료');
 }
 
 // ============================================================

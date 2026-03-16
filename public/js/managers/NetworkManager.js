@@ -254,6 +254,13 @@ class NetworkManager {
     }
 
     /**
+     * 접속 중인 모든 플레이어 수 반환 (로컬 + 원격)
+     */
+    getPlayerCount() {
+        return this.remotePlayers.size + 1; // 원격 + 나(로컬)
+    }
+
+    /**
      * 자원 정리
      */
     destroy() {
