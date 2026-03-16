@@ -225,6 +225,9 @@ class NetworkManager {
     _addRemotePlayer(uid, data) {
         if (this.remotePlayers.has(uid)) return;
         const remote = new RemotePlayer(uid, data);
+        if (window.game && window.game.mapManager) {
+            remote.scene = window.game.mapManager;
+        }
         this.remotePlayers.set(uid, remote);
         console.log(`[NetworkManager] 원격 플레이어 추가: ${data.nickname || uid}`);
     }
@@ -235,6 +238,9 @@ class NetworkManager {
     _updateRemotePlayer(uid, data) {
         const remote = this.remotePlayers.get(uid);
         if (remote) {
+            if (!remote.scene && window.game && window.game.mapManager) {
+                remote.scene = window.game.mapManager;
+            }
             remote.updateFromServer(data);
         }
     }

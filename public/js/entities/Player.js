@@ -358,64 +358,15 @@ class Player {
     _spawnSlashEffect(x, y, dir) {
         const job = this.job;
 
-        // 직업별 색상 및 형태 정의
-        const jobEffects = {
-            '전사': { color: '#FF6B35', glow: '#FFA500', type: 'heavy_slash', particles: 8, pSize: 3 },
-            '도적': { color: '#C77DFF', glow: '#9D4EDD', type: 'quick_slash', particles: 6, pSize: 2 },
-            '주술사': { color: '#7B68EE', glow: '#6A5ACD', type: 'magic_wave', particles: 10, pSize: 2 },
-            '도사': { color: '#00E676', glow: '#69F0AE', type: 'chi_burst', particles: 12, pSize: 2 },
-        };
-        const fx = jobEffects[job] || jobEffects['전사'];
+        // 통합 이펙트 시스템 사용 (SlashEffect)
+        const effect = new SlashEffect(x, y, dir, job, true); // isLocal = true
+        this.effects.push(effect);
 
-        // 메인 슬래시 이펙트
-        this.effects.push({
-            type: fx.type, x, y, dir,
-            timer: 0, duration: 0.4,
-            color: fx.color, glow: fx.glow,
-        });
-
-        // 직업별 파티클 패턴
-        for (let i = 0; i < fx.particles; i++) {
-            const angle = (Math.PI * 2 / fx.particles) * i;
-            const spread = job === '전사' ? 30 : job === '도적' ? 20 : 15;
-            this.effects.push({
-                type: 'particle',
-                x: x + (Math.random() - 0.5) * spread,
-                y: y + (Math.random() - 0.5) * spread,
-                vx: Math.cos(angle) * (50 + Math.random() * 40),
-                vy: Math.sin(angle) * (50 + Math.random() * 40) - 20,
-                timer: 0, duration: 0.35 + Math.random() * 0.15,
-                color: fx.color, size: fx.pSize + Math.random() * 2,
-            });
-        }
-
-        // 도적 전용: 잔상(2중 슬래시)
+        // 로컬 플레이어의 경우, 사운드 등 추가 처리 가능
         if (job === '도적') {
-            setTimeout(() => {
-                this.effects.push({
-                    type: 'quick_slash', x: x + 4, y: y - 4, dir,
-                    timer: 0, duration: 0.3,
-                    color: '#E0AAFF', glow: '#C77DFF',
-                });
-            }, 80);
-        }
-
-        // 주술사 전용: 마법진 링
-        if (job === '주술사') {
-            this.effects.push({
-                type: 'magic_circle', x, y,
-                timer: 0, duration: 0.5,
-                color: '#7B68EE',
-            });
-        }
-
-        // 도사 전용: 기 파동 링
-        if (job === '도사') {
-            this.effects.push({
-                type: 'chi_ring', x, y,
-                timer: 0, duration: 0.5,
-                color: '#00E676',
-            });
+            soundManager.play('slash_fast');
+        } else {
+            soundManager.play('slash_heavy');
         }
     }
 
@@ -427,7 +378,10 @@ class Player {
     spawnSkillEffect(skillType, color) {
         const cx = this.x;
         const cy = this.y;
-
+        
+        // TODO: spawnSkillEffect도 SlashEffect/ParticleEffect 등으로 추후 통합 가능
+        // 현재는 기존 로직 유지하되 필요시 ParticleEffect 사용
+        
         switch (skillType) {
             case 'magic': {
                 // 전방 마법 발사체

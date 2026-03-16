@@ -86,9 +86,9 @@ class RemotePlayer {
         else if (this.direction === 'up') effectY -= offset;
         else if (this.direction === 'down') effectY += offset;
 
-        // SlashEffect 클래스가 전역으로 존재한다고 가정
-        if (window.SlashEffect) {
-            this.scene.addEntity(new SlashEffect(this.scene, effectX, effectY, this.direction));
+        // SlashEffect 클래스를 사용하여 이펙트 생성
+        if (window.SlashEffect && this.scene) {
+            this.scene.addEntity(new SlashEffect(effectX, effectY, this.direction, this._getJobEffectColor()));
         }
 
         // 공격 사운드
@@ -99,6 +99,7 @@ class RemotePlayer {
                 sound.play().catch(() => {});
             } catch (e) {}
         }
+    }
 
     /**
      * 매 프레임 업데이트 (보간 이동 + 애니메이션)
@@ -121,6 +122,19 @@ class RemotePlayer {
             this.animFrame = 0;
             this.animTimer = 0;
         }
+    }
+
+    /**
+     * 직업별 이펙트 색상 (Player.js와 동일하게 적용)
+     */
+    _getJobEffectColor() {
+        const colors = {
+            '전사': '#FF6B35',
+            '도적': '#C77DFF',
+            '주술사': '#7B68EE',
+            '도사': '#00E676',
+        };
+        return colors[this.job] || '#FF6B35';
     }
 
     /**

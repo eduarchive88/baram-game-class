@@ -681,6 +681,9 @@ async function startGame(charData, uid) {
         // 몬스터 스폰
         combatManager.spawnMonsters(mapManager.currentMap);
 
+        // 네트워크 세션 초기화 (중요: 세션 코드와 역할 설정)
+        networkManager.initSession(sessionCode, role === 'teacher');
+
         // 네트워크 접속
         networkManager.joinMap(spawnMap, uid, {
             nickname: charData.nickname,
