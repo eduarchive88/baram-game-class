@@ -74,25 +74,31 @@ class Monster {
     updateFromServer(data) {
         if (!data) return;
 
-        // 픽셀 좌표가 있을 경우 우선 사용 (더 부드러운 동기화)
-        if (data.px !== undefined && data.py !== undefined) {
-            this.targetX = data.px;
-            this.targetY = data.py;
-            this.tileX = data.tx !== undefined ? data.tx : Math.floor(data.px / 32);
-            this.tileY = data.ty !== undefined ? data.ty : Math.floor(data.py / 32);
-            this.isMoving = true;
-        } else if (data.x !== undefined && data.y !== undefined) {
-            // 하위 호환성 (x, y가 타일 좌표인 경우)
-            this.tileX = data.x;
-            this.tileY = data.y;
-            this.targetX = data.x * 32;
-            this.targetY = data.y * 32;
-            this.isMoving = true;
+        // 위치 보간용 타켓 (px, py로 전송됨)
+        this.serverX = data.px;
+        this.serverY = data.py;
+        
+        // 타일 위치 즉시 동기화 (논리적 위치)
+        if (data.tx !== undefined) this.tileX = data.tx;
+        if (data.ty !== undefined) this.tileY = data.ty;
+        
+        // 스탯 및 상태
+        if (data.hp !== undefined) {
+            // 피격 효과 트리거 (HP 감소 시)
+            if (this._lastHp !== undefined && data.hp < this._lastHp) {
+                this.hitFlash = 1.0;
+            }
+            this.stats.hp = data.hp;
+            this._lastHp = data.hp;
         }
-
-        if (data.hp !== undefined) this.stats.hp = data.hp;
+        
         if (data.state !== undefined) this.state = data.state;
         if (data.direction !== undefined) this.direction = data.direction;
+        
+        // 사망 상태 즉각 반영
+        if (this.state === 'dead') {
+            this.stats.hp = 0;
+        }
     }
 
     /**
@@ -117,9 +123,16 @@ class Monster {
         // 피격 효과 감소
         if (this.hitFlash > 0) this.hitFlash -= dt * 4;
 
-        // 부드러운 이동
-        if (this.isMoving) {
-            this._smoothMove(dt);
+        // 부드러운 이동 (마스터는 AI 타겟팅, 슬레이브는 서버 보간)
+        if (isMaster) {
+            if (this.isMoving) {
+                this._smoothMove(dt);
+            }
+        } else if (this.serverX !== undefined) {
+            // 슬레이브 보간 이동
+            const lerpFactor = Math.min(1, 10 * dt);
+            this.x += (this.serverX - this.x) * lerpFactor;
+            this.y += (this.serverY - this.y) * lerpFactor;
         }
 
         // AI 로직 및 사망/리스폰 타이머 (마스터/교사일 때만 계산)

@@ -164,6 +164,7 @@ class NetworkManager {
             tileY: player.tileY,
             direction: player.direction,
             isMoving: player.isMoving,
+            isAttacking: player.isAttacking || false, // 공격 상태 추가
             isDead: player.isDead, // 사망(유령) 상태 추가
             level: player.level,
             hp: player.stats.hp,
@@ -221,22 +222,28 @@ class NetworkManager {
     }
 
     getMasterUid() {
+        if (!this.localUid) return null;
+
         // 현재 맵의 모든 플레이어 UID (나 포함)
         let players = [
-            { uid: this.localUid, role: this.isTeacher ? 'teacher' : 'student' },
+            { uid: this.localUid, role: this.role || 'student' }, // roles -> role 통일
             ...Array.from(this.remotePlayers.entries()).map(([uid, p]) => ({
                 uid: uid,
                 role: p.role || 'student' 
             }))
         ];
 
-        // 1순위: 현재 맵에 있는 교사 중 UID 최소값
-        let teachers = players.filter(p => p.role === 'teacher').map(p => p.uid).sort();
+        // 1순위: 교사(teacher) 중 UID가 가장 작은 사람
+        let teachers = players
+            .filter(p => p.role === 'teacher')
+            .map(p => p.uid)
+            .sort();
+        
         if (teachers.length > 0) return teachers[0];
 
-        // 2순위: 교사가 없으면 현재 맵의 접속자 중 UID 최소값
+        // 2순위: 학생/기타 접속자 중 UID가 가장 작은 사람
         let allUids = players.map(p => p.uid).sort();
-        return allUids[0];
+        return allUids.length > 0 ? allUids[0] : this.localUid;
     }
 
     /**

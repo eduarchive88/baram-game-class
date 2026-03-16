@@ -170,7 +170,7 @@ class CombatManager {
                             direction: m.direction
                         };
                     });
-                    mapEnvRef.child('monsters').set(monsterData);
+                    mapEnvRef.child('monsters').update(monsterData);
                 }
             }
         }

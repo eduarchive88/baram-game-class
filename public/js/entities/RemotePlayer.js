@@ -63,7 +63,42 @@ class RemotePlayer {
         this.nickname = data.nickname || this.nickname;
         this.job = data.job || this.job;
         this.role = data.role || this.role; // 역할 동기화 추가
+
+        // 공격 상태 변화 감지 (false -> true 일 때 이펙트 생성)
+        if (data.isAttacking && !this.wasAttacking) {
+            this._spawnAttackEffect();
+        }
+        this.wasAttacking = data.isAttacking;
     }
+
+    /**
+     * 원격 플레이어의 공격 이펙트 생성
+     */
+    _spawnAttackEffect() {
+        if (!this.scene) return;
+        
+        const offset = 40;
+        let effectX = this.x;
+        let effectY = this.y;
+        
+        if (this.direction === 'left') effectX -= offset;
+        else if (this.direction === 'right') effectX += offset;
+        else if (this.direction === 'up') effectY -= offset;
+        else if (this.direction === 'down') effectY += offset;
+
+        // SlashEffect 클래스가 전역으로 존재한다고 가정
+        if (window.SlashEffect) {
+            this.scene.addEntity(new SlashEffect(this.scene, effectX, effectY, this.direction));
+        }
+
+        // 공격 사운드
+        if (window.AssetManager && AssetManager.getAudio('attack')) {
+            try {
+                const sound = AssetManager.getAudio('attack').cloneNode();
+                sound.volume = 0.3;
+                sound.play().catch(() => {});
+            } catch (e) {}
+        }
 
     /**
      * 매 프레임 업데이트 (보간 이동 + 애니메이션)
