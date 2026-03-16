@@ -104,10 +104,10 @@ async function handleLoginSuccess(uid, role, name) {
                     setupCharacterCreation(uid, role, name);
                 }
             } else {
-                console.log('[Main] 세션 비활성 상태 - 대기 화면 표시');
-                stopGame(); // 세션이 비활성화되면 먼저 게임 중단
-                showWaitingOverlay();
-                showScreen('auth-screen'); // 인증 화면으로 즉시 전환
+                console.log('[Main] 세션 비활성 상태 - 접근 차단');
+                stopGame(); // 게임 루프 및 네트워크 중단
+                showWaitingOverlay(); // 비활성 안내 오버레이 (최상위)
+                showScreen('auth-screen'); // 배경은 로그인 화면으로 전환
             }
         });
     } else {
@@ -130,13 +130,26 @@ function showWaitingOverlay() {
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'waiting-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+            color: white;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        `;
         overlay.innerHTML = `
-            <div class="waiting-box">
-                <div class="waiting-icon">⏳</div>
-                <h2>선생님의 활성화를 기다리고 있습니다</h2>
-                <p>선생님께서 게임을 시작(활성화)하시면 자동으로 입장됩니다.</p>
-                <div class="waiting-spinner"></div>
+            <div class="waiting-box" style="padding: 40px; border: 2px solid #f0c040; border-radius: 12px; background: #141828; box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+                <div class="waiting-icon" style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
+                <h2 style="font-family: 'Noto Serif KR', serif; color: #f0c040; margin-bottom: 15px;">선생님이 게임을 닫았습니다.</h2>
+                <p style="color: #8890b0; line-height: 1.6;">선생님께서 게임 세션을 활성화하시면<br>자동으로 다시 입장하실 수 있습니다.</p>
+                <div class="waiting-spinner" style="width: 40px; height: 40px; border: 4px solid #2a3055; border-top-color: #f0c040; border-radius: 50%; margin: 25px auto 0; animation: spin 1s linear infinite;"></div>
             </div>
+            <style>
+                @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
         `;
         document.body.appendChild(overlay);
     }
@@ -157,17 +170,16 @@ function hideWaitingOverlay() {
 // 화면 전환
 // ============================================================
 function showScreen(screenId) {
-    ['auth-screen', 'character-screen', 'game-container'].forEach(id => {
+    const screens = ['auth-screen', 'character-screen', 'game-container'];
+    screens.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             if (id === screenId) {
-                // game-container는 display: flex 레이아웃을 사용함
                 el.style.display = (id === 'game-container') ? 'flex' : 'block';
+                el.style.visibility = 'visible';
+                el.style.opacity = '1';
             } else {
                 el.style.display = 'none';
-            }
-        }
-    });
     if (screenId === 'game-container') {
         const authScreen = document.getElementById('auth-screen');
         const charScreen = document.getElementById('character-screen');
