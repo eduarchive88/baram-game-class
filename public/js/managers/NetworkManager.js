@@ -24,9 +24,15 @@ class NetworkManager {
         this.isTeacher = false;
         this.envRef = null;
         this.teacherPresent = false;
-        // 리스너 추적 배열 (초기화 누락 수정)
+        // 리스너 추적 배열
         this._listeners = [];
-        this.masterUid = null; // 현재 맵의 공식 마스터 UID (DB 기반)
+        this.masterUid = null;
+
+        // 세션 활성화 상태 (교사 제어)
+        this.sessionActive = true; 
+        
+        // 지역 이벤트 큐 (최근 N개의 이벤트만 처리)
+        this.eventQueueRef = null;
 
         console.log('[NetworkManager] 초기화 완료');
     }
@@ -40,20 +46,32 @@ class NetworkManager {
         this.sessionCode = sessionCode;
         this.isTeacher = isTeacher;
         this.envRef = rtdb.ref(`sessions/${sessionCode}/environment`);
+        this.eventQueueRef = rtdb.ref(`sessions/${sessionCode}/events`);
         
-        // 교사 존재 여부 감시 (실제로 교사가 접속 중인지)
+        // 교사 존재 여부 감시
         const teacherPresenceRef = rtdb.ref(`sessions/${sessionCode}/teacher_online`);
+        // 세션 활성화 상태 감시
+        const sessionStatusRef = rtdb.ref(`sessions/${sessionCode}/isActive`);
         
         if (this.isTeacher) {
             teacherPresenceRef.set(true);
-            teacherPresenceRef.onDisconnect().remove(); // 교사 종료 시 제거
+            teacherPresenceRef.onDisconnect().remove();
             this.teacherPresent = true;
         } else {
             teacherPresenceRef.on('value', (snap) => {
                 this.teacherPresent = snap.val() === true;
-                console.log(`[NetworkManager] 교사 접속 상태: ${this.teacherPresent}`);
+            });
+
+            sessionStatusRef.on('value', (snap) => {
+                this.sessionActive = (snap.val() !== false); // 기본값 true
+                if (!this.sessionActive && window.showGameMessage) {
+                    window.showGameMessage('🚫 교사가 멀티플레이 세션을 비활성화했습니다.', '#ff4444');
+                }
             });
         }
+
+        // 글로벌 이벤트 리스너 (스킬, 이펙트 등)
+        this._setupEventListener();
     }
 
     /**
@@ -293,9 +311,66 @@ class NetworkManager {
     }
 
     /**
+     * 글로벌 이벤트 전송 (스킬 시전, 회복 등)
+     * @param {string} type - 'skill', 'heal', 'buff', 'chat' 등
+     * @param {Object} data - 관련 데이터
+     */
+    broadcastEvent(type, data) {
+        if (!this.eventQueueRef || !this.sessionActive) return;
+
+        this.eventQueueRef.push({
+            type,
+            data,
+            senderUid: this.localUid,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // 이벤트 큐 관리 (너무 오래된 이벤트는 정리 - 마스터가 수행)
+        if (this.isMaster()) {
+            this.eventQueueRef.limitToLast(20).once('value', (snap) => {
+                // 필요시 오래된 데이터 삭제 로직 구현
+            });
+        }
+    }
+
+    /**
+     * 타 플레이어의 이벤트 수신 대기
+     */
+    _setupEventListener() {
+        if (!this.eventQueueRef) return;
+
+        // 최근 10초 이내의 이벤트만 실시간 수신
+        const now = Date.now();
+        this.eventQueueRef.orderByChild('timestamp').startAt(now).on('child_added', (snap) => {
+            const event = snap.val();
+            if (!event || event.senderUid === this.localUid) return;
+
+            this._handleRemoteEvent(event);
+        });
+    }
+
+    /**
+     * 수신된 원격 이벤트 처리
+     */
+    _handleRemoteEvent(event) {
+        const { type, data, senderUid } = event;
+        const remote = this.remotePlayers.get(senderUid);
+        
+        if (remote && remote.processRemoteEvent) {
+            remote.processRemoteEvent(type, data);
+        }
+
+        // 특정 이벤트에 대한 전역 처리 (예: 전체 공지 등)
+        if (type === 'announcement' && window.showGameMessage) {
+            window.showGameMessage(`📢 ${data.text}`, '#00EAFF');
+        }
+    }
+
+    /**
      * 자원 정리
      */
     destroy() {
+        if (this.eventQueueRef) this.eventQueueRef.off();
         this.leaveMap();
         console.log('[NetworkManager] 자원 정리 완료');
     }

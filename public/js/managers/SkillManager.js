@@ -332,6 +332,16 @@ class SkillManager {
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
 
+        // [멀티플레이] 스킬 사용 브로드캐스트
+        if (typeof networkManager !== 'undefined') {
+            networkManager.broadcastEvent('skill', {
+                skillId: skill.id,
+                job: player.job,
+                direction: player.direction
+            });
+        }
+
+
         // ===== 개별 스킬별 고유 비주얼 이펙트 =====
         if (player.spawnSkillEffect) {
             // 개별 스킬 ID별 고유 이펙트/색상 매핑
@@ -450,8 +460,77 @@ class SkillManager {
                 // 디버프 (가장 가까운 몬스터에게)
                 this._applyDebuff(player, combat, skill);
                 break;
+
+            case 'target_heal':
+            case 'target_buff':
+                // 아군 타겟팅 스킬 (가장 가까운 아군 또는 파티원)
+                this._applyInterPlayerSkill(skill, player, combat);
+                break;
         }
     }
+
+    /**
+     * 타 플레이어 대상 스킬 적용 (힐/버프)
+     */
+    _applyInterPlayerSkill(skill, player, combat) {
+        // 1. 타겟 결정 (현재 전방 또는 가장 가까운 아군)
+        const target = this._findAllyTarget(player);
+        
+        if (target) {
+            // 원격 플레이어인 경우 이벤트 전송
+            if (target instanceof RemotePlayer) {
+                const eventType = skill.type === 'target_heal' ? 'heal' : 'buff';
+                networkManager.broadcastEvent(eventType, {
+                    targetUid: target.uid,
+                    value: skill.value || 0,
+                    stat: skill.buffStat,
+                    name: skill.name
+                });
+                
+                combat._addDamageText(target.x + 16, target.y - 16, `${skill.icon} ${skill.name}`, '#80D0FF');
+            } else {
+                // 자기 자신인 경우 (로컬 처리)
+                if (skill.type === 'target_heal') {
+                    player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + skill.value);
+                    combat._addDamageText(player.x + 16, player.y - 16, `+${skill.value} HP`, '#80ff80');
+                } else {
+                    this._addBuff(skill.id, skill.name, skill.icon, skill.buffStat, skill.buffValue, skill.buffDuration, player, combat);
+                }
+            }
+        } else {
+            // 타겟이 없으면 자기 자신에게 적용 (폴백)
+            if (skill.type === 'target_heal') {
+                player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + skill.value);
+                combat._addDamageText(player.x + 16, player.y - 16, `+${skill.value} HP`, '#80ff80');
+            }
+        }
+    }
+
+    /**
+     * 가장 적절한 아군 대상 찾기
+     */
+    _findAllyTarget(player) {
+        // 전방 1~2칸 내에 있는 원격 플레이어 우선
+        const offsets = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+        const [ox, oy] = offsets[player.direction] || [0, 1];
+        
+        let closest = null;
+        let minDist = 3; // 최대 3칸 거리
+
+        if (typeof networkManager !== 'undefined') {
+            networkManager.remotePlayers.forEach(remote => {
+                if (remote.isDead) return;
+                const dist = Math.abs(remote.tileX - (player.tileX + ox)) + Math.abs(remote.tileY - (player.tileY + oy));
+                if (dist < minDist) {
+                    closest = remote;
+                    minDist = dist;
+                }
+            });
+        }
+
+        return closest || player; // 없으면 자기 자신
+    }
+
 
     /**
      * 스킬 기반 단일 공격

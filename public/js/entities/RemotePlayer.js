@@ -138,6 +138,40 @@ class RemotePlayer {
     }
 
     /**
+     * 원격 이벤트 처리 (스킬 시전, 회복 등 시각적 효과)
+     * @param {string} type - 이벤트 타입
+     * @param {Object} data - 관련 데이터
+     */
+    processRemoteEvent(type, data) {
+        if (this.isDead && type !== 'resurrect') return;
+
+        switch (type) {
+            case 'skill':
+                // 타 플레이어의 스킬 시전 이펙트
+                if (this.scene && window.SlashEffect) {
+                    const fx = new SlashEffect(this.x, this.y, this.direction, data.job || this.job, false);
+                    this.scene.addEntity(fx);
+                }
+                break;
+            
+            case 'heal':
+                // 회복 이펙트
+                if (window.game && window.game.combatManager) {
+                    window.game.combatManager._addDamageText(this.x + 16, this.y - 16, `+${data.value} HP`, '#00FF41');
+                    // 파티클 등 추가 시각 효과 가능
+                }
+                break;
+
+            case 'buff':
+                // 버프 이펙트
+                if (window.game && window.game.combatManager) {
+                    window.game.combatManager._addDamageText(this.x + 16, this.y - 16, `✨ ${data.name}`, '#80D0FF');
+                }
+                break;
+        }
+    }
+
+    /**
      * 렌더링
      * @param {CanvasRenderingContext2D} ctx
      * @param {Object} camera - 카메라 { x, y }

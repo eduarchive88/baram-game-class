@@ -132,7 +132,11 @@ async function handleLoginSuccess(uid, role, name) {
                 // 게임이 이미 실행 중이거나 초기화 중이면 중복 실행 방지
                 if (gameRunning || isInitializing) return;
 
-                console.log('[Main] 세션 활성화 - 게임 접속/복귀');
+                // 파티 매니저 초기화
+                if (typeof partyManager !== 'undefined') {
+                    partyManager.init(uid, sessionCode);
+                }
+
                 showScreen('game-container');
                 startGame(charData, uid);
             } else {
@@ -145,6 +149,11 @@ async function handleLoginSuccess(uid, role, name) {
     } else if (role === 'teacher') {
         // 교사는 세션 체크 없이 즉시 진입 가능
         if (charData) {
+            // 파티 매니저 초기화
+            if (typeof partyManager !== 'undefined') {
+                const sessionCode = localStorage.getItem('lastSessionCode');
+                partyManager.init(uid, sessionCode);
+            }
             showScreen('game-container');
             setupTeacherPanel(); // 교사 패널 로드
             startGame(charData, uid);
@@ -762,6 +771,44 @@ function setupHUDButtons() {
             });
         }
     }
+
+    // 키보드 이벤트 리스너 (HUD 버튼과 별개로 전역적으로 처리)
+    document.addEventListener('keydown', (e) => {
+        if (!gameRunning || !localPlayer) return;
+
+        // UI가 열려있을 때는 특정 키 입력만 허용 (예: ESC로 닫기)
+        const isUIOpen = (quizManager.isVisible || shopManager.isOpen || inventoryManager.isOpen || skillManager.isBookOpen);
+
+        if (isUIOpen) {
+            if (e.key === 'Escape') {
+                if (quizManager.isVisible) quizManager.closeQuiz();
+                if (shopManager.isOpen) shopManager.close();
+                if (inventoryManager.isOpen) inventoryManager.close();
+                if (skillManager.isBookOpen) skillManager.closeBook();
+            }
+            return;
+        }
+
+        // 게임 플레이 중 키 입력
+        switch (e.key.toLowerCase()) {
+            case 'i': // 인벤토리 (I)
+                if (inventoryManager.isOpen) inventoryManager.close();
+                else inventoryManager.open(localPlayer);
+                break;
+            case 'k': // 스킬북 (K)
+                if (skillManager.isBookOpen) skillManager.closeBook();
+                else skillManager.openBook(localPlayer);
+                break;
+            case 'h': // 가방 (H)
+                toggleInventory();
+                break;
+            case 'p': // 파티 초대 수락 (P)
+                if (typeof partyManager !== 'undefined') {
+                    partyManager.acceptLastInvite();
+                }
+                break;
+        }
+    });
 }
 
 /**
@@ -844,6 +891,11 @@ function update(dt) {
 
     // 스킬 업데이트 (쿨다운 및 버프)
     skillManager.update(dt, localPlayer);
+
+    // 파티 정보 동기화 (네트워크 동기화 주기와 맞춤)
+    if (typeof partyManager !== 'undefined' && partyManager.partyId) {
+        partyManager.syncMyStats(localPlayer);
+    }
 
     // 네트워크: 위치 동기화
     networkManager.syncPosition(localPlayer);
