@@ -78,16 +78,13 @@ class CombatManager {
                     level: zone.level || 1,
                     stats: { ...def.stats },
                     aggroRange: def.aggroRange,
-                    roamRange: def.roamRange,
+                    roamRange: def.roamRange
                 });
-
                 this.monsters.push(monster);
             }
         });
-
-        console.log(`[CombatManager] 몬스터 ${this.monsters.length}마리 스폰`);
+        console.log(`[CombatManager] ${this.monsters.length}마리 몬스터 스폰 완료`);
     }
-
     /**
      * 매 프레임 업데이트
      * @param {number} dt - 델타 타임
@@ -96,120 +93,31 @@ class CombatManager {
      * @param {NetworkManager} network - 네트워크 관리자 (환경 동기화용)
      */
     update(dt, map, player, network = null) {
-        // 내가 이 맵의 몬스터들을 제어할 권한이 있는지 확인
-        const isMaster = network && network.isMaster();
-        
+        // 네트워크 초기 설정 (한 번만 실행)
+        if (network && !this._networkInited) {
+            network.onMasterChanged = (isMaster) => {
+                console.log(`[CombatManager] 마스터 상태 변경됨: ${isMaster}`);
+                if (isMaster) {
+                    this.setupMasterSync(map, network);
+                } else {
+                    this.setupSlaveSync(map, network, player);
+                }
+            };
+            // 초기 상태 설정
+            if (network.isMaster()) this.setupMasterSync(map, network);
+            else this.setupSlaveSync(map, network, player);
+            
+            this._networkInited = true;
+        }
+
         // 공격 쿨다운 감소
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        // 몬스터 업데이트 (기본 동작: 애니메이션, 보간 등)
+        // 몬스터 업데이트
+        const isMaster = network && network.isMaster();
         this.monsters.forEach(m => {
-            // 몬스터 활성화 여부 반영 (마스터의 AI 중단용)
             m.update(dt, map, player, isMaster && (this.monstersEnabled !== false));
         });
-
-        // 환경 동기화 로직
-        if (network && network.envRef) {
-            const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
-            
-            // 몬스터 활성화 상태 감시 (교사 제어용)
-            if (this._lastMapId !== map.currentMapId) {
-                this._lastMapId = map.currentMapId;
-                mapEnvRef.child('monstersEnabled').on('value', snap => {
-                    this.monstersEnabled = (snap.val() !== false); // 기본값 true
-                    console.log(`[CombatManager] 몬스터 활성화 상태: ${this.monstersEnabled}`);
-                });
-            }
-
-            // 1. [슬레이브] 서버 데이터 수신
-            if (!isMaster) {
-                if (this._currentMapEnvRef !== mapEnvRef || !this._envListenerAttached) {
-                    this.cleanupSync();
-                    
-                    mapEnvRef.child('monsters').on('value', (snap) => {
-                        if (network.isMaster()) return;
-
-                        const serverMonsters = snap.val();
-                        if (serverMonsters) {
-                            this.monsters.forEach(m => {
-                                const sData = serverMonsters[m.id];
-                                if (sData) {
-                                    // [추가] 내가 죽인 몬스터라면 보상 지급
-                                    if (sData.state === 'dead' && m.state !== 'dead' && sData.killerUid === network.localUid) {
-                                        this._onMonsterKill(player, m);
-                                    }
-                                    m.updateFromServer(sData);
-                                }
-                            });
-                        }
-                    });
-                    
-                    this._currentMapEnvRef = mapEnvRef;
-                    this._envListenerAttached = true;
-                    this._lastIsMaster = false;
-                    console.log(`[CombatManager] [${map.currentMapId}] 슬레이브 수신 모드 가동`);
-                }
-            } 
-            // 2. [마스터] 서버 데이터 송신 + 공격 판정 수신
-            else {
-                if (this._lastIsMaster !== true || this._currentMapEnvRef !== mapEnvRef) {
-                    this.cleanupSync();
-                    
-                    // 마스터로 전환 시 초기 몬스터 정보 로드 후 동기화 시작
-                    mapEnvRef.child('monsters').once('value', (snap) => {
-                        const serverMonsters = snap.val();
-                        if (serverMonsters) {
-                            this.monsters.forEach(m => {
-                                if (serverMonsters[m.id]) m.updateFromServer(serverMonsters[m.id]);
-                            });
-                        }
-                    });
-
-                    // 마스터용 공격 판정 리스너 (학생들의 공격 처기)
-                    const hitsRef = mapEnvRef.child('hits');
-                    hitsRef.on('child_added', (snap) => {
-                        const data = snap.val();
-                        if (data && data.monsterId) {
-                            const monster = this.monsters.find(m => m.id === data.monsterId);
-                            if (monster && monster.state !== 'dead') {
-                                // 마스터가 직접 데미지 적용
-                                monster.takeDamage(data.damage, data.attackerUid);
-                                this._addDamageText(monster.x + 16, monster.y, data.damage, '#FFD700');
-                            }
-                        }
-                        // 처리 후 제거
-                        hitsRef.child(snap.key).remove();
-                    });
-
-                    this._currentMapEnvRef = mapEnvRef;
-                    this._lastIsMaster = true;
-                    this._syncTimer = 0;
-                    console.log(`[CombatManager] [${map.currentMapId}] 마스터 송신 및 판정 모드 가동`);
-                }
-
-                this._syncTimer = (this._syncTimer || 0) + dt;
-                if (this._syncTimer >= 0.1) {
-                    this._syncTimer = 0;
-                    const monsterData = {};
-                    this.monsters.forEach(m => {
-                        monsterData[m.id] = {
-                            px: Math.round(m.x),
-                            py: Math.round(m.y),
-                            tx: m.tileX,
-                            ty: m.tileY,
-                            hp: m.stats.hp,
-                            state: m.state,
-                            direction: m.direction,
-                            killerUid: m.killerUid || null // 사망자 정보 포함
-                        };
-                    });
-                    mapEnvRef.child('monsters').update(monsterData);
-                }
-            }
-        }
-
-        // 몬스터 -> 플레이어 근접 공격 체크
-        this._checkMonsterAttacks(dt, player);
 
         // 데미지 텍스트 업데이트
         this.damageTexts = this.damageTexts.filter(t => {
@@ -218,7 +126,109 @@ class CombatManager {
             t.alpha = 1 - (t.timer / t.duration);
             return t.timer < t.duration;
         });
+
+        // [마스터 전용] 주기적 브로드캐스트
+        if (isMaster && this._currentMapEnvRef) {
+            this._syncTimer = (this._syncTimer || 0) + dt;
+            if (this._syncTimer >= 0.15) { // 빈도 약간 낮춤 (부하 감소)
+                this._syncTimer = 0;
+                const monsterData = {};
+                this.monsters.forEach(m => {
+                    monsterData[m.id] = {
+                        px: Math.round(m.x),
+                        py: Math.round(m.y),
+                        tx: m.tileX,
+                        ty: m.tileY,
+                        hp: m.stats.hp,
+                        state: m.state,
+                        direction: m.direction,
+                        killerUid: m.killerUid || null
+                    };
+                });
+                this._currentMapEnvRef.child('monsters').update(monsterData);
+            }
+        }
+        
+        // 몬스터 -> 플레이어 근접 공격 체크
+        this._checkMonsterAttacks(dt, player);
     }
+
+    /**
+     * 슬레이브 모드 동기화 설정 (서버 -> 로컬)
+     */
+    setupSlaveSync(map, network, player) {
+        this.cleanupSync();
+        if (!network || !network.envRef) return;
+
+        const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
+        this._currentMapEnvRef = mapEnvRef;
+
+        // 1. 몬스터 활성화 상태 감시
+        mapEnvRef.child('monstersEnabled').on('value', snap => {
+            this.monstersEnabled = (snap.val() !== false);
+        });
+
+        // 2. 몬스터 데이터 수신
+        mapEnvRef.child('monsters').on('value', (snap) => {
+            // 내가 마스터로 바뀌었으면 무시 (이벤트 순서 보장)
+            if (network.isMaster()) return;
+
+            const serverMonsters = snap.val();
+            if (serverMonsters) {
+                this.monsters.forEach(m => {
+                    const sData = serverMonsters[m.id];
+                    if (sData) {
+                        // 내가 죽인 몬스터 보상
+                        if (sData.state === 'dead' && m.state !== 'dead' && sData.killerUid === network.localUid) {
+                            this._onMonsterKill(player, m);
+                        }
+                        m.updateFromServer(sData);
+                    }
+                });
+            }
+        });
+
+        this._envListenerAttached = true;
+        console.log(`[CombatManager] [${map.currentMapId}] 슬레이브 동기화 모드 시작`);
+    }
+
+    /**
+     * 마스터 모드 동기화 설정 (로컬 -> 서버)
+     */
+    setupMasterSync(map, network) {
+        this.cleanupSync();
+        if (!network || !network.envRef) return;
+
+        const mapEnvRef = network.envRef.child(map.currentMapId || 'default');
+        this._currentMapEnvRef = mapEnvRef;
+
+        // 1. 초기 데이터 동기화 (서버 상태 로드)
+        mapEnvRef.child('monsters').once('value', (snap) => {
+            const serverMonsters = snap.val();
+            if (serverMonsters) {
+                this.monsters.forEach(m => {
+                    if (serverMonsters[m.id]) m.updateFromServer(serverMonsters[m.id]);
+                });
+            }
+        });
+
+        // 2. 학생들의 공격 판정 리스너
+        const hitsRef = mapEnvRef.child('hits');
+        hitsRef.on('child_added', (snap) => {
+            const data = snap.val();
+            if (data && data.monsterId) {
+                const monster = this.monsters.find(m => m.id === data.monsterId);
+                if (monster && monster.state !== 'dead') {
+                    monster.takeDamage(data.damage, data.attackerUid);
+                    this._addDamageText(monster.x + 16, monster.y, data.damage, '#FFD700');
+                }
+            }
+            hitsRef.child(snap.key).remove();
+        });
+
+        console.log(`[CombatManager] [${map.currentMapId}] 마스터 권한 모드 시작`);
+    }
+
 
     /**
      * 플레이어 공격 실행

@@ -392,8 +392,12 @@ function setupAuthUI() {
                 btnStudentLogin.disabled = true;
                 btnStudentLogin.textContent = '로그인 중...';
 
-                // (변경) Firebase 설정 우회를 위해 익명 로그인 호출 제거
-                // RTDB 보안 규칙(.read, .write = true)을 통해 직접 접근 허용
+                // (복구) Firebase 보안 규칙 준수를 위해 익명 로그인 사용
+                // 학생은 익명으로 로그인하여 UID를 부여받고, 이를 통해 본인의 데이터에만 접근 가능하게 함
+                if (!auth.currentUser) {
+                    await auth.signInAnonymously();
+                }
+                const firebaseUid = auth.currentUser.uid;
 
                 // 세션 존재 여부 및 학생 확인
                 const studentId = `${grade}_${cls}_${num}_${name}`;
@@ -402,9 +406,13 @@ function setupAuthUI() {
 
                 if (!snapshot.exists()) {
                     errorEl.textContent = '등록되지 않은 학생이거나 세션 코드가 잘못되었습니다.';
+                    await auth.signOut(); // 잘못된 정보면 로그아웃
                     return;
                 }
 
+                // studentUid는 기존 로직 유지를 위해 사용하되, 
+                // userData 저장은 firebaseUid를 기반으로 하거나 연동함. 
+                // 여기서는 기존 studentUid 호환성을 위해 로컬 스토리지에는 studentUid(세션+ID)를 저장
                 const studentUid = `session_${code}_${studentId}`;
 
                 // (추가) 세션 활성화 상태 직접 확인

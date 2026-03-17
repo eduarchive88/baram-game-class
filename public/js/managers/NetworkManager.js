@@ -136,14 +136,46 @@ class NetworkManager {
         // 5. 마스터 관리 리스너
         const masterRef = rtdb.ref(`sessions/${this.sessionCode}/maps/${mapId}/master`);
         const onMasterChanged = masterRef.on('value', (snap) => {
-            this.masterUid = snap.val();
-            console.log(`[NetworkManager] 현재 마스터: ${this.masterUid}`);
+            const data = snap.val();
+            const newMasterUid = data ? data.uid : null;
             
+            if (this.masterUid !== newMasterUid) {
+                this.masterUid = newMasterUid;
+                console.log(`[NetworkManager] 현재 마스터 전환: ${this.masterUid}`);
+                
+                // 마스터 변경 이벤트 트리거 (CombatManager 등에서 수신)
+                if (this.onMasterChanged) this.onMasterChanged(this.isMaster());
+            }
+
             // 학생인데 마스터가 없고 내가 1순위라면 마스터 시도
             if (!this.isTeacher && !this.masterUid) {
                 this._claimMasterPower(masterRef);
             }
         });
+
+        // 6. 마스터 하트비트 체크 (마스터가 죽었을 때 교체용)
+        this._masterCheckInterval = setInterval(() => {
+            if (this.masterUid && !this.isMaster()) {
+                masterRef.once('value').then(snap => {
+                    const data = snap.val();
+                    if (data && data.lastHeartbeat) {
+                        const now = Date.now();
+                        const diff = now - data.lastHeartbeat;
+                        // 5초 이상 하트비트가 없으면 마스터 권한 박탈 (탭 비활성화 등)
+                        if (diff > 5000) {
+                            console.log('[NetworkManager] 마스터 하트비트 중단 감지. 권한 재확보 시도.');
+                            masterRef.remove();
+                        }
+                    }
+                });
+            } else if (this.isMaster()) {
+                // 내가 마스터면 하트비트 갱신
+                masterRef.update({
+                    uid: this.localUid,
+                    lastHeartbeat: Date.now()
+                });
+            }
+        }, 3000);
 
         // 리스너 추적 (해제용)
         this._listeners.push(
@@ -155,7 +187,10 @@ class NetworkManager {
 
         // 교사라면 즉시 마스터 권한 탈취
         if (this.isTeacher) {
-            masterRef.set(this.localUid);
+            masterRef.set({
+                uid: this.localUid,
+                lastHeartbeat: Date.now()
+            });
             masterRef.onDisconnect().remove();
         }
 
@@ -166,9 +201,12 @@ class NetworkManager {
      * 마스터 권한 획득 시도 (학생 간 경쟁 방지 Transaction)
      */
     _claimMasterPower(masterRef) {
-        masterRef.transaction((currentMaster) => {
-            if (currentMaster === null) {
-                return this.localUid;
+        masterRef.transaction((current) => {
+            if (current === null || (current && !current.uid)) {
+                return {
+                    uid: this.localUid,
+                    lastHeartbeat: Date.now()
+                };
             }
             return; // 이미 누가 있으면 포기
         }, (error, committed, snapshot) => {
@@ -183,9 +221,15 @@ class NetworkManager {
      * 맵 퇴장 - 리스너 해제 + 데이터 삭제
      */
     leaveMap() {
+        // 하트비트 인터벌 제거
+        if (this._masterCheckInterval) {
+            clearInterval(this._masterCheckInterval);
+            this._masterCheckInterval = null;
+        }
+
         // 리스너 해제
-        this._listeners.forEach(({ ref, event }) => {
-            ref.off(event);
+        this._listeners.forEach(({ ref, event, cb }) => {
+            ref.off(event, cb);
         });
         this._listeners = [];
 
@@ -196,7 +240,8 @@ class NetworkManager {
             // 내가 마스터였다면 마스터 비우기 (다음 사람을 위해)
             const masterRef = rtdb.ref(`sessions/${this.sessionCode}/maps/${this.currentMapId}/master`);
             masterRef.once('value').then(snap => {
-                if (snap.val() === this.localUid) {
+                const data = snap.val();
+                if (data && data.uid === this.localUid) {
                     masterRef.remove();
                 }
             });

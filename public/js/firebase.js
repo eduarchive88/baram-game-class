@@ -4,26 +4,32 @@
  */
 
 // Firebase 설정 객체 (SDK 설정)
-const firebaseConfig = {
-  apiKey: "AIzaSyD9mTB0VRX8pzGJKVb6C85E3fAczuASEmE",
-  authDomain: "baram-game-class.firebaseapp.com",
-  databaseURL: "https://baram-game-class-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "baram-game-class",
-  storageBucket: "baram-game-class.firebasestorage.app",
-  messagingSenderId: "336469584434",
-  appId: "1:336469584434:web:ac9cda82e2d072ebef2a2b"
+// Vercel 환경변수에서 주입받거나 기본값을 사용함
+const firebaseConfig = window.FIREBASE_CONFIG || {
+  apiKey: "PLACEHOLDER_API_KEY",
+  authDomain: "PLACEHOLDER_AUTH_DOMAIN",
+  databaseURL: "PLACEHOLDER_DATABASE_URL",
+  projectId: "PLACEHOLDER_PROJECT_ID",
+  storageBucket: "PLACEHOLDER_STORAGE_BUCKET",
+  messagingSenderId: "PLACEHOLDER_MESSAGING_SENDER_ID",
+  appId: "PLACEHOLDER_APP_ID"
 };
 
 // Firebase 앱 초기화
 firebase.initializeApp(firebaseConfig);
 
-// Firebase 서비스 참조 (전역)
-const auth = firebase.auth();
-const db = firebase.firestore();
-const rtdb = firebase.database();
+// Firebase 서비스 참조 (전역 변수로 노출)
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+window.rtdb = firebase.database();
 
-// GM(교사) 관리자 이메일 목록 - 이 이메일로 로그인하면 GM 권한 부여
-const GM_EMAILS = ["eduarchive88@gmail.com"];
+const auth = window.auth;
+const db = window.db;
+const rtdb = window.rtdb;
+
+// GM(교사) 관리자 이메일 목록 - Vercel/Cloudflare 환경변수에서 주입받거나 기본값 사용
+window.GM_EMAILS = window.GM_EMAILS || ["eduarchive88@gmail.com"];
+const GM_EMAILS = window.GM_EMAILS;
 
 /**
  * 현재 로그인한 사용자가 GM인지 확인하는 헬퍼 함수

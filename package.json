@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "npx serve public -l 3000",
         "start": "npx serve public",
-        "deploy": "npx wrangler pages deploy public --project-name baram-game-class"
+        "build": "node build.js",
+        "deploy": "npm run build && npx wrangler pages deploy public --project-name baram-game-class"
     }
 }

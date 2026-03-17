@@ -1,6 +1,28 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    "sessions": {
+      "$sessionCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && (data.child('is_active').val() === true || auth.token.email_verified == true)",
+        "is_active": {
+          ".write": "auth.token.email_verified == true"
+        },
+        "environment": {
+          ".write": "auth.token.email_verified == true"
+        }
+      }
+    },
+    "userData": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null" 
+      }
+    },
+    "nicknames": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    ".read": false,
+    ".write": false
   }
 }
