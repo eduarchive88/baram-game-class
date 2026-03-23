@@ -8,5 +8,8 @@
         "start": "npx serve public",
         "build": "node build.js",
         "deploy": "npm run build && npx wrangler pages deploy public --project-name baram-game-class"
+    },
+    "dependencies": {
+        "jimp": "^0.16.13"
     }
 }

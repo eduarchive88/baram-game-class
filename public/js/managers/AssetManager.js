@@ -150,38 +150,57 @@ class AssetManager {
         console.log('[AssetManager] 에셋 로드 시작...');
 
         const rawAssets = {
-            grass: await this.loadImage('/assets/rpg_grass_tile_1773292706481.png'),
-            wall: await this.loadImage('/assets/rpg_wall_brick_1773292904200.png'),
-            dirt: await this.loadImage('/assets/rpg_dirt_path_1773292888496.png'),
+            grass: await this.loadImage('/assets/images/map/grass.png'),
+            wall: await this.loadImage('/assets/images/map/wall_brick.png'),
+            dirt: await this.loadImage('/assets/images/map/dirt.png'),
+            water: await this.loadImage('/assets/images/map/water.png'),
+            tree: await this.loadImage('/assets/images/map/tree.png'),
             portal: await this.loadImage('/assets/rpg_portal_1773292920194.png'),
             shop: await this.loadImage('/assets/rpg_shop_building_1773292762510.png'),
+            student: await this.loadImage('/assets/images/characters/student_down.png'),
             warrior: await this.loadImage('/assets/rpg_player_sprite_1773292722977.png'),
             thief: await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
             mage: await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
             healer: await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
             monster_squirrel: await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png'),
-            monster_slime: await this.loadImage('/assets/rpg_monster_slime_1773294505327.png'),
-            monster_wolf: await this.loadImage('/assets/rpg_monster_wolf_1773294519586.png'),
-            monster_goblin: await this.loadImage('/assets/rpg_monster_goblin_1773294533102.png'),
-            monster_skeleton: await this.loadImage('/assets/rpg_monster_skeleton_1773295334250.png')
+            monster_slime: await this.loadImage('/assets/images/monsters/slime.png'),
+            monster_wolf: await this.loadImage('/assets/images/monsters/wolf.png'),
+            monster_goblin: await this.loadImage('/assets/images/monsters/goblin.png'),
+            monster_skeleton: await this.loadImage('/assets/images/monsters/skeleton.png'),
+            monster_boss_ogre: await this.loadImage('/assets/images/monsters/boss_ogre.png'),
+            item_potion_hp: await this.loadImage('/assets/images/items/potion_hp.png'),
+            item_gold: await this.loadImage('/assets/images/items/gold.png'),
+            item_sword: await this.loadImage('/assets/images/items/sword.png'),
+            effect_slash: await this.loadImage('/assets/images/effects/slash.png'),
+            effect_magic: await this.loadImage('/assets/images/effects/magic.png')
         };
 
         // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
+        // 새로 생성한 에셋은 이미 배경 제거 스크립트(remove_bg.js)를 거쳤으므로 _removeWhiteBackground 필요없음
         const assets = {
-            grass: rawAssets.grass, // 타일은 배경 제거 시 검은색 맵 바닥이 보일 수 있으므로 제외
+            grass: rawAssets.grass, 
             wall: rawAssets.wall,
             dirt: rawAssets.dirt,
+            water: rawAssets.water,
+            tree: rawAssets.tree,
             portal: this._removeWhiteBackground(rawAssets.portal),
             shop: this._removeWhiteBackground(rawAssets.shop),
+            student: rawAssets.student,
             warrior: this._removeWhiteBackground(rawAssets.warrior),
             thief: this._removeWhiteBackground(rawAssets.thief),
             mage: this._removeWhiteBackground(rawAssets.mage),
             healer: this._removeWhiteBackground(rawAssets.healer),
             monster_squirrel: this._removeWhiteBackground(rawAssets.monster_squirrel),
-            monster_slime: this._removeWhiteBackground(rawAssets.monster_slime),
-            monster_wolf: this._removeWhiteBackground(rawAssets.monster_wolf),
-            monster_goblin: this._removeWhiteBackground(rawAssets.monster_goblin),
-            monster_skeleton: this._removeWhiteBackground(rawAssets.monster_skeleton),
+            monster_slime: rawAssets.monster_slime,
+            monster_wolf: rawAssets.monster_wolf,
+            monster_goblin: rawAssets.monster_goblin,
+            monster_skeleton: rawAssets.monster_skeleton,
+            monster_boss_ogre: rawAssets.monster_boss_ogre,
+            item_potion_hp: rawAssets.item_potion_hp,
+            item_gold: rawAssets.item_gold,
+            item_sword: rawAssets.item_sword,
+            effect_slash: rawAssets.effect_slash,
+            effect_magic: rawAssets.effect_magic
         };
 
         // 타일셋 스프라이트 생성
@@ -193,6 +212,7 @@ class AssetManager {
             '도적': this._generateCharacterSheet('도적', assets.thief),
             '주술사': this._generateCharacterSheet('주술사', assets.mage),
             '도사': this._generateCharacterSheet('도사', assets.healer),
+            '학생': this._generateCharacterSheet('학생', assets.student),
         };
 
         // GM 캐릭터 스프라이트 (황금색 특수)
@@ -206,7 +226,7 @@ class AssetManager {
         };
 
         // UI 아이콘 생성
-        this.images.icons = this._generateUIIcons();
+        this.images.icons = this._generateUIIcons(assets);
 
         // 몬스터 스프라이트 생성
         this.images.monsters = {
@@ -214,7 +234,7 @@ class AssetManager {
             wolf: this._generateMonsterSprite('wolf', assets.monster_wolf),
             goblin: this._generateMonsterSprite('goblin', assets.monster_goblin),
             skeleton: this._generateMonsterSprite('skeleton', assets.monster_skeleton),
-            boss_ogre: this._generateMonsterSprite('boss_ogre', null), // 이미지 생성 한계로 절차적 드로잉 폴백
+            boss_ogre: this._generateMonsterSprite('boss_ogre', assets.monster_boss_ogre), 
             squirrel: this._generateMonsterSprite('squirrel', assets.monster_squirrel),
         };
 
@@ -371,7 +391,7 @@ class AssetManager {
             ctx.fillRect(2, 26, 1, 4);
             ctx.fillRect(3, 25, 1, 3);
             ctx.fillRect(27, 28, 1, 3);
-        });
+        }, assets.water);
 
         // 4: 포털/계단 (맵 이동 트리거) - 글로우 개선
         tiles[4] = this._createTile((ctx) => {
@@ -448,7 +468,7 @@ class AssetManager {
             ctx.fillStyle = '#5aba5a';
             ctx.fillRect(11, 7, 2, 1);
             ctx.fillRect(17, 5, 2, 1);
-        });
+        }, assets.tree);
 
         // 7: 동굴 바닥 (이동 가능) - 광석+균열 디테일
         tiles[7] = this._createTile((ctx) => {
@@ -804,22 +824,26 @@ class AssetManager {
     /**
      * UI 아이콘 생성
      */
-    _generateUIIcons() {
+    _generateUIIcons(assets = {}) {
         const icons = {};
 
-        // HP 아이콘 (빨간 하트)
+        // HP 아이콘 (새로운 포션 이미지 적용)
         icons.hp = this._createSmallIcon(16, (ctx) => {
-            ctx.fillStyle = '#ff4040';
-            ctx.beginPath();
-            ctx.arc(5, 5, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath();
-            ctx.arc(11, 5, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(1, 7); ctx.lineTo(8, 14); ctx.lineTo(15, 7);
-            ctx.fill();
+            if (assets.item_potion_hp) {
+                ctx.drawImage(assets.item_potion_hp, 0, 0, 16, 16);
+            } else {
+                ctx.fillStyle = '#ff4040';
+                ctx.beginPath();
+                ctx.arc(5, 5, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath();
+                ctx.arc(11, 5, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(1, 7); ctx.lineTo(8, 14); ctx.lineTo(15, 7);
+                ctx.fill();
+            }
         });
 
-        // MP 아이콘 (파란 마름모)
+        // MP 아이콘 (파란 마름모 유지)
         icons.mp = this._createSmallIcon(16, (ctx) => {
             ctx.fillStyle = '#4080ff';
             ctx.beginPath();
@@ -831,19 +855,28 @@ class AssetManager {
             ctx.fill();
         });
 
-        // Gold 아이콘 (동전)
+        // Gold 아이콘 (새 동전 이미지 적용)
         icons.gold = this._createSmallIcon(16, (ctx) => {
-            ctx.fillStyle = '#c49a20';
-            ctx.beginPath();
-            ctx.arc(8, 8, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#f0c040';
-            ctx.beginPath();
-            ctx.arc(8, 8, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#c49a20';
-            ctx.font = 'bold 8px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('$', 8, 11);
+            if (assets.item_gold) {
+                ctx.drawImage(assets.item_gold, 0, 0, 16, 16);
+            } else {
+                ctx.fillStyle = '#c49a20';
+                ctx.beginPath();
+                ctx.arc(8, 8, 7, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#f0c040';
+                ctx.beginPath();
+                ctx.arc(8, 8, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#c49a20';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('$', 8, 11);
+            }
         });
+
+        // Effect Slash 아이콘 추가 (필요시 렌더러가 꺼내 쓸 수 있도록)
+        if (assets.effect_slash) icons.slash = assets.effect_slash;
+        if (assets.effect_magic) icons.magic = assets.effect_magic;
+        if (assets.item_sword) icons.sword = assets.item_sword;
 
         return icons;
     }

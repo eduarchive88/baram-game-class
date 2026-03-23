@@ -447,10 +447,15 @@ class CombatManager {
 
     cleanupSync() {
         if (this._currentMapEnvRef) {
+            // 모든 하위 리스너 완전 해제 (몬스터 데이터 + 활성화 상태 + 공격 판정)
+            this._currentMapEnvRef.child('monstersEnabled').off('value');
+            this._currentMapEnvRef.child('hits').off('child_added');
             this._currentMapEnvRef.child('monsters').off('value');
             this._currentMapEnvRef = null;
         }
         this._envListenerAttached = false;
+        // 동기화 초기화 플래그 리셋 (맵 전환/재접속 시 재초기화 보장)
+        this._networkInited = false;
         this._syncTimer = 0;
     }
 
@@ -458,5 +463,6 @@ class CombatManager {
         this.cleanupSync();
         this.monsters = [];
         this.damageTexts = [];
+        this._networkInited = false;
     }
 }

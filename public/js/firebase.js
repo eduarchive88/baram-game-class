@@ -6,13 +6,13 @@
 // Firebase 설정 객체 (SDK 설정)
 // Vercel 환경변수에서 주입받거나 기본값을 사용함
 const firebaseConfig = window.FIREBASE_CONFIG || {
-  apiKey: "PLACEHOLDER_API_KEY",
-  authDomain: "PLACEHOLDER_AUTH_DOMAIN",
-  databaseURL: "PLACEHOLDER_DATABASE_URL",
-  projectId: "PLACEHOLDER_PROJECT_ID",
-  storageBucket: "PLACEHOLDER_STORAGE_BUCKET",
-  messagingSenderId: "PLACEHOLDER_MESSAGING_SENDER_ID",
-  appId: "PLACEHOLDER_APP_ID"
+  apiKey: "AIzaSyD9mTB0VRX8pzGJKVb6C85E3fAczuASEmE",
+  authDomain: "baram-game-class.firebaseapp.com",
+  databaseURL: "https://baram-game-class-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "baram-game-class",
+  storageBucket: "baram-game-class.firebasestorage.app",
+  messagingSenderId: "336469584434",
+  appId: "1:336469584434:web:ac9cda82e2d072ebef2a2b"
 };
 
 // Firebase 앱 초기화
