@@ -150,57 +150,99 @@ class AssetManager {
         console.log('[AssetManager] 에셋 로드 시작...');
 
         const rawAssets = {
-            grass: await this.loadImage('/assets/images/map/grass.png'),
-            wall: await this.loadImage('/assets/images/map/wall_brick.png'),
-            dirt: await this.loadImage('/assets/images/map/dirt.png'),
-            water: await this.loadImage('/assets/images/map/water.png'),
-            tree: await this.loadImage('/assets/images/map/tree.png'),
-            portal: await this.loadImage('/assets/rpg_portal_1773292920194.png'),
-            shop: await this.loadImage('/assets/rpg_shop_building_1773292762510.png'),
-            student: await this.loadImage('/assets/images/characters/student_down.png'),
-            warrior: await this.loadImage('/assets/rpg_player_sprite_1773292722977.png'),
-            thief: await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
-            mage: await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
-            healer: await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
-            monster_squirrel: await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png'),
-            monster_slime: await this.loadImage('/assets/images/monsters/slime.png'),
-            monster_wolf: await this.loadImage('/assets/images/monsters/wolf.png'),
-            monster_goblin: await this.loadImage('/assets/images/monsters/goblin.png'),
-            monster_skeleton: await this.loadImage('/assets/images/monsters/skeleton.png'),
-            monster_boss_ogre: await this.loadImage('/assets/images/monsters/boss_ogre.png'),
-            item_potion_hp: await this.loadImage('/assets/images/items/potion_hp.png'),
-            item_gold: await this.loadImage('/assets/images/items/gold.png'),
-            item_sword: await this.loadImage('/assets/images/items/sword.png'),
-            effect_slash: await this.loadImage('/assets/images/effects/slash.png'),
-            effect_magic: await this.loadImage('/assets/images/effects/magic.png')
+            // === 맵 타일 ===
+            grass:      await this.loadImage('/assets/images/map/grass.png'),
+            wall:       await this.loadImage('/assets/images/map/wall_brick.png'),
+            dirt:       await this.loadImage('/assets/images/map/dirt.png'),
+            water:      await this.loadImage('/assets/images/map/water.png'),
+            tree:       await this.loadImage('/assets/images/map/tree.png'),
+            snow:       await this.loadImage('/assets/images/map/snow.png'),
+            lava:       await this.loadImage('/assets/images/map/lava.png'),
+            cave_floor: await this.loadImage('/assets/images/map/cave_floor.png'),
+            wood_floor: await this.loadImage('/assets/images/map/wood_floor.png'),
+            sand:       await this.loadImage('/assets/images/map/sand.png'),
+            // === 건물/포털/NPC ===
+            portal:  await this.loadImage('/assets/rpg_portal_1773292920194.png'),
+            shop:    await this.loadImage('/assets/rpg_shop_building_1773292762510.png'),
+            // === 캐릭터 ===
+            student:  await this.loadImage('/assets/images/characters/student_down.png'),
+            warrior:  await this.loadImage('/assets/rpg_player_sprite_1773292722977.png'),
+            thief:    await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
+            mage:     await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
+            healer:   await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
+            // === 몬스터 ===
+            monster_squirrel:   await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png'),
+            monster_slime:      await this.loadImage('/assets/images/monsters/slime.png'),
+            monster_wolf:       await this.loadImage('/assets/images/monsters/wolf.png'),
+            monster_goblin:     await this.loadImage('/assets/images/monsters/goblin.png'),
+            monster_skeleton:   await this.loadImage('/assets/images/monsters/skeleton.png'),
+            monster_boss_ogre:  await this.loadImage('/assets/images/monsters/boss_ogre.png'),
+            monster_bear:       await this.loadImage('/assets/images/monsters/bear.png'),
+            monster_snake:      await this.loadImage('/assets/images/monsters/snake.png'),
+            monster_bat:        await this.loadImage('/assets/images/monsters/bat.png'),
+            monster_ghost:      await this.loadImage('/assets/images/monsters/ghost.png'),
+            monster_dragon_boss:await this.loadImage('/assets/images/monsters/dragon_boss.png'),
+            // === 아이템 ===
+            item_potion_hp:    await this.loadImage('/assets/images/items/potion_hp.png'),
+            item_potion_mp:    await this.loadImage('/assets/images/items/potion_mp.png'),
+            item_potion_full:  await this.loadImage('/assets/images/items/potion_full.png'),
+            item_gold:         await this.loadImage('/assets/images/items/gold.png'),
+            item_sword:        await this.loadImage('/assets/images/items/sword.png'),
+            // === 스킬 이펙트 ===
+            effect_slash:     await this.loadImage('/assets/images/effects/slash.png'),
+            effect_magic:     await this.loadImage('/assets/images/effects/magic.png'),
+            effect_fireball:  await this.loadImage('/assets/images/effects/fireball.png'),
+            effect_lightning: await this.loadImage('/assets/images/effects/lightning.png'),
+            effect_heal:      await this.loadImage('/assets/images/effects/heal.png'),
+            effect_poison:    await this.loadImage('/assets/images/effects/poison.png'),
+            effect_shield:    await this.loadImage('/assets/images/effects/shield.png'),
+            effect_ice:       await this.loadImage('/assets/images/effects/ice.png'),
         };
 
         // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
         // 새로 생성한 에셋은 이미 배경 제거 스크립트(remove_bg.js)를 거쳤으므로 _removeWhiteBackground 필요없음
         const assets = {
-            grass: rawAssets.grass, 
-            wall: rawAssets.wall,
-            dirt: rawAssets.dirt,
-            water: rawAssets.water,
-            tree: rawAssets.tree,
+            // 맵 타일 (배경 제거 불필요)
+            grass: rawAssets.grass, wall: rawAssets.wall, dirt: rawAssets.dirt,
+            water: rawAssets.water, tree: rawAssets.tree,
+            snow: rawAssets.snow, lava: rawAssets.lava,
+            cave_floor: rawAssets.cave_floor, wood_floor: rawAssets.wood_floor, sand: rawAssets.sand,
+            // 건물/포털
             portal: this._removeWhiteBackground(rawAssets.portal),
-            shop: this._removeWhiteBackground(rawAssets.shop),
+            shop:   this._removeWhiteBackground(rawAssets.shop),
+            // 캐릭터
             student: rawAssets.student,
             warrior: this._removeWhiteBackground(rawAssets.warrior),
-            thief: this._removeWhiteBackground(rawAssets.thief),
-            mage: this._removeWhiteBackground(rawAssets.mage),
-            healer: this._removeWhiteBackground(rawAssets.healer),
-            monster_squirrel: this._removeWhiteBackground(rawAssets.monster_squirrel),
-            monster_slime: rawAssets.monster_slime,
-            monster_wolf: rawAssets.monster_wolf,
-            monster_goblin: rawAssets.monster_goblin,
-            monster_skeleton: rawAssets.monster_skeleton,
-            monster_boss_ogre: rawAssets.monster_boss_ogre,
-            item_potion_hp: rawAssets.item_potion_hp,
-            item_gold: rawAssets.item_gold,
-            item_sword: rawAssets.item_sword,
-            effect_slash: rawAssets.effect_slash,
-            effect_magic: rawAssets.effect_magic
+            thief:   this._removeWhiteBackground(rawAssets.thief),
+            mage:    this._removeWhiteBackground(rawAssets.mage),
+            healer:  this._removeWhiteBackground(rawAssets.healer),
+            // 몬스터
+            monster_squirrel:    this._removeWhiteBackground(rawAssets.monster_squirrel),
+            monster_slime:       this._removeWhiteBackground(rawAssets.monster_slime),
+            monster_wolf:        this._removeWhiteBackground(rawAssets.monster_wolf),
+            monster_goblin:      this._removeWhiteBackground(rawAssets.monster_goblin),
+            monster_skeleton:    this._removeWhiteBackground(rawAssets.monster_skeleton),
+            monster_boss_ogre:   this._removeWhiteBackground(rawAssets.monster_boss_ogre),
+            monster_bear:        this._removeWhiteBackground(rawAssets.monster_bear),
+            monster_snake:       this._removeWhiteBackground(rawAssets.monster_snake),
+            monster_bat:         this._removeWhiteBackground(rawAssets.monster_bat),
+            monster_ghost:       this._removeWhiteBackground(rawAssets.monster_ghost),
+            monster_dragon_boss: this._removeWhiteBackground(rawAssets.monster_dragon_boss),
+            // 아이템
+            item_potion_hp:   rawAssets.item_potion_hp,
+            item_potion_mp:   rawAssets.item_potion_mp,
+            item_potion_full: rawAssets.item_potion_full,
+            item_gold:        rawAssets.item_gold,
+            item_sword:       rawAssets.item_sword,
+            // 스킬 이펙트
+            effect_slash:     rawAssets.effect_slash,
+            effect_magic:     rawAssets.effect_magic,
+            effect_fireball:  rawAssets.effect_fireball,
+            effect_lightning: rawAssets.effect_lightning,
+            effect_heal:      rawAssets.effect_heal,
+            effect_poison:    rawAssets.effect_poison,
+            effect_shield:    rawAssets.effect_shield,
+            effect_ice:       rawAssets.effect_ice,
         };
 
         // 타일셋 스프라이트 생성
@@ -228,14 +270,40 @@ class AssetManager {
         // UI 아이콘 생성
         this.images.icons = this._generateUIIcons(assets);
 
-        // 몬스터 스프라이트 생성
+        // 몬스터 스프라이트 생성 (기존 + 신규 5종)
         this.images.monsters = {
-            slime: this._generateMonsterSprite('slime', assets.monster_slime),
-            wolf: this._generateMonsterSprite('wolf', assets.monster_wolf),
-            goblin: this._generateMonsterSprite('goblin', assets.monster_goblin),
-            skeleton: this._generateMonsterSprite('skeleton', assets.monster_skeleton),
-            boss_ogre: this._generateMonsterSprite('boss_ogre', assets.monster_boss_ogre), 
-            squirrel: this._generateMonsterSprite('squirrel', assets.monster_squirrel),
+            slime:       this._generateMonsterSprite('slime',       assets.monster_slime),
+            wolf:        this._generateMonsterSprite('wolf',        assets.monster_wolf),
+            goblin:      this._generateMonsterSprite('goblin',      assets.monster_goblin),
+            skeleton:    this._generateMonsterSprite('skeleton',    assets.monster_skeleton),
+            boss_ogre:   this._generateMonsterSprite('boss_ogre',   assets.monster_boss_ogre),
+            squirrel:    this._generateMonsterSprite('squirrel',    assets.monster_squirrel),
+            bear:        this._generateMonsterSprite('bear',        assets.monster_bear),
+            snake:       this._generateMonsterSprite('snake',       assets.monster_snake),
+            bat:         this._generateMonsterSprite('bat',         assets.monster_bat),
+            ghost:       this._generateMonsterSprite('ghost',       assets.monster_ghost),
+            dragon_boss: this._generateMonsterSprite('dragon_boss', assets.monster_dragon_boss),
+        };
+
+        // 스킬 이펙트 이미지 등록 (검정 배경 → 투명 처리)
+        this.images.effects = {
+            slash:     this._removeBlackBackground(assets.effect_slash),
+            magic:     this._removeBlackBackground(assets.effect_magic),
+            fireball:  this._removeBlackBackground(assets.effect_fireball),
+            lightning: this._removeBlackBackground(assets.effect_lightning),
+            heal:      this._removeBlackBackground(assets.effect_heal),
+            poison:    this._removeBlackBackground(assets.effect_poison),
+            shield:    this._removeBlackBackground(assets.effect_shield),
+            ice:       this._removeBlackBackground(assets.effect_ice),
+        };
+
+        // 아이템 이미지 등록 (흰 배경 → 투명 처리)
+        this.images.items = {
+            potion_hp:   this._removeWhiteBackground(assets.item_potion_hp),
+            potion_mp:   this._removeWhiteBackground(assets.item_potion_mp),
+            potion_full: this._removeWhiteBackground(assets.item_potion_full),
+            gold:        this._removeWhiteBackground(assets.item_gold),
+            sword:       this._removeWhiteBackground(assets.item_sword),
         };
 
         this.loaded = true;
@@ -1098,6 +1166,62 @@ class AssetManager {
     _seededRandom(seed) {
         const x = Math.sin(seed + 1) * 10000;
         return x - Math.floor(x);
+    }
+
+    /**
+     * 흰 배경 제거 (몬스터/아이템 이미지용)
+     * 밝은 픽셀(R,G,B 모두 200 이상)을 투명 처리
+     * @param {HTMLImageElement|HTMLCanvasElement} imgEl
+     * @returns {HTMLCanvasElement}
+     */
+    _removeWhiteBackground(imgEl) {
+        if (!imgEl) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width  = imgEl.width  || imgEl.naturalWidth  || this.TILE_SIZE;
+        canvas.height = imgEl.height || imgEl.naturalHeight || this.TILE_SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = data.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], g = d[i+1], b = d[i+2];
+            // 흰색~밝은 회색 영역 투명처리
+            if (r > 200 && g > 200 && b > 200) {
+                // 흰색 가까울수록 더 강하게 투명화
+                const factor = ((r - 200) + (g - 200) + (b - 200)) / (3 * 55);
+                d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - factor)));
+            }
+        }
+        ctx.putImageData(data, 0, 0);
+        return canvas;
+    }
+
+    /**
+     * 검정 배경 제거 (스킬 이펙트 이미지용)
+     * 어두운 픽셀(R,G,B 모두 80 이하)을 투명 처리
+     * @param {HTMLImageElement|HTMLCanvasElement} imgEl
+     * @returns {HTMLCanvasElement}
+     */
+    _removeBlackBackground(imgEl) {
+        if (!imgEl) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width  = imgEl.width  || imgEl.naturalWidth  || this.TILE_SIZE;
+        canvas.height = imgEl.height || imgEl.naturalHeight || this.TILE_SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = data.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], g = d[i+1], b = d[i+2];
+            const brightness = (r + g + b) / 3;
+            // 어두운 영역을 투명도에 반영
+            if (brightness < 80) {
+                const factor = (80 - brightness) / 80;
+                d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - factor)));
+            }
+        }
+        ctx.putImageData(data, 0, 0);
+        return canvas;
     }
 }
 

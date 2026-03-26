@@ -304,16 +304,68 @@ class MapManager {
         const endCol = Math.min(map.width - 1, Math.ceil((this.camera.x + this.canvas.width) / this.TILE_SIZE));
         const endRow = Math.min(map.height - 1, Math.ceil((this.camera.y + this.canvas.height) / this.TILE_SIZE));
 
-        // 타일 렌더링
+        // 타일 렌더링 (위치 기반 색조 변화 + 엣지 블렌딩)
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
                 const tileId = map.tiles[row][col];
                 const screenX = col * this.TILE_SIZE - this.camera.x;
                 const screenY = row * this.TILE_SIZE - this.camera.y;
+                const sx = Math.floor(screenX);
+                const sy = Math.floor(screenY);
+                const S  = this.TILE_SIZE;
 
                 const tileImg = tileImages[tileId];
                 if (tileImg) {
-                    this.ctx.drawImage(tileImg, Math.floor(screenX), Math.floor(screenY));
+                    // ① 기본 타일 드로우
+                    this.ctx.drawImage(tileImg, sx, sy);
+
+                    // ② 위치 시드 기반 미세 색조 오버레이
+                    // 같은 타일 반복 시 각 위치마다 미묘하게 다른 컬러로 변화
+                    const seed = (col * 17 + row * 31) & 0xFFFFFF;
+                    const rOff = ((seed & 0x1F) - 8) ;     // -8 ~ +23
+                    const gOff = (((seed >> 5) & 0x1F) - 8);
+                    const bOff = (((seed >> 10) & 0x1F) - 8);
+                    const alpha = 0.06 + ((seed >> 15) & 0xF) / 150; // 0.06~0.16
+
+                    if (tileId !== 1 && tileId !== 3) { // 벽/물은 오버레이 제외
+                        this.ctx.save();
+                        this.ctx.globalAlpha = alpha;
+                        this.ctx.fillStyle = `rgb(${128 + rOff},${128 + gOff},${128 + bOff})`;
+                        this.ctx.fillRect(sx, sy, S, S);
+                        this.ctx.restore();
+                    }
+
+                    // ③ 이웃 타일과 다를 경우 엣지 그라데이션 블렌딩
+                    const edgeDirs = [
+                        { dx: 1, dy: 0, edge: 'right' },
+                        { dx: 0, dy: 1, edge: 'bottom' },
+                    ];
+                    for (const { dx, dy, edge } of edgeDirs) {
+                        const nx = col + dx, ny = row + dy;
+                        if (nx < map.width && ny < map.height) {
+                            const nId = map.tiles[ny][nx];
+                            // 타일 종류가 다를 때만 블렌드 엣지 추가
+                            if (nId !== tileId) {
+                                this.ctx.save();
+                                this.ctx.globalAlpha = 0.18;
+                                let grad;
+                                if (edge === 'right') {
+                                    grad = this.ctx.createLinearGradient(sx + S - 6, sy, sx + S, sy);
+                                } else {
+                                    grad = this.ctx.createLinearGradient(sx, sy + S - 6, sx, sy + S);
+                                }
+                                grad.addColorStop(0, 'transparent');
+                                grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+                                this.ctx.fillStyle = grad;
+                                if (edge === 'right') {
+                                    this.ctx.fillRect(sx + S - 6, sy, 6, S);
+                                } else {
+                                    this.ctx.fillRect(sx, sy + S - 6, S, 6);
+                                }
+                                this.ctx.restore();
+                            }
+                        }
+                    }
                 }
             }
         }

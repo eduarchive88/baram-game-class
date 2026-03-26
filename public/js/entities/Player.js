@@ -292,10 +292,34 @@ class Player {
         this.isAttacking = true;
         this.attackTimer = 0.4; // 0.4초 동안 공격 상태 유지 (네트워크 동기화 보장)
 
-        // 공격 이펙트 생성 (방향에 따라 슬래시)
-        const offsets = { up: [0, -32], down: [0, 32], left: [-32, 0], right: [32, 0] };
-        const [ox, oy] = offsets[this.direction] || [0, 32];
-        this._spawnSlashEffect(this.x + ox, this.y + oy, this.direction);
+        // 직업에 따른 이펙트 속성 결정
+        const job = this.job;
+        const isRanged = (job === '도사' || job === '주술사');
+
+        if (isRanged) {
+            // 원거리 마법 발사 효과
+            const color = job === '주술사' ? '#c080ff' : '#00E676';
+            const offsets = { up: [0, -40], down: [0, 40], left: [-40, 0], right: [40, 0] };
+            const [ox, oy] = offsets[this.direction] || [0, 40];
+            
+            // 날아가는 속도 (vx, vy) 설정 (방향에 따라 400px/s)
+            const vxs = { up: 0, down: 0, left: -400, right: 400 };
+            const vys = { up: -400, down: 400, left: 0, right: 0 };
+            const vx = vxs[this.direction] || 0;
+            const vy = vys[this.direction] || 0;
+            
+            this.effects.push({
+                type: 'magic_bolt', x: this.x + ox, y: this.y + oy,
+                vx: vx, vy: vy,
+                timer: 0, duration: 0.3, color: color
+            });
+            soundManager.play('skill');
+        } else {
+            // 근거리 참격 효과 (직업별 다르게)
+            const offsets = { up: [0, -32], down: [0, 32], left: [-32, 0], right: [32, 0] };
+            const [ox, oy] = offsets[this.direction] || [0, 32];
+            this._spawnSlashEffect(this.x + ox, this.y + oy, this.direction);
+        }
 
         // 400ms 후 공격 상태 해제
         setTimeout(() => {
@@ -357,9 +381,20 @@ class Player {
      */
     _spawnSlashEffect(x, y, dir) {
         const job = this.job;
+        
+        let type = 'heavy_slash';
+        let color = '#FF6B35';
+        let glow = '#FFA500';
+
+        if (job === '도적') {
+            type = 'quick_slash';
+            color = '#A020F0';
+            glow = '#DDA0DD';
+        }
 
         // 통합 이펙트 시스템 사용 (SlashEffect)
-        const effect = new SlashEffect(x, y, dir, job, true); // isLocal = true
+        // new SlashEffect(x, y, dir, color, glow, type)
+        const effect = new SlashEffect(x, y, dir, color, glow, type);
         this.effects.push(effect);
 
         // 로컬 플레이어의 경우, 사운드 등 추가 처리 가능
@@ -722,7 +757,9 @@ class Player {
                     break;
                 }
                 case 'magic_bolt': {
-                    // 마법 구체
+                    // 마법 구체 (자체 이동)
+                    const px = sx + (e.vx || 0) * e.timer;
+                    const py = sy + (e.vy || 0) * e.timer;
                     const alpha = 1 - progress;
                     const radius = 8 + Math.sin(progress * Math.PI) * 6;
                     ctx.globalAlpha = alpha;
@@ -730,7 +767,7 @@ class Player {
                     ctx.shadowColor = e.color;
                     ctx.shadowBlur = 20;
                     ctx.beginPath();
-                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.arc(px, py, radius, 0, Math.PI * 2);
                     ctx.fill();
 
                     // 외곽 글로우 링
@@ -738,7 +775,7 @@ class Player {
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(sx, sy, radius + 4, 0, Math.PI * 2);
+                    ctx.arc(px, py, radius + 4, 0, Math.PI * 2);
                     ctx.stroke();
                     break;
                 }

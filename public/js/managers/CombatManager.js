@@ -239,21 +239,26 @@ class CombatManager {
         if (player.isDead) return false;
         if (this.attackCooldown > 0) return false;
 
+        const isRanged = (player.job === '도사' || player.job === '주술사');
+        const range = isRanged ? 4 : 1;
         const offsets = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
         const [ox, oy] = offsets[player.direction] || [0, 1];
-        const targetTileX = player.tileX + ox;
-        const targetTileY = player.tileY + oy;
-
+        
         let hitMonster = null;
-        for (const m of this.monsters) {
-            if (m.state === 'dead') continue;
-            if (m.tileX === targetTileX && m.tileY === targetTileY) {
-                hitMonster = m;
+        
+        // 1. 방향타 기반 사거리 판정
+        for (let i = 1; i <= range; i++) {
+            const checkX = player.tileX + ox * i;
+            const checkY = player.tileY + oy * i;
+            const target = this.monsters.find(m => m.state !== 'dead' && m.tileX === checkX && m.tileY === checkY);
+            if (target) {
+                hitMonster = target;
                 break;
             }
         }
 
-        if (!hitMonster) {
+        // 2. 전사/도적(근접)인 경우 대각선 등 인접 범위(거리 1) 타겟을 추가 보정하여 좀 더 쉽게 맞도록 함
+        if (!hitMonster && !isRanged) {
             for (const m of this.monsters) {
                 if (m.state === 'dead') continue;
                 const dx = Math.abs(m.tileX - player.tileX);
