@@ -56,6 +56,14 @@ class MapManager {
                 { type: 'slime', x: 18, y: 3, width: 10, height: 10, count: 20, level: 1 },
                 { type: 'goblin', x: 3, y: 18, width: 10, height: 10, count: 15, level: 2 },
             ],
+            // 메가타일 장식 오브젝트 배치 { id, tileX, tileY }
+            decorations: [
+                { id: 'big_tree',   tileX: 7,  tileY: 4  },
+                { id: 'big_tree',   tileX: 20, tileY: 7  },
+                { id: 'waterfall',  tileX: 2,  tileY: 10 },
+                { id: 'cliff',      tileX: 10, tileY: 24 },
+                { id: 'big_tree',   tileX: 24, tileY: 22 },
+            ],
         };
 
         // =============================================
@@ -79,6 +87,14 @@ class MapManager {
                 { x: 24, y: 12, targetMap: 'map_002', targetX: 1, targetY: 15, label: '→ 풍림 사냥터' },
             ],
             monsterZones: [], // 마을은 안전 구역
+            decorations: [
+                { id: 'shrine',     tileX: 10, tileY: 4  },
+                { id: 'shrine',     tileX: 18, tileY: 4  },
+                { id: 'tent',       tileX: 6,  tileY: 14 },
+                { id: 'tent',       tileX: 15, tileY: 18 },
+                { id: 'big_tree',   tileX: 21, tileY: 6  },
+                { id: 'waterfall',  tileX: 3,  tileY: 6  },
+            ],
         };
 
         // =============================================
@@ -103,6 +119,15 @@ class MapManager {
                 { type: 'skeleton', x: 20, y: 5, width: 12, height: 12, count: 20, level: 4 },
                 { type: 'wolf', x: 5, y: 20, width: 12, height: 12, count: 20, level: 3 },
                 { type: 'goblin', x: 20, y: 20, width: 12, height: 12, count: 20, level: 3 },
+            ],
+            decorations: [
+                { id: 'big_tree',   tileX: 4,  tileY: 4  },
+                { id: 'big_tree',   tileX: 15, tileY: 3  },
+                { id: 'big_tree',   tileX: 28, tileY: 5  },
+                { id: 'ruin',       tileX: 6,  tileY: 18 },
+                { id: 'ruin',       tileX: 22, tileY: 16 },
+                { id: 'cliff',      tileX: 12, tileY: 28 },
+                { id: 'waterfall',  tileX: 30, tileY: 20 },
             ],
         };
 
@@ -368,6 +393,31 @@ class MapManager {
                     }
                 }
             }
+        }
+
+        // ④ 메가타일 데코레이션 레이어 렌더링 (타일 2~6개 크기 대형 오브젝트)
+        const megaTiles = assetManager.images.megaTiles;
+        if (megaTiles && map.decorations) {
+            map.decorations.forEach(deco => {
+                const mgt = megaTiles[deco.id];
+                if (!mgt || !mgt.canvas) return;
+                const sx = deco.tileX * this.TILE_SIZE - this.camera.x;
+                const sy = deco.tileY * this.TILE_SIZE - this.camera.y;
+                // 화면 범위 안에 있는지 확인
+                if (sx + mgt.canvas.width < 0 || sx > this.canvas.width) return;
+                if (sy + mgt.canvas.height < 0 || sy > this.canvas.height) return;
+                // 그림자 (약한 반투명 원)
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.18;
+                this.ctx.fillStyle = '#000';
+                this.ctx.beginPath();
+                this.ctx.ellipse(sx + mgt.canvas.width / 2, sy + mgt.canvas.height - 6,
+                    mgt.canvas.width * 0.4, 8, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+                // 메가타일 드로우
+                this.ctx.drawImage(mgt.canvas, Math.floor(sx), Math.floor(sy));
+            });
         }
 
         // 포털 글로우 애니메이션

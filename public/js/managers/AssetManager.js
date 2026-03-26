@@ -306,6 +306,12 @@ class AssetManager {
             sword:       this._removeWhiteBackground(assets.item_sword),
         };
 
+        // 메가타일 (여러 타일 합체 대형 지형 오브젝트)
+        this.images.megaTiles = this._generateMegaTiles();
+
+        // 프로시저럴 스킬 이펙트 캔버스 생성 (이미지 없이 캔버스로 직접 그린 이펙트)
+        this.images.procEffects = this._generateProceduralEffects();
+
         this.loaded = true;
         console.log('[AssetManager] 모든 에셋 준비 완료');
         return true;
@@ -1222,6 +1228,426 @@ class AssetManager {
         }
         ctx.putImageData(data, 0, 0);
         return canvas;
+    }
+
+    // ============================================================
+    // 메가타일 생성 (타일 6개 합체 대형 지형 오브젝트)
+    // ============================================================
+
+    /**
+     * 메가타일 8종 프로시저럴 생성
+     * 각 오브젝트는 2~3개 타일 폭/높이 캔버스로 그려짐
+     * 반환: { id: { canvas, tilesW, tilesH, theme } }
+     */
+    _generateMegaTiles() {
+        const S = this.TILE_SIZE;
+        const mgt = {};
+        // 헬퍼: W×H 타일 크기 캔버스 생성
+        const mk = (w, h) => {
+            const c = document.createElement('canvas');
+            c.width = w * S; c.height = h * S;
+            return { c, x: c.getContext('2d') };
+        };
+        const rnd = (seed) => { const v = Math.sin(seed + 1) * 10000; return v - Math.floor(v); };
+
+        // 1. 대형 고목 (2x3 = 64x96px, 숲/야외)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            // 트렁크
+            ctx.fillStyle = '#5a3a1a'; ctx.fillRect(24, 44, 16, 52);
+            ctx.fillStyle = '#6a4a28'; ctx.fillRect(26, 60, 4, 30);
+            ctx.fillStyle = '#4a2e10'; ctx.fillRect(38, 58, 3, 32);
+            // 잎사귀 6클러스터
+            [
+                [10,6,19,'#2e6014'],[33,2,22,'#3a7820'],[54,8,17,'#286010'],
+                [20,22,23,'#348018'],[44,24,20,'#3a7820'],[32,36,25,'#2c7016'],
+            ].forEach(([lx,ly,r,col]) => {
+                ctx.fillStyle = col;
+                ctx.beginPath(); ctx.arc(lx, ly, r, 0, Math.PI*2); ctx.fill();
+            });
+            // 반짝임
+            ctx.fillStyle = 'rgba(100,255,50,0.15)';
+            for (let i=0;i<12;i++) { ctx.fillRect(rnd(i*7)*W, rnd(i*7+1)*56, 3, 3); }
+            mgt['big_tree'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'forest' };
+        }
+
+        // 2. 석조 폐허 (3x2 = 96x64px, 던전)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            ctx.fillStyle = '#3a3a4a'; ctx.fillRect(0, 0, W, H);
+            [
+                [2,2,30,35],[35,8,28,30],[65,4,28,32],
+                [10,30,25,28],[50,28,32,30],[15,48,20,14],[70,44,22,18],
+            ].forEach(([sx,sy,sw,sh],i) => {
+                ctx.fillStyle = ['#5a5a6a','#6a6a7a','#686878','#4e4e5e'][i%4];
+                ctx.fillRect(sx,sy,sw,sh);
+                ctx.fillStyle='#7e7e8e'; ctx.fillRect(sx,sy,sw,2); ctx.fillRect(sx,sy,2,sh);
+                ctx.fillStyle='#4a4a58'; ctx.fillRect(sx,sy+sh-2,sw,2); ctx.fillRect(sx+sw-2,sy,2,sh);
+            });
+            ctx.fillStyle='#3a5a3a';
+            for(let i=0;i<14;i++) ctx.fillRect(rnd(i*9+200)*W, 30+rnd(i*9+201)*30, 3, 2);
+            mgt['ruin'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 3. 암벽 절벽 (3x2 = 96x64px, 야외)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            ctx.fillStyle = '#808090'; ctx.fillRect(0, 0, W, H);
+            const g = ctx.createLinearGradient(0,0,0,H);
+            g.addColorStop(0,'#6a6a7e'); g.addColorStop(1,'#9a9aaa');
+            ctx.fillStyle = g; ctx.fillRect(0,0,W,Math.floor(H*0.7));
+            [[0,12,'#5a5a6e'],[14,8,'#7a7a88'],[24,10,'#5e5e70'],[36,6,'#8a8a96']].forEach(([y,h,col]) => {
+                ctx.fillStyle=col; ctx.fillRect(8,y,W-16,h);
+                for(let px=0;px<W-8;px+=16) {
+                    const jit = Math.floor(rnd(px*3+y)*6)-3;
+                    ctx.fillRect(px, y+jit, 14, h);
+                }
+            });
+            ctx.fillStyle='#4a6a30';
+            for(let i=0;i<8;i++) ctx.fillRect(rnd(i*11+100)*W, H-14, 4, 14);
+            mgt['cliff'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'outdoor' };
+        }
+
+        // 4. 신전 석상 (2x3 = 64x96px, 마을)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#b09870'; ctx.fillRect(0,0,W,H);
+            [[78,18,'#7a6040'],[64,14,'#8a7050'],[52,12,'#9a8060'],[43,9,'#aA9070']].forEach(([y,h,col]) => {
+                const m = Math.floor(W*0.12);
+                ctx.fillStyle=col; ctx.fillRect(m,y,W-m*2,h);
+                ctx.fillStyle='#bba070'; ctx.fillRect(m,y,W-m*2,2);
+            });
+            ctx.fillStyle='#5a5a7a'; ctx.fillRect(18,22,28,22);
+            ctx.fillStyle='#4a4a6a'; ctx.fillRect(20,24,24,20);
+            ctx.fillStyle='#e0e0ff'; ctx.fillRect(22,28,6,4); ctx.fillRect(36,28,6,4);
+            ctx.fillStyle='#ffd700'; ctx.fillRect(16,20,32,2); ctx.fillRect(16,44,32,2);
+            mgt['shrine'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'village' };
+        }
+
+        // 5. 폭포 (2x3 = 64x96px, 야외)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#6a8070'; ctx.fillRect(0,0,W,H);
+            for(let px=16;px<48;px+=6) {
+                for(let py=0;py<70;py+=4) {
+                    const wave = Math.sin(py/8+px*0.15)*2;
+                    ctx.fillStyle = py%8<4 ? '#4080b8' : '#50a0d0';
+                    ctx.fillRect(px+wave, py, 4, 4);
+                }
+            }
+            ctx.fillStyle='rgba(200,240,255,0.35)';
+            for(let i=0;i<18;i++) ctx.fillRect(10+rnd(i*5+50)*44, rnd(i*5+51)*80, 2, 3);
+            ctx.fillStyle='#3060a0'; ctx.fillRect(14,68,36,12);
+            ctx.fillStyle='#3a5a30'; ctx.fillRect(2,0,10,96); ctx.fillRect(52,0,10,96);
+            mgt['waterfall'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'outdoor' };
+        }
+
+        // 6. 상인 천막 (3x2 = 96x64px, 마을)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#c09060'; ctx.fillRect(8,12,80,48);
+            const rg = ctx.createLinearGradient(0,4,0,16);
+            rg.addColorStop(0,'#8a6030'); rg.addColorStop(1,'#c08040');
+            ctx.fillStyle=rg;
+            ctx.beginPath(); ctx.moveTo(0,16); ctx.lineTo(48,0); ctx.lineTo(96,16); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#7a5030'; ctx.fillRect(12,12,8,50); ctx.fillRect(76,12,8,50);
+            [[25,28,'#e04040'],[44,26,'#4040e0'],[62,30,'#40a040']].forEach(([ix,iy,ic]) => {
+                ctx.fillStyle=ic; ctx.fillRect(ix,iy,8,14);
+                ctx.fillStyle='#ffffff'; ctx.fillRect(ix+2,iy+2,4,2);
+            });
+            ctx.fillStyle='#ffd700'; ctx.fillRect(32,4,32,8);
+            ctx.fillStyle='#8a6000'; ctx.fillRect(34,5,28,6);
+            mgt['tent'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'village' };
+        }
+
+        // 7. 용암기둥 (2x3 = 64x96px, 용암던전)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#2a1a0a'; ctx.fillRect(0,0,W,H);
+            ctx.fillStyle='#4a2a1a'; ctx.fillRect(20,20,24,72);
+            const lCols=['#ff4000','#ff6600','#ff8000','#ffaa00'];
+            for(let py=30;py<90;py+=6) {
+                for(let px=22;px<42;px+=3) {
+                    ctx.fillStyle = lCols[rnd(px*3+py)>0.5?2:0];
+                    ctx.fillRect(px+Math.floor(rnd(px+py*5)*3), py, 2, 5);
+                }
+            }
+            const lg = ctx.createRadialGradient(32,30,4,32,30,30);
+            lg.addColorStop(0,'rgba(255,150,0,0.5)'); lg.addColorStop(1,'rgba(255,0,0,0)');
+            ctx.fillStyle=lg; ctx.fillRect(4,4,56,56);
+            mgt['lava_pillar'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'lava' };
+        }
+
+        // 8. 얼음 결정탑 (2x2 = 64x64px, 눈 던전)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#c0d4e8'; ctx.fillRect(0,0,W,H);
+            [
+                [[32,4],[20,40],[44,40]],[[52,10],[44,38],[60,38]],
+                [[14,12],[6,36],[22,36]],[[32,20],[26,52],[38,52]],
+            ].forEach((pts, i) => {
+                ctx.fillStyle=['#80c0f0','#60a0e0','#a0d0ff','#50b0f8'][i];
+                ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+                ctx.lineTo(pts[1][0],pts[1][1]); ctx.lineTo(pts[2][0],pts[2][1]);
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle='#c0e8ff';
+                ctx.beginPath();
+                ctx.moveTo(pts[0][0],pts[0][1]);
+                ctx.lineTo((pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2);
+                ctx.lineTo(pts[0][0],pts[0][1]); ctx.closePath(); ctx.fill();
+            });
+            ctx.fillStyle='rgba(200,230,255,0.4)';
+            for(let i=0;i<10;i++) ctx.fillRect(rnd(i*7+300)*W, rnd(i*7+301)*H, 3, 3);
+            mgt['ice_crystal'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'snow' };
+        }
+
+        return mgt;
+    }
+
+    // ============================================================
+    // 프로시저럴 스킬 이펙트 생성 (26개 스킬 대응 캔버스 이펙트)
+    // ============================================================
+
+    /**
+     * 캔버스 기반 스킬 이펙트 14종 생성
+     * 각 직업별 스킬 타입에 맞춘 시각 이펙트
+     * 반환: { effectId: HTMLCanvasElement }
+     */
+    _generateProceduralEffects() {
+        const fx = {};
+        const S = 64;
+        const mk = () => {
+            const c = document.createElement('canvas');
+            c.width = S; c.height = S;
+            return { c, x: c.getContext('2d') };
+        };
+        const C = S / 2; // 중심
+
+        // --- 바람 (wind): 녹색 소용돌이 ---
+        {
+            const { c, x: ctx } = mk();
+            for (let a = 0; a < 360; a += 15) {
+                const rad = (a * Math.PI) / 180;
+                const r = 4 + a / 14;
+                const px = C + Math.cos(rad) * r;
+                const py = C + Math.sin(rad) * r;
+                const g = 150 + Math.floor((a / 360) * 105);
+                ctx.fillStyle = `rgba(50,${g},80,0.8)`;
+                ctx.fillRect(px - 2, py - 2, 5, 3);
+            }
+            ctx.fillStyle = 'rgba(100,255,120,0.4)';
+            ctx.beginPath(); ctx.arc(C, C, 10, 0, Math.PI * 2); ctx.fill();
+            fx['wind'] = c;
+        }
+
+        // --- 어둠 (dark): 보라 소용돌이 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 28);
+            g.addColorStop(0, 'rgba(200,0,255,0.9)');
+            g.addColorStop(0.5, 'rgba(80,0,120,0.6)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 28, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 8; i++) {
+                const rad = (i / 8) * Math.PI * 2;
+                ctx.fillStyle = 'rgba(160,0,255,0.7)';
+                ctx.fillRect(C + Math.cos(rad) * 14 - 3, C + Math.sin(rad) * 14 - 3, 6, 6);
+            }
+            fx['dark'] = c;
+        }
+
+        // --- 신성 (holy): 금빛 十자 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 2, C, C, 26);
+            g.addColorStop(0, 'rgba(255,255,180,0.95)');
+            g.addColorStop(0.5, 'rgba(255,210,50,0.6)');
+            g.addColorStop(1, 'rgba(255,200,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 26, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,220,0.9)';
+            ctx.fillRect(C - 3, 4, 6, S - 8);
+            ctx.fillRect(4, C - 3, S - 8, 6);
+            fx['holy'] = c;
+        }
+
+        // --- 번개 (thunder): 노란 지그재그 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(C, 4); ctx.lineTo(C - 10, 24); ctx.lineTo(C + 8, 24);
+            ctx.lineTo(C - 12, 44); ctx.lineTo(C + 6, 44); ctx.lineTo(C, S - 4);
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,180,0.4)'; ctx.lineWidth = 7;
+            ctx.beginPath();
+            ctx.moveTo(C, 4); ctx.lineTo(C - 10, 24); ctx.lineTo(C + 8, 24);
+            ctx.lineTo(C - 12, 44); ctx.lineTo(C + 6, 44); ctx.lineTo(C, S - 4);
+            ctx.stroke();
+            fx['thunder'] = c;
+        }
+
+        // --- 대지 (earth): 갈색 충격파 원 ---
+        {
+            const { c, x: ctx } = mk();
+            for (let r = 28; r >= 6; r -= 8) {
+                const alpha = 0.2 + (28 - r) / 28 * 0.6;
+                ctx.strokeStyle = `rgba(180,120,40,${alpha})`;
+                ctx.lineWidth = 4 - (28 - r) / 10;
+                ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(160,100,30,0.5)';
+            ctx.beginPath(); ctx.arc(C, C, 8, 0, Math.PI * 2); ctx.fill();
+            fx['earth'] = c;
+        }
+
+        // --- 은신 (stealth): 청록 연기 ---
+        {
+            const { c, x: ctx } = mk();
+            for (let i = 0; i < 12; i++) {
+                const rnd = (s) => { const v = Math.sin(s + 1) * 10000; return v - Math.floor(v); };
+                const px = 10 + rnd(i * 7) * 44;
+                const py = 8 + rnd(i * 7 + 1) * 48;
+                const r = 6 + rnd(i * 7 + 2) * 10;
+                const a = 0.15 + rnd(i * 7 + 3) * 0.3;
+                ctx.fillStyle = `rgba(50,200,180,${a})`;
+                ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+            }
+            fx['stealth'] = c;
+        }
+
+        // --- AOE 화염 (aoe_fire): 방사형 불꽃 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 30);
+            g.addColorStop(0, 'rgba(255,220,50,0.95)');
+            g.addColorStop(0.4, 'rgba(255,80,0,0.8)');
+            g.addColorStop(0.8, 'rgba(200,20,0,0.4)');
+            g.addColorStop(1, 'rgba(100,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 30, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 8; i++) {
+                const rad = (i / 8) * Math.PI * 2;
+                ctx.fillStyle = 'rgba(255,160,0,0.6)';
+                ctx.fillRect(C + Math.cos(rad) * 20 - 3, C + Math.sin(rad) * 20 - 3, 8, 4);
+            }
+            fx['aoe_fire'] = c;
+        }
+
+        // --- AOE 빙결 (aoe_ice): 방사형 얼음 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 28);
+            g.addColorStop(0, 'rgba(200,240,255,0.95)');
+            g.addColorStop(0.5, 'rgba(80,160,240,0.7)');
+            g.addColorStop(1, 'rgba(40,80,200,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 28, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 6; i++) {
+                const rad = (i / 6) * Math.PI * 2;
+                ctx.fillStyle = 'rgba(150,220,255,0.8)';
+                ctx.fillRect(C + Math.cos(rad) * 14 - 2, C + Math.sin(rad) * 14 - 6, 4, 12);
+            }
+            fx['aoe_ice'] = c;
+        }
+
+        // --- AOE 독 (aoe_poison): 초록 점액 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 26);
+            g.addColorStop(0, 'rgba(120,255,80,0.9)');
+            g.addColorStop(0.5, 'rgba(40,160,20,0.7)');
+            g.addColorStop(1, 'rgba(0,80,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 26, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 10; i++) {
+                const rnd = (s) => { const v = Math.sin(s + 7) * 10000; return v - Math.floor(v); };
+                ctx.fillStyle = 'rgba(80,200,40,0.6)';
+                ctx.beginPath();
+                ctx.arc(8 + rnd(i * 5) * 48, 8 + rnd(i * 5 + 1) * 48, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            fx['aoe_poison'] = c;
+        }
+
+        // --- 이중 슬래시: 붉은 X자 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.strokeStyle = 'rgba(255,60,60,0.9)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(8, 8); ctx.lineTo(S - 8, S - 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(S - 8, 8); ctx.lineTo(8, S - 8); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,200,200,0.4)'; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.moveTo(8, 8); ctx.lineTo(S - 8, S - 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(S - 8, 8); ctx.lineTo(8, S - 8); ctx.stroke();
+            fx['double_slash'] = c;
+        }
+
+        // --- 삼중 슬래시: 세 줄 사선 ---
+        {
+            const { c, x: ctx } = mk();
+            const lines = [[4,4,S-4,S-4],[12,2,S-2,S-12],[2,12,S-12,S-2]];
+            lines.forEach(([x1,y1,x2,y2]) => {
+                ctx.strokeStyle = 'rgba(255,100,100,0.85)'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+            });
+            fx['triple_slash'] = c;
+        }
+
+        // --- 저주: 해골 + 어두운 원 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 22);
+            g.addColorStop(0, 'rgba(80,0,80,0.8)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 22, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(200,180,255,0.9)';
+            ctx.fillRect(C-6, C-10, 12, 10);
+            ctx.fillRect(C-4, C, 8, 6);
+            ctx.fillStyle = 'rgba(80,0,80,0.9)';
+            ctx.fillRect(C-4, C-8, 3, 4); ctx.fillRect(C+1, C-8, 3, 4);
+            fx['curse'] = c;
+        }
+
+        // --- 마비: 노란 번개 + 회색 원 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 20);
+            g.addColorStop(0, 'rgba(255,255,100,0.6)');
+            g.addColorStop(1, 'rgba(100,100,100,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 20, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 5; i++) {
+                const rad = (i / 5) * Math.PI * 2;
+                ctx.strokeStyle = 'rgba(255,255,0,0.8)'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(C, C);
+                ctx.lineTo(C + Math.cos(rad) * 22, C + Math.sin(rad) * 22);
+                ctx.stroke();
+            }
+            fx['paralyze'] = c;
+        }
+
+        // --- 마나 흡수: 파란 안쪽 화살표 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 24);
+            g.addColorStop(0, 'rgba(100,180,255,0.9)');
+            g.addColorStop(1, 'rgba(0,80,200,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 24, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 4; i++) {
+                const rad = (i / 4) * Math.PI * 2;
+                const sx = C + Math.cos(rad) * 22;
+                const sy = C + Math.sin(rad) * 22;
+                ctx.strokeStyle = 'rgba(180,220,255,0.9)'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(C, C); ctx.stroke();
+            }
+            fx['hp_to_mp'] = c;
+        }
+
+        return fx;
     }
 }
 
