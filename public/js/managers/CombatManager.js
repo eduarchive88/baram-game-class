@@ -239,22 +239,10 @@ class CombatManager {
         }
 
         // 2. 전사/도적(근접)인 경우 대각선 등 인접 범위(거리 1) 타겟을 추가 보정하여 좀 더 쉽게 맞도록 함
-        if (!hitMonster && !isRanged) {
-            for (const m of this.monsters) {
-                if (m.state === 'dead') continue;
-                const dx = Math.abs(m.tileX - player.tileX);
-                const dy = Math.abs(m.tileY - player.tileY);
-                if (dx + dy <= 1) {
-                    hitMonster = m;
-                    break;
-                }
-            }
-        }
+        // 삭제: 바라본 방향으로만 공격 가능하도록 보정 제거
 
         this.attackCooldown = this.ATTACK_COOLDOWN_TIME;
-        // 직업별 평타 사운드 분기
-        const atkSound = isRanged ? 'magic_cast' : (player.job === '도적' ? 'slash_fast' : 'slash_heavy');
-        soundManager.play(atkSound);
+
 
         if (hitMonster) {
             soundManager.play('monster_hit');

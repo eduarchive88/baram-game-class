@@ -380,33 +380,44 @@ class Player {
         this.isAttacking = true;
         this.attackTimer = 0.4; // 0.4초 동안 공격 상태 유지 (네트워크 동기화 보장)
 
-        // 직업에 따른 이펙트 속성 결정
+        // 직업에 따른 기본 이펙트 처리
         const job = this.job;
-        const isRanged = (job === '도사' || job === '주술사');
+        const offsets = { up: [0, -36], down: [0, 36], left: [-36, 0], right: [36, 0] };
+        const [ox, oy] = offsets[this.direction] || [0, 36];
+        const atkX = this.x + ox;
+        const atkY = this.y + oy;
 
-        if (isRanged) {
-            // 원거리 마법 발사 효과
-            const color = job === '주술사' ? '#c080ff' : '#00E676';
-            const offsets = { up: [0, -40], down: [0, 40], left: [-40, 0], right: [40, 0] };
-            const [ox, oy] = offsets[this.direction] || [0, 40];
-            
-            // 날아가는 속도 (vx, vy) 설정 (방향에 따라 400px/s)
+        if (job === '주술사') {
+            // 주술사: 앞으로 날아가는 마법 구체(magic_bolt) + 맞은곳은 magic_wave 유도
+            const color = '#c080ff';
             const vxs = { up: 0, down: 0, left: -400, right: 400 };
             const vys = { up: -400, down: 400, left: 0, right: 0 };
-            const vx = vxs[this.direction] || 0;
-            const vy = vys[this.direction] || 0;
-            
             this.effects.push({
-                type: 'magic_bolt', x: this.x + ox, y: this.y + oy,
-                vx: vx, vy: vy,
-                timer: 0, duration: 0.3, color: color
+                type: 'magic_bolt', x: atkX, y: atkY,
+                vx: vxs[this.direction] || 0, vy: vys[this.direction] || 0,
+                timer: 0, duration: 0.35, color: color
+            });
+            // 발사 순간 추가 파동
+            this.effects.push({
+                type: 'magic_wave', x: this.x, y: this.y,
+                timer: 0, duration: 0.3, color: '#d9b3ff', glow: color
+            });
+            soundManager.play('skill');
+        } else if (job === '도사') {
+            // 도사: 기 파동 폭발 (chi_burst + chi_ring)
+            const color = '#00E676';
+            this.effects.push({
+                type: 'chi_burst', x: atkX, y: atkY,
+                timer: 0, duration: 0.3, color: color, glow: '#80ff80'
+            });
+            this.effects.push({
+                type: 'chi_ring', x: atkX, y: atkY,
+                timer: 0, duration: 0.4, color: '#ccffcc'
             });
             soundManager.play('skill');
         } else {
-            // 근거리 참격 효과 (직업별 다르게)
-            const offsets = { up: [0, -32], down: [0, 32], left: [-32, 0], right: [32, 0] };
-            const [ox, oy] = offsets[this.direction] || [0, 32];
-            this._spawnSlashEffect(this.x + ox, this.y + oy, this.direction);
+            // 전사, 도적: 검기 (SlashEffect)
+            this._spawnSlashEffect(atkX, atkY, this.direction);
         }
 
         // 400ms 후 공격 상태 해제
