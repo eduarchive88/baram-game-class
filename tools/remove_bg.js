@@ -2,37 +2,56 @@ const Jimp = require('jimp');
 const fs = require('fs');
 const path = require('path');
 
-const brainDir = 'C:/Users/eduar/.gemini/antigravity/brain/2a0fda8a-9a7e-4d11-8552-37ce935c2d5d';
-const outDir = 'C:/Users/eduar/OneDrive/Desktop/baram game class/public/assets/images';
+// 현재 작업 디렉토리 기준 경로 설정
+const rawDir = path.resolve(__dirname, '../scratch/raw_assets');
+const outDir = path.resolve(__dirname, '../public/assets/images');
 
 const jobs = [
-    // Tiles (32x32)
-    { in: 'tile_grass_1774241853798.png', out: 'map/grass.png', size: 32 },
-    { in: 'tile_dirt_1774241869930.png', out: 'map/dirt.png', size: 32 },
-    { in: 'tile_water_1774241886683.png', out: 'map/water.png', size: 32 },
-    { in: 'tile_wall_1774241901705.png', out: 'map/wall_brick.png', size: 32 },
-    { in: 'tile_tree_1774241915377.png', out: 'map/tree.png', size: 32 },
     // Monsters (32x32)
-    { in: 'monster_slime_1774241960110.png', out: 'monsters/slime.png', size: 32 },
-    { in: 'monster_wolf_1774241977791.png', out: 'monsters/wolf.png', size: 32 },
-    { in: 'monster_goblin_1774241994819.png', out: 'monsters/goblin.png', size: 32 },
-    { in: 'monster_skeleton_1774242010131.png', out: 'monsters/skeleton.png', size: 32 },
-    { in: 'monster_boss_ogre_1774242025386.png', out: 'monsters/boss_ogre.png', size: 64 }, // Boss is bigger
+    { in: 'monster_medusa.png', out: 'monsters/medusa.png', size: 32 },
+    { in: 'monster_chimera.png', out: 'monsters/chimera.png', size: 32 },
+    { in: 'monster_griffin.png', out: 'monsters/griffin.png', size: 32 },
+    { in: 'monster_kraken.png', out: 'monsters/kraken.png', size: 32 },
+    { in: 'monster_phoenix.png', out: 'monsters/phoenix.png', size: 32 },
+    { in: 'monster_succubus.png', out: 'monsters/succubus.png', size: 32 },
+    { in: 'monster_gargoyle.png', out: 'monsters/gargoyle.png', size: 32 },
+    { in: 'monster_minotaur.png', out: 'monsters/minotaur.png', size: 32 },
+    { in: 'monster_centaur.png', out: 'monsters/centaur.png', size: 32 },
+    { in: 'monster_death_knight.png', out: 'monsters/death_knight.png', size: 32 },
+    
     // Items (16x16)
-    { in: 'item_potion_hp_1774242057872.png', out: 'items/potion_hp.png', size: 16 },
-    { in: 'item_gold_1774242074004.png', out: 'items/gold.png', size: 16 },
-    { in: 'item_sword_1774242089757.png', out: 'items/sword.png', size: 16 },
-    // Character (32x32)
-    { in: 'char_student_1774242104763.png', out: 'characters/student_down.png', size: 32 }, // Map 1 frame to standard down state
-    // Effects (32x32)
-    { in: 'effect_slash_1774242119812.png', out: 'effects/slash.png', size: 32 },
-    { in: 'effect_magic_1774242145729.png', out: 'effects/magic.png', size: 32 },
+    { in: 'item_mythril_sword.png', out: 'items/mythril_sword.png', size: 16 },
+    { in: 'item_ruby_staff.png', out: 'items/ruby_staff.png', size: 16 },
+    { in: 'item_infinite_bow.png', out: 'items/infinite_bow.png', size: 16 },
+    { in: 'item_hero_shield.png', out: 'items/hero_shield.png', size: 16 },
+    { in: 'item_sage_robe.png', out: 'items/sage_robe.png', size: 16 },
+    { in: 'item_dragon_egg.png', out: 'items/dragon_egg.png', size: 16 },
+    { in: 'item_dragon_slayer.png', out: 'items/dragon_slayer.png', size: 16 },
+    { in: 'item_ring_of_power.png', out: 'items/ring_of_power.png', size: 16 },
+    { in: 'item_dragon_armor.png', out: 'items/dragon_armor.png', size: 16 },
+
+    // NPCs (32x32)
+    { in: 'npc_village_chief.png', out: 'characters/village_chief.png', size: 32 },
+    { in: 'npc_guard.png', out: 'characters/guard.png', size: 32 },
+    { in: 'npc_merchant.png', out: 'characters/merchant.png', size: 32 },
+
+    // New Monsters (32x32)
+    { in: 'monster_slime_king.png', out: 'monsters/slime_king.png', size: 32 },
+    { in: 'monster_lich.png', out: 'monsters/lich.png', size: 32 },
+
+    // Mega Tiles
+    { in: 'mega_ruined_temple.png', out: 'map/mega_ruined_temple.png', size: 96 },
 ];
 
 async function processImage(job) {
-    const inputPath = path.join(brainDir, job.in);
+    const inputPath = path.join(rawDir, job.in);
     const outputPath = path.join(outDir, job.out);
     
+    if (!fs.existsSync(inputPath)) {
+        console.warn(`Input file not found: ${inputPath}`);
+        return;
+    }
+
     // Create output directory if it doesn't exist
     const outParsed = path.parse(outputPath);
     if (!fs.existsSync(outParsed.dir)) {
@@ -60,18 +79,16 @@ async function processImage(job) {
             const dist2 = distance({r: br2, g: bg2c, b: bb2}, {r, g, b});
             
             // Allow for compression artifacts on background
-            // Green fallback: heavily green
-            // Magenta fallback: heavily magenta
+            // Magenta fallback (#FF00FF)
             if (
-                dist1 < 45 || dist2 < 45 || 
-                (g > 210 && r < 50 && b < 50) || 
-                (r > 210 && b > 210 && g < 50)
+                dist1 < 60 || dist2 < 60 || 
+                (r > 200 && b > 200 && g < 100)
             ) {
                 this.bitmap.data[idx + 3] = 0; // alpha = 0
             }
         });
         
-        // Resize to match 2D game pixel size uniformly
+        // Resize with nearest neighbor to keep pixel art look
         image.resize(job.size, job.size, Jimp.RESIZE_NEAREST_NEIGHBOR);
 
         await image.writeAsync(outputPath);
@@ -82,6 +99,7 @@ async function processImage(job) {
 }
 
 async function main() {
+    console.log('Starting image processing...');
     for (const job of jobs) {
         await processImage(job);
     }
@@ -89,3 +107,4 @@ async function main() {
 }
 
 main();
+

@@ -13,41 +13,12 @@ class CombatManager {
         this.attackCooldown = 0;
         this.ATTACK_COOLDOWN_TIME = 0.8; // 초
 
-        // 몬스터 정의 (PRD Section 10 기준)
-        this.MONSTER_DEFS = {
-            slime: {
-                name: '슬라임',
-                stats: { hp: 40, maxHp: 40, atk: 6, def: 1, exp: 15, gold: 8 },
-                aggroRange: 4, roamRange: 3
-            },
-            wolf: {
-                name: '들늑대',
-                stats: { hp: 80, maxHp: 80, atk: 12, def: 4, exp: 30, gold: 18 },
-                aggroRange: 6, roamRange: 4
-            },
-            goblin: {
-                name: '고블린',
-                stats: { hp: 60, maxHp: 60, atk: 10, def: 3, exp: 22, gold: 12 },
-                aggroRange: 5, roamRange: 3
-            },
-            skeleton: {
-                name: '해골 전사',
-                stats: { hp: 100, maxHp: 100, atk: 15, def: 6, exp: 45, gold: 25 },
-                aggroRange: 5, roamRange: 4
-            },
-            boss_ogre: {
-                name: '오우거 대장',
-                stats: { hp: 500, maxHp: 500, atk: 30, def: 15, exp: 200, gold: 100 },
-                aggroRange: 8, roamRange: 2
-            },
-        };
-
         this._lastIsMaster = false; // 마스터 권한 상태 추적용
         this._currentMapEnvRef = null;
         this._envListenerAttached = false;
         this._syncTimer = 0;
 
-        console.log('[CombatManager] 초기화 완료');
+        console.log('[CombatManager] GameData 연동 모드로 초기화 완료');
     }
 
     /**
@@ -57,11 +28,14 @@ class CombatManager {
     spawnMonsters(mapData) {
         this.cleanupSync(); // 기존 동기화 리스너 및 설정 초기화
         this.monsters = [];
-        if (!mapData.monsterZones) return;
+        if (!mapData.monsterZones || typeof GameData === 'undefined') return;
 
         mapData.monsterZones.forEach((zone, zoneIdx) => {
-            const def = this.MONSTER_DEFS[zone.type];
-            if (!def) return;
+            const def = GameData.monsters[zone.type];
+            if (!def) {
+                console.warn(`[CombatManager] GameData에 정의되지 않은 몬스터 타입: ${zone.type}`);
+                return;
+            }
 
             // 존 내에서 몬스터 배치
             for (let i = 0; i < zone.count; i++) {
@@ -76,14 +50,21 @@ class CombatManager {
                     tileX: tx,
                     tileY: ty,
                     level: zone.level || 1,
-                    stats: { ...def.stats },
-                    aggroRange: def.aggroRange,
-                    roamRange: def.roamRange
+                    stats: { 
+                        hp: def.hp, 
+                        maxHp: def.hp, 
+                        atk: def.atk, 
+                        def: def.def || 0, 
+                        exp: def.exp, 
+                        gold: def.gold 
+                    },
+                    aggroRange: def.isBoss ? 10 : 5,
+                    roamRange: def.isBoss ? 2 : 4
                 });
                 this.monsters.push(monster);
             }
         });
-        console.log(`[CombatManager] ${this.monsters.length}마리 몬스터 스폰 완료`);
+        console.log(`[CombatManager] ${this.monsters.length}마리 몬스터(GameData 기반) 스폰 완료`);
     }
     /**
      * 매 프레임 업데이트
@@ -271,10 +252,12 @@ class CombatManager {
         }
 
         this.attackCooldown = this.ATTACK_COOLDOWN_TIME;
-        soundManager.play('attack');
+        // 직업별 평타 사운드 분기
+        const atkSound = isRanged ? 'magic_cast' : (player.job === '도적' ? 'slash_fast' : 'slash_heavy');
+        soundManager.play(atkSound);
 
         if (hitMonster) {
-            soundManager.play('hit');
+            soundManager.play('monster_hit');
             const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
 
             let monsterDef = hitMonster.stats.def;
@@ -343,7 +326,12 @@ class CombatManager {
                 player.stats.hp -= dmg;
                 if (player.stats.hp < 0) player.stats.hp = 0;
 
-                soundManager.play('hit', 0.6);
+                // 리젠 타이머 리셋 (전투 중 회복 정지)
+                if (player.onHit) player.onHit();
+
+                // 몬스터 공격 + 플레이어 피격 사운드
+                soundManager.play('monster_attack', 0.5);
+                soundManager.play('player_hurt', 0.6);
                 this._addDamageText(player.x + 16, player.y, dmg, '#ff4040');
 
                 if (player.stats.hp <= 0 && !player.isDead) {
@@ -371,7 +359,21 @@ class CombatManager {
         player.exp = (player.exp || 0) + expGain;
         player.gold = (player.gold || 0) + goldGain;
 
-        this._addDamageText(monster.x + 16, monster.y - 16, `+${expGain} EXP`, '#80ff80');
+        // 파티 EXP 보너스 적용
+        let finalExp = expGain;
+        let partyBonus = false;
+        if (typeof partyManager !== 'undefined' && partyManager.isInParty()) {
+            const ratio = partyManager.getExpShareRatio();
+            finalExp = Math.floor(expGain * ratio);
+            partyBonus = true;
+        }
+        player.exp = (player.exp || 0) - expGain + finalExp; // 보정
+
+        // 몬스터 사망 + 보상 사운드
+        soundManager.play('monster_die', 0.7);
+        soundManager.play('coin', 0.5);
+        const expLabel = partyBonus ? `+${finalExp} EXP (파티 보너스!)` : `+${finalExp} EXP`;
+        this._addDamageText(monster.x + 16, monster.y - 16, expLabel, partyBonus ? '#a0ffa0' : '#80ff80');
         this._addDamageText(monster.x + 16, monster.y - 28, `+${goldGain} 전`, '#FFD700');
 
         const requiredExp = player.level * 100;
@@ -394,20 +396,52 @@ class CombatManager {
             player.saveUserData();
         }
 
-        if (typeof inventoryManager !== 'undefined' && Math.random() < 0.2) {
-            const dropTable = {
-                slime: ['c01'],
-                wolf: ['c01', 'c02'],
-                goblin: ['c01', 'c02'],
-                skeleton: ['c01', 'c02', 'c03'],
-                boss_ogre: ['c03', 'w03', 'a03'],
-            };
-            const drops = dropTable[monster.type] || ['c01'];
-            const dropId = drops[Math.floor(Math.random() * drops.length)];
-            const dropItem = typeof shopManager !== 'undefined' ? shopManager.getItem(dropId) : null;
-            if (dropItem && inventoryManager.canAddItem(dropId)) {
-                inventoryManager.addItem(dropId, 1);
-                this._addDamageText(monster.x + 16, monster.y - 40, `🎁 ${dropItem.name} 획득!`, '#ff80ff');
+        if (typeof inventoryManager !== 'undefined' && typeof GameData !== 'undefined') {
+            const mData = GameData.monsters[monster.type];
+            let droppedBossItem = false;
+            
+            // 보스 특별 드롭 - 보스 경험치/능력치 등을 보고 하드코딩 혹은 mData.drop 배열 활용 가능
+            if (mData && mData.isBoss) {
+                if (monster.type === 'boss_slime_king' && inventoryManager.canAddItem('acc_ring_of_power')) {
+                    inventoryManager.addItem('acc_ring_of_power', 1);
+                    this._addDamageText(monster.x + 16, monster.y - 45, `👑 힘의 반지 획득!`, '#ff80ff');
+                    droppedBossItem = true;
+                } else if (monster.type === 'boss_lich_king' && inventoryManager.canAddItem('arm_dragon_armor')) {
+                    inventoryManager.addItem('arm_dragon_armor', 1);
+                    this._addDamageText(monster.x + 16, monster.y - 45, `👑 드래곤 아머 획득!`, '#ff80ff');
+                    droppedBossItem = true;
+                } else if (monster.type === 'boss_black_dragon' && inventoryManager.canAddItem('wpn_dragon_slayer')) {
+                    inventoryManager.addItem('wpn_dragon_slayer', 1);
+                    this._addDamageText(monster.x + 16, monster.y - 45, `👑 드래곤 슬레이어 획득!`, '#ff80ff');
+                    droppedBossItem = true;
+                }
+            }
+
+            if (!droppedBossItem) {
+                // [변경] 하드코딩된 테이블 대신 GameData.items 기반 동적 드랍
+                const dropChance = monster.stats.exp > 500 ? 0.4 : 0.2; // 보스급은 확률 업
+                if (Math.random() < dropChance) {
+                    const allItemIds = Object.keys(GameData.items);
+                    // 몬스터 경험치 수준에 맞는 아이템 필터링 (간략화된 동적 드랍 로직)
+                    const eligibleItems = allItemIds.filter(id => {
+                        const itm = GameData.items[id];
+                        // 대략적인 밸런싱: 아이템 가격이 몬스터 골드 보상의 10~50배 사이면 적정 드랍 범주로 간주 (장비류) 
+                        // 또는 소모품/재료는 언제나 드랍 가능
+                        if (itm.type === 'potion' || itm.type === 'material') return true;
+                        if (itm.price <= monster.stats.gold * 20) return true;
+                        return false;
+                    });
+    
+                    if (eligibleItems.length > 0) {
+                        const dropId = eligibleItems[Math.floor(Math.random() * eligibleItems.length)];
+                        const dropItem = GameData.items[dropId];
+                        if (inventoryManager.canAddItem(dropId)) {
+                            inventoryManager.addItem(dropId, 1);
+                            this._addDamageText(monster.x + 16, monster.y - 45, `🎁 ${dropItem.name} 획득!`, '#ff80ff');
+                            console.log(`[CombatManager] 아이템 획득: ${dropItem.name} (${dropId})`);
+                        }
+                    }
+                }
             }
         }
 

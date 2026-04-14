@@ -364,11 +364,14 @@ class Monster {
      * 폴백 렌더링 (스프라이트 없을 때)
      */
     _renderFallback(ctx, sx, sy) {
-        const colors = {
-            slime: '#40c040', wolf: '#808080', goblin: '#c09040',
-            skeleton: '#d0d0d0', boss_ogre: '#c04040'
-        };
-        const color = colors[this.type] || '#40c040';
+        let color = '#40c040'; // 기본 초록색
+        if (typeof GameData !== 'undefined' && GameData.monsters[this.type]) {
+            const def = GameData.monsters[this.type];
+            if (def.isBoss) color = '#c04040'; // 보스는 빨간색 계열
+            else if (this.type.includes('ice') || this.type.includes('frost')) color = '#80c0ff'; // 얼음 계열
+            else if (this.type.includes('wolf') || this.type.includes('squirrel')) color = '#a07040'; // 동물 계열
+            else if (this.type.includes('skeleton')) color = '#e0e0e0'; // 해골 계열
+        }
 
         // 몸체
         ctx.fillStyle = color;

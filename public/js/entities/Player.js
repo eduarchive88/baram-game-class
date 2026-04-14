@@ -68,6 +68,16 @@ class Player {
 
         // ===== 전투 이펙트 시스템 =====
         this.effects = [];  // [{ type, x, y, timer, duration, ... }]
+
+        // ===== HP/MP 자연 회복 시스템 =====
+        this._regenTimer = 0;         // 리젠 누적 타이머
+        this._regenInterval = 3.0;    // 3초마다 회복
+        this._lastHitTimer = 0;       // 마지막 피격 후 경과 시간
+        this._combatCooldown = 5.0;   // 피격 후 5초간 회복 정지
+
+        // ===== 자동 포션 시스템 =====
+        this.autoPotionEnabled = false; // 기본 OFF
+        this._autoPotionCooldown = 0;   // 자동 포션 쿨다운
     }
 
     /**
@@ -215,6 +225,84 @@ class Player {
         if (input && input.actionPressed && !this.isAttacking) {
             this._attack();
         }
+
+        // ===== HP/MP 자연 회복 =====
+        this._updateRegen(dt, map);
+
+        // ===== 자동 포션 =====
+        this._updateAutoPotion(dt);
+    }
+
+    /**
+     * HP/MP 자연 회복 업데이트
+     * 3초마다 HP 2%, MP 3% 회복 (전투 중 일시 정지, 마을 3배)
+     */
+    _updateRegen(dt, map) {
+        // 피격 타이머 갱신
+        this._lastHitTimer += dt;
+
+        // 전투 중이면 회복 정지
+        if (this._lastHitTimer < this._combatCooldown) return;
+
+        this._regenTimer += dt;
+        if (this._regenTimer < this._regenInterval) return;
+        this._regenTimer = 0;
+
+        // 마을 맵 여부 확인 (monsterZones가 비어있으면 안전 구역)
+        let multiplier = 1;
+        if (map && map.currentMap && (!map.currentMap.monsterZones || map.currentMap.monsterZones.length === 0)) {
+            multiplier = 3; // 마을에서 3배 회복
+        }
+
+        // HP 회복 (최대 HP 대비 2% * 배율)
+        const hpRegen = Math.ceil(this.stats.maxHp * 0.02 * multiplier);
+        if (this.stats.hp < this.stats.maxHp) {
+            this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + hpRegen);
+        }
+
+        // MP 회복 (최대 MP 대비 3% * 배율)
+        const mpRegen = Math.ceil(this.stats.maxMp * 0.03 * multiplier);
+        if (this.stats.mp < this.stats.maxMp) {
+            this.stats.mp = Math.min(this.stats.maxMp, this.stats.mp + mpRegen);
+        }
+    }
+
+    /**
+     * 자동 포션 시스템
+     * HP 30% 이하 시 인벤토리에서 HP 포션 사용 (2초 쿨다운)
+     */
+    _updateAutoPotion(dt) {
+        if (!this.autoPotionEnabled) return;
+        if (this._autoPotionCooldown > 0) { this._autoPotionCooldown -= dt; return; }
+
+        const hpRatio = this.stats.hp / this.stats.maxHp;
+        if (hpRatio > 0.3) return;
+
+        // 인벤토리에서 HP 포션 검색
+        if (typeof inventoryManager !== 'undefined' && typeof GameData !== 'undefined') {
+            const potionIds = Object.keys(GameData.items).filter(id => {
+                const item = GameData.items[id];
+                return item.type === 'potion' && item.effect && item.effect.hp;
+            });
+
+            for (const pid of potionIds) {
+                if (inventoryManager.hasItem(pid)) {
+                    inventoryManager.useItem(pid, this);
+                    this._autoPotionCooldown = 2.0; // 2초 쿨다운
+                    if (window.showGameMessage) {
+                        window.showGameMessage(`💊 자동 포션 사용! (${GameData.items[pid].name})`, '#80ff80');
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * 피격 시 호출 (리젠 타이머 리셋용)
+     */
+    onHit() {
+        this._lastHitTimer = 0;
     }
 
     /**
@@ -331,9 +419,11 @@ class Player {
      * NPC 인터랙션
      */
     _interactNPC(npc) {
-        console.log(`[Player] NPC 대화: ${npc.name} - "${npc.dialog}"`);
+        console.log(`[Player] NPC 대화 시도: ${npc.name} (${npc.type})`);
         if (window.gameUI) {
-            window.gameUI.showDialog(npc.name, npc.dialog);
+            // npc.dialogChain이 있으면 chain으로, 없으면 npc.dialog를 단일 텍스트로 전달
+            const text = npc.dialog || (npc.dialogChain ? npc.dialogChain[0] : '...');
+            window.gameUI.showDialog(npc.name, text, npc.dialogChain, null, npc.type);
         }
     }
 
@@ -392,12 +482,27 @@ class Player {
             glow = '#DDA0DD';
         }
 
-        // 통합 이펙트 시스템 사용 (SlashEffect)
-        // new SlashEffect(x, y, dir, color, glow, type)
+        // 통합 이펙트 시스템 사용
         const effect = new SlashEffect(x, y, dir, color, glow, type);
         this.effects.push(effect);
 
-        // 로컬 플레이어의 경우, 사운드 등 추가 처리 가능
+        // [추가] 파티클 이펙트로 타격감 극대화
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 5 + Math.random() * 15;
+            const px = x + Math.cos(angle) * dist;
+            const py = y + Math.sin(angle) * dist;
+            const vx = Math.cos(angle) * (50 + Math.random() * 50);
+            const vy = Math.sin(angle) * (50 + Math.random() * 50);
+            
+            this.effects.push(new ParticleEffect(
+                px, py, vx, vy, 
+                0.3 + Math.random() * 0.2, 
+                color, 
+                1 + Math.random() * 2
+            ));
+        }
+
         if (job === '도적') {
             soundManager.play('slash_fast');
         } else {
@@ -407,10 +512,11 @@ class Player {
 
     /**
      * 스킬 시전 이펙트 (외부에서 호출 가능)
-     * @param {string} skillType - 'magic', 'heal', 'buff', 'aoe'
+     * @param {string} skillType - 'magic', 'heal', 'buff', 'aoe', 'proc'
      * @param {string} color - 이펙트 색상
+     * @param {string} procId - AssetManager.images.procEffects의 키
      */
-    spawnSkillEffect(skillType, color) {
+    spawnSkillEffect(skillType, color, procId) {
         const cx = this.x;
         const cy = this.y;
         
@@ -481,6 +587,17 @@ class Player {
                         vx: Math.cos(angle) * 100, vy: Math.sin(angle) * 100,
                         timer: 0, duration: 0.5,
                         color: color || '#ff8040', size: 3,
+                    });
+                }
+                break;
+            }
+            case 'proc': {
+                // AssetManager의 프로시저럴 에셋 직접 사용
+                if (procId) {
+                    this.effects.push({
+                        type: 'proc_asset', x: cx, y: cy,
+                        timer: 0, duration: 0.6,
+                        procId: procId
                     });
                 }
                 break;
@@ -835,6 +952,22 @@ class Player {
                     ctx.beginPath();
                     ctx.arc(sx, sy, radius * 0.7, 0, Math.PI * 2);
                     ctx.stroke();
+                    break;
+                }
+                case 'proc_asset': {
+                    // AssetManager에서 생성한 캔버스 에셋 렌더링
+                    const asset = assetManager.images.procEffects ? assetManager.images.procEffects[e.procId] : null;
+                    if (asset) {
+                        const alpha = 1 - progress;
+                        ctx.globalAlpha = alpha;
+                        
+                        // 크기 변화 (펄싱 효과)
+                        const scale = 0.8 + progress * 0.6;
+                        const w = asset.width * scale;
+                        const h = asset.height * scale;
+                        
+                        ctx.drawImage(asset, sx - w / 2, sy - h / 2, w, h);
+                    }
                     break;
                 }
             }

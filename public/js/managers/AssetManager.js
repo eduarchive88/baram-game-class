@@ -149,6 +149,7 @@ class AssetManager {
     async loadAll() {
         console.log('[AssetManager] 에셋 로드 시작...');
 
+        try {
         const rawAssets = {
             // === 맵 타일 ===
             grass:      await this.loadImage('/assets/images/map/grass.png'),
@@ -170,6 +171,9 @@ class AssetManager {
             thief:    await this.loadImage('/assets/rpg_thief_sprite_1773292975879.png'),
             mage:     await this.loadImage('/assets/rpg_mage_sprite_1773292931497.png'),
             healer:   await this.loadImage('/assets/rpg_poet_sprite_1773292988919.png'),
+            npc_village_chief: await this.loadImage('/assets/images/characters/village_chief.png'),
+            npc_guard: await this.loadImage('/assets/images/characters/guard.png'),
+            npc_merchant: await this.loadImage('/assets/images/characters/merchant.png'),
             // === 몬스터 ===
             monster_squirrel:   await this.loadImage('/assets/rpg_monster_squirrel_1773292740316.png'),
             monster_slime:      await this.loadImage('/assets/images/monsters/slime.png'),
@@ -182,12 +186,49 @@ class AssetManager {
             monster_bat:        await this.loadImage('/assets/images/monsters/bat.png'),
             monster_ghost:      await this.loadImage('/assets/images/monsters/ghost.png'),
             monster_dragon_boss:await this.loadImage('/assets/images/monsters/dragon_boss.png'),
+            monster_golem:      await this.loadImage('/assets/images/monsters/golem.png'),
+            monster_spider:     await this.loadImage('/assets/images/monsters/spider.png'),
+            monster_harpy:      await this.loadImage('/assets/images/monsters/harpy.png'),
+            monster_mimic:      await this.loadImage('/assets/images/monsters/mimic.png'),
+            monster_fire_spirit:await this.loadImage('/assets/images/monsters/fire_spirit.png'),
+            monster_dark_knight:await this.loadImage('/assets/images/monsters/dark_knight.png'),
+            monster_mantis:     await this.loadImage('/assets/images/monsters/mantis.png'),
+            monster_sand_worm:  await this.loadImage('/assets/images/monsters/sand_worm.png'),
+            monster_treant:     await this.loadImage('/assets/images/monsters/treant.png'),
+            monster_demon:      await this.loadImage('/assets/images/monsters/demon.png'),
+            monster_mummy:      await this.loadImage('/assets/images/monsters/mummy.png'),
+            monster_tentacle:   await this.loadImage('/assets/images/monsters/tentacle.png'),
+            monster_medusa:     await this.loadImage('/assets/images/monsters/medusa.png'),
+            monster_chimera:    await this.loadImage('/assets/images/monsters/chimera.png'),
+            monster_griffin:    await this.loadImage('/assets/images/monsters/griffin.png'),
+            monster_kraken:     await this.loadImage('/assets/images/monsters/kraken.png'),
+            monster_phoenix:    await this.loadImage('/assets/images/monsters/phoenix.png'),
+            monster_succubus:   await this.loadImage('/assets/images/monsters/succubus.png'),
+            monster_gargoyle:   await this.loadImage('/assets/images/monsters/gargoyle.png'),
+            monster_minotaur:   await this.loadImage('/assets/images/monsters/minotaur.png'),
+            monster_centaur:    await this.loadImage('/assets/images/monsters/centaur.png'),
+            monster_death_knight:await this.loadImage('/assets/images/monsters/death_knight.png'),
+            monster_slime_king: await this.loadImage('/assets/images/monsters/slime_king.png'),
+            monster_lich:       await this.loadImage('/assets/images/monsters/lich.png'),
             // === 아이템 ===
             item_potion_hp:    await this.loadImage('/assets/images/items/potion_hp.png'),
             item_potion_mp:    await this.loadImage('/assets/images/items/potion_mp.png'),
             item_potion_full:  await this.loadImage('/assets/images/items/potion_full.png'),
             item_gold:         await this.loadImage('/assets/images/items/gold.png'),
             item_sword:        await this.loadImage('/assets/images/items/sword.png'),
+            item_bow:          await this.loadImage('/assets/images/items/bow.png'),
+            item_staff_crystal:await this.loadImage('/assets/images/items/staff_crystal.png'),
+            item_shield_iron:  await this.loadImage('/assets/images/items/shield_iron.png'),
+            item_armor_plate:  await this.loadImage('/assets/images/items/armor_plate.png'),
+            item_mythril_sword:await this.loadImage('/assets/images/items/mythril_sword.png'),
+            item_ruby_staff:   await this.loadImage('/assets/images/items/ruby_staff.png'),
+            item_infinite_bow: await this.loadImage('/assets/images/items/infinite_bow.png'),
+            item_hero_shield:  await this.loadImage('/assets/images/items/hero_shield.png'),
+            item_sage_robe:    await this.loadImage('/assets/images/items/sage_robe.png'),
+            item_dragon_egg:   await this.loadImage('/assets/images/items/dragon_egg.png'),
+            item_dragon_slayer:await this.loadImage('/assets/images/items/dragon_slayer.png'),
+            item_ring_of_power:await this.loadImage('/assets/images/items/ring_of_power.png'),
+            item_dragon_armor: await this.loadImage('/assets/images/items/dragon_armor.png'),
             // === 스킬 이펙트 ===
             effect_slash:     await this.loadImage('/assets/images/effects/slash.png'),
             effect_magic:     await this.loadImage('/assets/images/effects/magic.png'),
@@ -197,6 +238,26 @@ class AssetManager {
             effect_poison:    await this.loadImage('/assets/images/effects/poison.png'),
             effect_shield:    await this.loadImage('/assets/images/effects/shield.png'),
             effect_ice:       await this.loadImage('/assets/images/effects/ice.png'),
+            // === 고해상도 신규 에셋 (Mega-objects & Props) ===
+            mega_ruined_temple: await this.loadImage('/assets/images/map/mega_ruined_temple.png'),
+            mega_house:       await this.loadImage('/assets/images/map/mega_wooden_house.png'),
+            mega_cherry:      await this.loadImage('/assets/images/map/mega_cherry_blossom.png'),
+            mega_pavillion:   await this.loadImage('/assets/images/map/mega_pavillion.png'),
+            mega_flower:      await this.loadImage('/assets/images/map/mega_flower_bed.png'),
+            mine_rail:        await this.loadImage('/assets/images/map/mine_rail.png'),
+            mine_ore:         await this.loadImage('/assets/images/map/mine_ore.png'),
+            mine_stalactite:  await this.loadImage('/assets/images/map/mine_stalactite.png'),
+            hell_lava:        await this.loadImage('/assets/images/map/hell_lava_pit.png'),
+            snow_statue:      await this.loadImage('/assets/images/map/snow_ice_statue.png'),
+            // === 신규 몬스터 및 이펙트 ===
+            monster_wild_boar: await this.loadImage('/assets/images/monsters/wild_boar.png'),
+            monster_wasp:      await this.loadImage('/assets/images/monsters/wasp.png'),
+            monster_yeti:      await this.loadImage('/assets/images/monsters/yeti.png'),
+            monster_ice_spirit:await this.loadImage('/assets/images/monsters/ice_spirit.png'),
+            effect_fire_storm: await this.loadImage('/assets/images/effects/fire_storm.png'),
+            // === NPC 초상화 ===
+            face_guide:     await this.loadImage('/assets/images/faces/guide.png'),
+            face_innkeeper: await this.loadImage('/assets/images/faces/innkeeper.png'),
         };
 
         // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
@@ -216,6 +277,9 @@ class AssetManager {
             thief:   this._removeWhiteBackground(rawAssets.thief),
             mage:    this._removeWhiteBackground(rawAssets.mage),
             healer:  this._removeWhiteBackground(rawAssets.healer),
+            npc_village_chief: rawAssets.npc_village_chief,
+            npc_guard: rawAssets.npc_guard,
+            npc_merchant: rawAssets.npc_merchant,
             // 몬스터
             monster_squirrel:    this._removeWhiteBackground(rawAssets.monster_squirrel),
             monster_slime:       this._removeWhiteBackground(rawAssets.monster_slime),
@@ -228,12 +292,49 @@ class AssetManager {
             monster_bat:         this._removeWhiteBackground(rawAssets.monster_bat),
             monster_ghost:       this._removeWhiteBackground(rawAssets.monster_ghost),
             monster_dragon_boss: this._removeWhiteBackground(rawAssets.monster_dragon_boss),
+            monster_golem:       this._removeWhiteBackground(rawAssets.monster_golem),
+            monster_spider:      this._removeWhiteBackground(rawAssets.monster_spider),
+            monster_harpy:       this._removeWhiteBackground(rawAssets.monster_harpy),
+            monster_mimic:       this._removeWhiteBackground(rawAssets.monster_mimic),
+            monster_fire_spirit: this._removeWhiteBackground(rawAssets.monster_fire_spirit),
+            monster_dark_knight: this._removeWhiteBackground(rawAssets.monster_dark_knight),
+            monster_mantis:      this._removeWhiteBackground(rawAssets.monster_mantis),
+            monster_sand_worm:   this._removeWhiteBackground(rawAssets.monster_sand_worm),
+            monster_treant:      this._removeWhiteBackground(rawAssets.monster_treant),
+            monster_demon:       this._removeWhiteBackground(rawAssets.monster_demon),
+            monster_mummy:       this._removeWhiteBackground(rawAssets.monster_mummy),
+            monster_tentacle:    this._removeWhiteBackground(rawAssets.monster_tentacle),
+            monster_medusa:      this._removeWhiteBackground(rawAssets.monster_medusa),
+            monster_chimera:     this._removeWhiteBackground(rawAssets.monster_chimera),
+            monster_griffin:     this._removeWhiteBackground(rawAssets.monster_griffin),
+            monster_kraken:      this._removeWhiteBackground(rawAssets.monster_kraken),
+            monster_phoenix:     this._removeWhiteBackground(rawAssets.monster_phoenix),
+            monster_succubus:    this._removeWhiteBackground(rawAssets.monster_succubus),
+            monster_gargoyle:    this._removeWhiteBackground(rawAssets.monster_gargoyle),
+            monster_minotaur:    this._removeWhiteBackground(rawAssets.monster_minotaur),
+            monster_centaur:     this._removeWhiteBackground(rawAssets.monster_centaur),
+            monster_death_knight:this._removeWhiteBackground(rawAssets.monster_death_knight),
+            monster_slime_king:  rawAssets.monster_slime_king,
+            monster_lich:        rawAssets.monster_lich,
             // 아이템
             item_potion_hp:   rawAssets.item_potion_hp,
             item_potion_mp:   rawAssets.item_potion_mp,
             item_potion_full: rawAssets.item_potion_full,
             item_gold:        rawAssets.item_gold,
             item_sword:       rawAssets.item_sword,
+            item_bow:         rawAssets.item_bow,
+            item_staff_crystal: rawAssets.item_staff_crystal,
+            item_shield_iron: rawAssets.item_shield_iron,
+            item_armor_plate: rawAssets.item_armor_plate,
+            item_mythril_sword: rawAssets.item_mythril_sword,
+            item_ruby_staff:  rawAssets.item_ruby_staff,
+            item_infinite_bow:rawAssets.item_infinite_bow,
+            item_hero_shield: rawAssets.item_hero_shield,
+            item_sage_robe:   rawAssets.item_sage_robe,
+            item_dragon_egg:  rawAssets.item_dragon_egg,
+            item_dragon_slayer:rawAssets.item_dragon_slayer,
+            item_ring_of_power:rawAssets.item_ring_of_power,
+            item_dragon_armor: rawAssets.item_dragon_armor,
             // 스킬 이펙트
             effect_slash:     rawAssets.effect_slash,
             effect_magic:     rawAssets.effect_magic,
@@ -243,10 +344,30 @@ class AssetManager {
             effect_poison:    rawAssets.effect_poison,
             effect_shield:    rawAssets.effect_shield,
             effect_ice:       rawAssets.effect_ice,
+            // 신규 대형 에셋
+            mega_ruined_temple: rawAssets.mega_ruined_temple,
+            mega_house:       rawAssets.mega_house,
+            mega_cherry:      rawAssets.mega_cherry,
+            mega_pavillion:   rawAssets.mega_pavillion,
+            mega_flower:      rawAssets.mega_flower,
+            mine_rail:        rawAssets.mine_rail,
+            mine_ore:         rawAssets.mine_ore,
+            mine_stalactite:  rawAssets.mine_stalactite,
+            hell_lava:        rawAssets.hell_lava,
+            snow_statue:      rawAssets.snow_statue,
+            // 몬스터 및 이펙트
+            monster_wild_boar: this._removeWhiteBackground(rawAssets.monster_wild_boar),
+            monster_wasp:      this._removeWhiteBackground(rawAssets.monster_wasp),
+            monster_yeti:      this._removeWhiteBackground(rawAssets.monster_yeti),
+            monster_ice_spirit:this._removeWhiteBackground(rawAssets.monster_ice_spirit),
+            effect_fire_storm: rawAssets.effect_fire_storm,
         };
 
         // 타일셋 스프라이트 생성
         this.images.tiles = this._generateTileset(assets);
+
+        // 메가타일(대형 오브젝트) 생성
+        this.images.megaTiles = this._generateMegaTiles(assets);
 
         // 캐릭터 스프라이트시트 생성 (4직업 × 4방향 × 4프레임)
         this.images.characters = {
@@ -265,6 +386,9 @@ class AssetManager {
             '주모': this._generateNPCSprite('#e07050', '#ffd0b0', assets.shop),
             '대장장이': this._generateNPCSprite('#808080', '#c0c0c0', assets.shop),
             '길드마스터': this._generateNPCSprite('#6040a0', '#d0b0ff', assets.shop),
+            '촌장님': this._generateNPCSprite(null, null, assets.npc_village_chief),
+            '경비병': this._generateNPCSprite(null, null, assets.npc_guard),
+            '떠돌이 상인': this._generateNPCSprite(null, null, assets.npc_merchant),
         };
 
         // UI 아이콘 생성
@@ -283,6 +407,34 @@ class AssetManager {
             bat:         this._generateMonsterSprite('bat',         assets.monster_bat),
             ghost:       this._generateMonsterSprite('ghost',       assets.monster_ghost),
             dragon_boss: this._generateMonsterSprite('dragon_boss', assets.monster_dragon_boss),
+            wild_boar:   this._generateMonsterSprite('wild_boar',   assets.monster_wild_boar),
+            wasp:        this._generateMonsterSprite('wasp',        assets.monster_wasp),
+            yeti:        this._generateMonsterSprite('yeti',        assets.monster_yeti),
+            ice_spirit:  this._generateMonsterSprite('ice_spirit',  assets.monster_ice_spirit),
+            golem:       this._generateMonsterSprite('golem',       assets.monster_golem),
+            spider:      this._generateMonsterSprite('spider',      assets.monster_spider),
+            harpy:       this._generateMonsterSprite('harpy',       assets.monster_harpy),
+            mimic:       this._generateMonsterSprite('mimic',       assets.monster_mimic),
+            fire_spirit: this._generateMonsterSprite('fire_spirit', assets.monster_fire_spirit),
+            dark_knight: this._generateMonsterSprite('dark_knight', assets.monster_dark_knight),
+            mantis:      this._generateMonsterSprite('mantis',      assets.monster_mantis),
+            sand_worm:   this._generateMonsterSprite('sand_worm',   assets.monster_sand_worm),
+            treant:      this._generateMonsterSprite('treant',      assets.monster_treant),
+            demon:       this._generateMonsterSprite('demon',       assets.monster_demon),
+            mummy:       this._generateMonsterSprite('mummy',       assets.monster_mummy),
+            tentacle:    this._generateMonsterSprite('tentacle',    assets.monster_tentacle),
+            medusa:      this._generateMonsterSprite('medusa',      assets.monster_medusa),
+            chimera:     this._generateMonsterSprite('chimera',     assets.monster_chimera),
+            griffin:     this._generateMonsterSprite('griffin',     assets.monster_griffin),
+            kraken:      this._generateMonsterSprite('kraken',      assets.monster_kraken),
+            phoenix:     this._generateMonsterSprite('phoenix',     assets.monster_phoenix),
+            succubus:    this._generateMonsterSprite('succubus',    assets.monster_succubus),
+            gargoyle:    this._generateMonsterSprite('gargoyle',    assets.monster_gargoyle),
+            minotaur:    this._generateMonsterSprite('minotaur',    assets.monster_minotaur),
+            centaur:     this._generateMonsterSprite('centaur',     assets.monster_centaur),
+            death_knight:this._generateMonsterSprite('death_knight',assets.monster_death_knight),
+            slime_king:  this._generateMonsterSprite('slime_king',  assets.monster_slime_king),
+            lich:        this._generateMonsterSprite('lich',        assets.monster_lich),
         };
 
         // 스킬 이펙트 이미지 등록 (검정 배경 → 투명 처리)
@@ -295,6 +447,7 @@ class AssetManager {
             poison:    this._removeBlackBackground(assets.effect_poison),
             shield:    this._removeBlackBackground(assets.effect_shield),
             ice:       this._removeBlackBackground(assets.effect_ice),
+            fire_storm: this._removeBlackBackground(assets.effect_fire_storm),
         };
 
         // 아이템 이미지 등록 (흰 배경 → 투명 처리)
@@ -304,10 +457,24 @@ class AssetManager {
             potion_full: this._removeWhiteBackground(assets.item_potion_full),
             gold:        this._removeWhiteBackground(assets.item_gold),
             sword:       this._removeWhiteBackground(assets.item_sword),
+            bow:         this._removeWhiteBackground(assets.item_bow),
+            staff_crystal: this._removeWhiteBackground(assets.item_staff_crystal),
+            shield_iron: this._removeWhiteBackground(assets.item_shield_iron),
+            armor_plate: this._removeWhiteBackground(assets.item_armor_plate),
+            mythril_sword: this._removeWhiteBackground(assets.item_mythril_sword),
+            ruby_staff:    this._removeWhiteBackground(assets.item_ruby_staff),
+            infinite_bow:  this._removeWhiteBackground(assets.item_infinite_bow),
+            hero_shield:   this._removeWhiteBackground(assets.item_hero_shield),
+            sage_robe:     this._removeWhiteBackground(assets.item_sage_robe),
+            dragon_egg:    this._removeWhiteBackground(assets.item_dragon_egg),
         };
 
-        // 메가타일 (여러 타일 합체 대형 지형 오브젝트)
-        this.images.megaTiles = this._generateMegaTiles();
+        // 캐릭터 초상화 등록
+        this.images.faces = {
+            '길드마스터': assets.face_guide,
+            '주모': assets.face_innkeeper,
+            // 나머지는 시스템 기본 이미지 또는 실루엣 (추후 추가 가능)
+        };
 
         // 프로시저럴 스킬 이펙트 캔버스 생성 (이미지 없이 캔버스로 직접 그린 이펙트)
         this.images.procEffects = this._generateProceduralEffects();
@@ -315,6 +482,23 @@ class AssetManager {
         this.loaded = true;
         console.log('[AssetManager] 모든 에셋 준비 완료');
         return true;
+
+        } catch (err) {
+            console.error('[AssetManager] 에셋 로드 중 에러 발생:', err);
+            // 에러 발생 시에도 프로시저럴 에셋으로 최소한 게임 실행 가능하도록
+            if (!this.images.tiles) this.images.tiles = this._generateTileset({});
+            if (!this.images.megaTiles) this.images.megaTiles = this._generateMegaTiles({});
+            if (!this.images.characters) this.images.characters = {};
+            if (!this.images.monsters) this.images.monsters = {};
+            if (!this.images.effects) this.images.effects = {};
+            if (!this.images.npcs) this.images.npcs = {};
+            if (!this.images.faces) this.images.faces = {};
+            if (!this.images.procEffects) {
+                try { this.images.procEffects = this._generateProceduralEffects(); } catch(e) { this.images.procEffects = {}; }
+            }
+            this.loaded = true;
+            return true;
+        }
     }
 
     // ============================================================
@@ -1177,8 +1361,6 @@ class AssetManager {
     /**
      * 흰 배경 제거 (몬스터/아이템 이미지용)
      * 밝은 픽셀(R,G,B 모두 200 이상)을 투명 처리
-     * @param {HTMLImageElement|HTMLCanvasElement} imgEl
-     * @returns {HTMLCanvasElement}
      */
     _removeWhiteBackground(imgEl) {
         if (!imgEl) return null;
@@ -1191,9 +1373,7 @@ class AssetManager {
         const d = data.data;
         for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i+1], b = d[i+2];
-            // 흰색~밝은 회색 영역 투명처리
             if (r > 200 && g > 200 && b > 200) {
-                // 흰색 가까울수록 더 강하게 투명화
                 const factor = ((r - 200) + (g - 200) + (b - 200)) / (3 * 55);
                 d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - factor)));
             }
@@ -1204,9 +1384,6 @@ class AssetManager {
 
     /**
      * 검정 배경 제거 (스킬 이펙트 이미지용)
-     * 어두운 픽셀(R,G,B 모두 80 이하)을 투명 처리
-     * @param {HTMLImageElement|HTMLCanvasElement} imgEl
-     * @returns {HTMLCanvasElement}
      */
     _removeBlackBackground(imgEl) {
         if (!imgEl) return null;
@@ -1220,7 +1397,6 @@ class AssetManager {
         for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i+1], b = d[i+2];
             const brightness = (r + g + b) / 3;
-            // 어두운 영역을 투명도에 반영
             if (brightness < 80) {
                 const factor = (80 - brightness) / 80;
                 d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - factor)));
@@ -1235,144 +1411,89 @@ class AssetManager {
     // ============================================================
 
     /**
-     * 메가타일 8종 프로시저럴 생성
-     * 각 오브젝트는 2~3개 타일 폭/높이 캔버스로 그려짐
-     * 반환: { id: { canvas, tilesW, tilesH, theme } }
+     * 메가타일 8종 프로시저럴 생성 + 실제 에셋 연동
      */
-    _generateMegaTiles() {
+    _generateMegaTiles(assets = {}) {
         const S = this.TILE_SIZE;
         const mgt = {};
-        // 헬퍼: W×H 타일 크기 캔버스 생성
         const mk = (w, h) => {
             const c = document.createElement('canvas');
             c.width = w * S; c.height = h * S;
             return { c, x: c.getContext('2d') };
         };
-        const rnd = (seed) => { const v = Math.sin(seed + 1) * 10000; return v - Math.floor(v); };
 
-        // 1. 대형 고목 (2x3 = 64x96px, 숲/야외)
-        {
+        if (assets.mega_ruined_temple) {
+            mgt['ruined_temple'] = { canvas: assets.mega_ruined_temple, tilesW: 3, tilesH: 3, theme: 'dungeon' };
+        }
+
+        // 1. 대형 고목 (실제 에셋: mega_cherry 활용)
+        if (assets.mega_cherry) {
+            mgt['cherry_blossom'] = { canvas: assets.mega_cherry, tilesW: 3, tilesH: 3, theme: 'village' };
+        }
+
+        // 2. 대형 기와집 (실제 에셋: mega_house 활용)
+        if (assets.mega_house) {
+            mgt['wooden_house'] = { canvas: assets.mega_house, tilesW: 4, tilesH: 3, theme: 'village' };
+        }
+
+        // 3. 정자 (실제 에셋: mega_pavillion 활용)
+        if (assets.mega_pavillion) {
+            mgt['pavillion'] = { canvas: assets.mega_pavillion, tilesW: 3, tilesH: 3, theme: 'village' };
+        }
+
+        // 4. 꽃단지 (실제 에셋: mega_flower 활용)
+        if (assets.mega_flower) {
+            mgt['flower_bed'] = { canvas: assets.mega_flower, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 5. 광산 레일 (실제 에셋: mine_rail 활용)
+        if (assets.mine_rail) {
+            mgt['mine_rail'] = { canvas: assets.mine_rail, tilesW: 2, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 6. 광산 광석 (실제 에셋: mine_ore 활용)
+        if (assets.mine_ore) {
+            mgt['mine_ore'] = { canvas: assets.mine_ore, tilesW: 1, tilesH: 1, theme: 'dungeon' };
+        }
+
+        // 7. 설원 얼음 석상 (실제 에셋: snow_statue 활용)
+        if (assets.snow_statue) {
+            mgt['ice_statue'] = { canvas: assets.snow_statue, tilesW: 2, tilesH: 3, theme: 'snow' };
+        }
+
+        // 8. 헬 하운드 용암 구덩이 (실제 에셋: hell_lava 활용)
+        if (assets.hell_lava) {
+            mgt['lava_pit'] = { canvas: assets.hell_lava, tilesW: 3, tilesH: 2, theme: 'lava' };
+        }
+
+        // --- 기존 절차적 타일들도 유지 (에셋이 없을 경우 대비) ---
+        const rnd = (seed) => { const v = Math.sin(seed + 1) * 10000; return v - Math.floor(v); };
+        
+        if (!mgt['big_tree']) {
             const { c, x: ctx } = mk(2, 3);
-            const W = c.width, H = c.height;
-            // 트렁크
             ctx.fillStyle = '#5a3a1a'; ctx.fillRect(24, 44, 16, 52);
-            ctx.fillStyle = '#6a4a28'; ctx.fillRect(26, 60, 4, 30);
-            ctx.fillStyle = '#4a2e10'; ctx.fillRect(38, 58, 3, 32);
-            // 잎사귀 6클러스터
-            [
-                [10,6,19,'#2e6014'],[33,2,22,'#3a7820'],[54,8,17,'#286010'],
-                [20,22,23,'#348018'],[44,24,20,'#3a7820'],[32,36,25,'#2c7016'],
-            ].forEach(([lx,ly,r,col]) => {
-                ctx.fillStyle = col;
-                ctx.beginPath(); ctx.arc(lx, ly, r, 0, Math.PI*2); ctx.fill();
+            [ [10,6,19,'#2e6014'],[33,2,22,'#3a7820'],[54,8,17,'#286010'],[20,22,23,'#348018'],[44,24,20,'#3a7820'],[32,36,25,'#2c7016'] ].forEach(([lx,ly,r,col]) => {
+                ctx.fillStyle = col; ctx.beginPath(); ctx.arc(lx, ly, r, 0, Math.PI*2); ctx.fill();
             });
-            // 반짝임
-            ctx.fillStyle = 'rgba(100,255,50,0.15)';
-            for (let i=0;i<12;i++) { ctx.fillRect(rnd(i*7)*W, rnd(i*7+1)*56, 3, 3); }
             mgt['big_tree'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'forest' };
         }
 
-        // 2. 석조 폐허 (3x2 = 96x64px, 던전)
+        // 우물
         {
-            const { c, x: ctx } = mk(3, 2);
-            const W = c.width, H = c.height;
-            ctx.fillStyle = '#3a3a4a'; ctx.fillRect(0, 0, W, H);
-            [
-                [2,2,30,35],[35,8,28,30],[65,4,28,32],
-                [10,30,25,28],[50,28,32,30],[15,48,20,14],[70,44,22,18],
-            ].forEach(([sx,sy,sw,sh],i) => {
-                ctx.fillStyle = ['#5a5a6a','#6a6a7a','#686878','#4e4e5e'][i%4];
-                ctx.fillRect(sx,sy,sw,sh);
-                ctx.fillStyle='#7e7e8e'; ctx.fillRect(sx,sy,sw,2); ctx.fillRect(sx,sy,2,sh);
-                ctx.fillStyle='#4a4a58'; ctx.fillRect(sx,sy+sh-2,sw,2); ctx.fillRect(sx+sw-2,sy,2,sh);
-            });
-            ctx.fillStyle='#3a5a3a';
-            for(let i=0;i<14;i++) ctx.fillRect(rnd(i*9+200)*W, 30+rnd(i*9+201)*30, 3, 2);
-            mgt['ruin'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'dungeon' };
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#7a7a88'; ctx.beginPath(); ctx.arc(32,48,24,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#304a8a'; ctx.beginPath(); ctx.arc(32,48,16,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#5a3010'; ctx.fillRect(10,10,4,40); ctx.fillRect(50,10,4,40);
+            ctx.fillStyle='#8a6040'; ctx.fillRect(8,4,48,12);
+            mgt['well'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
         }
-
-        // 3. 암벽 절벽 (3x2 = 96x64px, 야외)
-        {
-            const { c, x: ctx } = mk(3, 2);
-            const W = c.width, H = c.height;
-            ctx.fillStyle = '#808090'; ctx.fillRect(0, 0, W, H);
-            const g = ctx.createLinearGradient(0,0,0,H);
-            g.addColorStop(0,'#6a6a7e'); g.addColorStop(1,'#9a9aaa');
-            ctx.fillStyle = g; ctx.fillRect(0,0,W,Math.floor(H*0.7));
-            [[0,12,'#5a5a6e'],[14,8,'#7a7a88'],[24,10,'#5e5e70'],[36,6,'#8a8a96']].forEach(([y,h,col]) => {
-                ctx.fillStyle=col; ctx.fillRect(8,y,W-16,h);
-                for(let px=0;px<W-8;px+=16) {
-                    const jit = Math.floor(rnd(px*3+y)*6)-3;
-                    ctx.fillRect(px, y+jit, 14, h);
-                }
-            });
-            ctx.fillStyle='#4a6a30';
-            for(let i=0;i<8;i++) ctx.fillRect(rnd(i*11+100)*W, H-14, 4, 14);
-            mgt['cliff'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'outdoor' };
-        }
-
-        // 4. 신전 석상 (2x3 = 64x96px, 마을)
+        // 7. 용암 기둥 (2x3 = 64x96px, 용암 던전)
         {
             const { c, x: ctx } = mk(2, 3);
-            const W = c.width, H = c.height;
-            ctx.fillStyle='#b09870'; ctx.fillRect(0,0,W,H);
-            [[78,18,'#7a6040'],[64,14,'#8a7050'],[52,12,'#9a8060'],[43,9,'#aA9070']].forEach(([y,h,col]) => {
-                const m = Math.floor(W*0.12);
-                ctx.fillStyle=col; ctx.fillRect(m,y,W-m*2,h);
-                ctx.fillStyle='#bba070'; ctx.fillRect(m,y,W-m*2,2);
-            });
-            ctx.fillStyle='#5a5a7a'; ctx.fillRect(18,22,28,22);
-            ctx.fillStyle='#4a4a6a'; ctx.fillRect(20,24,24,20);
-            ctx.fillStyle='#e0e0ff'; ctx.fillRect(22,28,6,4); ctx.fillRect(36,28,6,4);
-            ctx.fillStyle='#ffd700'; ctx.fillRect(16,20,32,2); ctx.fillRect(16,44,32,2);
-            mgt['shrine'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'village' };
-        }
-
-        // 5. 폭포 (2x3 = 64x96px, 야외)
-        {
-            const { c, x: ctx } = mk(2, 3);
-            const W = c.width, H = c.height;
-            ctx.fillStyle='#6a8070'; ctx.fillRect(0,0,W,H);
-            for(let px=16;px<48;px+=6) {
-                for(let py=0;py<70;py+=4) {
-                    const wave = Math.sin(py/8+px*0.15)*2;
-                    ctx.fillStyle = py%8<4 ? '#4080b8' : '#50a0d0';
-                    ctx.fillRect(px+wave, py, 4, 4);
-                }
-            }
-            ctx.fillStyle='rgba(200,240,255,0.35)';
-            for(let i=0;i<18;i++) ctx.fillRect(10+rnd(i*5+50)*44, rnd(i*5+51)*80, 2, 3);
-            ctx.fillStyle='#3060a0'; ctx.fillRect(14,68,36,12);
-            ctx.fillStyle='#3a5a30'; ctx.fillRect(2,0,10,96); ctx.fillRect(52,0,10,96);
-            mgt['waterfall'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'outdoor' };
-        }
-
-        // 6. 상인 천막 (3x2 = 96x64px, 마을)
-        {
-            const { c, x: ctx } = mk(3, 2);
-            const W = c.width, H = c.height;
-            ctx.fillStyle='#c09060'; ctx.fillRect(8,12,80,48);
-            const rg = ctx.createLinearGradient(0,4,0,16);
-            rg.addColorStop(0,'#8a6030'); rg.addColorStop(1,'#c08040');
-            ctx.fillStyle=rg;
-            ctx.beginPath(); ctx.moveTo(0,16); ctx.lineTo(48,0); ctx.lineTo(96,16); ctx.closePath(); ctx.fill();
-            ctx.fillStyle='#7a5030'; ctx.fillRect(12,12,8,50); ctx.fillRect(76,12,8,50);
-            [[25,28,'#e04040'],[44,26,'#4040e0'],[62,30,'#40a040']].forEach(([ix,iy,ic]) => {
-                ctx.fillStyle=ic; ctx.fillRect(ix,iy,8,14);
-                ctx.fillStyle='#ffffff'; ctx.fillRect(ix+2,iy+2,4,2);
-            });
-            ctx.fillStyle='#ffd700'; ctx.fillRect(32,4,32,8);
-            ctx.fillStyle='#8a6000'; ctx.fillRect(34,5,28,6);
-            mgt['tent'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'village' };
-        }
-
-        // 7. 용암기둥 (2x3 = 64x96px, 용암던전)
-        {
-            const { c, x: ctx } = mk(2, 3);
-            const W = c.width, H = c.height;
-            ctx.fillStyle='#2a1a0a'; ctx.fillRect(0,0,W,H);
-            ctx.fillStyle='#4a2a1a'; ctx.fillRect(20,20,24,72);
-            const lCols=['#ff4000','#ff6600','#ff8000','#ffaa00'];
+            ctx.fillStyle='#4a2a10'; ctx.fillRect(20,30,24,62); // 기둥 몸체
+            ctx.fillStyle='#3a1a08'; ctx.fillRect(18,80,28,16); // 기둥 받침
+            // 용암 줄기
+            const lCols = ['#ff4400','#ff8000','#ffaa00'];
             for(let py=30;py<90;py+=6) {
                 for(let px=22;px<42;px+=3) {
                     ctx.fillStyle = lCols[rnd(px*3+py)>0.5?2:0];
@@ -1407,6 +1528,316 @@ class AssetManager {
             ctx.fillStyle='rgba(200,230,255,0.4)';
             for(let i=0;i<10;i++) ctx.fillRect(rnd(i*7+300)*W, rnd(i*7+301)*H, 3, 3);
             mgt['ice_crystal'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'snow' };
+        }
+
+        // 9. 시장 매대 (3x2, 마을)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#8a6030'; ctx.fillRect(4,20,88,40); // 나무 테이블
+            ctx.fillStyle='#c08040'; ctx.fillRect(8,24,80,32);
+            // 매대 위 상품들
+            [[15,30,'#e04040'],[35,32,'#40a040'],[55,28,'#ffd700'],[75,34,'#4040e0']].forEach(([ix,iy,ic])=> {
+                ctx.fillStyle=ic; ctx.fillRect(ix,iy,8,10);
+            });
+            // 천막 기둥
+            ctx.fillStyle='#5a3010'; ctx.fillRect(6,4,4,50); ctx.fillRect(86,4,4,50);
+            mgt['market_stall'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'village' };
+        }
+
+        // 10. 고대 석상 (2x3, 던전/보스)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            ctx.fillStyle='#8a8a96'; ctx.fillRect(16,70,32,20); // 받침대
+            ctx.fillStyle='#7a7a88'; ctx.fillRect(14,86,36,6);
+            // 석상 몸체 (실루엣)
+            ctx.fillStyle='#9a9aaa';
+            ctx.beginPath(); ctx.moveTo(32,10); ctx.lineTo(16,40); ctx.lineTo(16,70); ctx.lineTo(48,70); ctx.lineTo(48,40); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(20,20,8,20); // 광택
+            mgt['statue'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'outdoor' };
+        }
+        // 11. 마을 우물 (2x2, 마을)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#7a7a88'; 
+            ctx.beginPath(); ctx.arc(32,48,24,0,Math.PI*2); ctx.fill(); // 우물 본체
+            ctx.fillStyle='#304a8a';
+            ctx.beginPath(); ctx.arc(32,48,16,0,Math.PI*2); ctx.fill(); // 물
+            // 지붕 기둥
+            ctx.fillStyle='#5a3010'; ctx.fillRect(10,10,4,40); ctx.fillRect(50,10,4,40);
+            ctx.fillStyle='#8a6040'; ctx.fillRect(8,4,48,12); // 지붕
+            mgt['well'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 12. 성문 (4x2, 마을/성곽)
+        {
+            const { c, x: ctx } = mk(4, 2);
+            ctx.fillStyle='#5a5a66'; ctx.fillRect(0, 10, 128, 54); // 전체 벽면
+            ctx.fillStyle='#3a3a44'; ctx.fillRect(20, 20, 88, 44); // 아치형 입구 공간
+            ctx.fillStyle='#5a3010'; ctx.fillRect(24, 24, 80, 40); // 나무 문
+            // 격자 무늬
+            ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2;
+            for(let i=0; i<4; i++) ctx.strokeRect(i*32,10,32,54);
+            mgt['castle_gate'] = { canvas: c, tilesW: 4, tilesH: 2, theme: 'village' };
+        }
+
+        // 13. 세계수 (3x4, 숲/마을)
+        {
+            const { c, x: ctx } = mk(3, 4);
+            // 줄기
+            ctx.fillStyle='#5a3010'; 
+            ctx.beginPath(); ctx.moveTo(48, 128); ctx.quadraticCurveTo(30, 80, 48, 40); ctx.quadraticCurveTo(66, 80, 48, 128); ctx.fill();
+            // 잎더미
+            const leaves = [[48,40,40,'#206020'],[28,50,30,'#307030'],[68,50,30,'#307030'],[48,20,35,'#105010']];
+            leaves.forEach(([lx,ly,lr,lc]) => {
+                ctx.fillStyle=lc; ctx.beginPath(); ctx.arc(lx,ly,lr,0,Math.PI*2); ctx.fill();
+            });
+            mgt['world_tree'] = { canvas: c, tilesW: 3, tilesH: 4, theme: 'outdoor' };
+        }
+
+        // 14. 고대 마법진 (3x3, 던전/보스)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            ctx.strokeStyle='rgba(100,200,255,0.6)'; ctx.lineWidth=3;
+            ctx.beginPath(); ctx.arc(48,48,40,0,Math.PI*2); ctx.stroke(); // 큰 원
+            ctx.beginPath(); ctx.arc(48,48,25,0,Math.PI*2); ctx.stroke(); // 작은 원
+            // 육각별
+            ctx.beginPath();
+            for(let i=0; i<7; i++) {
+                const ang = (i * Math.PI * 2 / 6) - Math.PI/2;
+                const r = 40;
+                if(i===0) ctx.moveTo(48 + Math.cos(ang)*r, 48 + Math.sin(ang)*r);
+                else ctx.lineTo(48 + Math.cos(ang)*r, 48 + Math.sin(ang)*r);
+            }
+            ctx.stroke();
+            mgt['magic_circle'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'dungeon' };
+        }
+
+        // 15. 황금 보물더미 (2x2, 던전)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#ffd700';
+            for(let i=0; i<30; i++) {
+                ctx.beginPath(); ctx.arc(10+Math.random()*44, 20+Math.random()*34, 4+Math.random()*6, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.fillStyle='#ffec8b';
+            for(let i=0; i<10; i++) ctx.fillRect(15+Math.random()*34, 25+Math.random()*24, 3, 3);
+            mgt['treasure_pile'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 16. 해골 제단 (3x2, 던전)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            ctx.fillStyle='#4a4a55'; ctx.fillRect(16, 20, 64, 40); // 제단 기단
+            ctx.fillStyle='#d2d2d2'; 
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.arc(24+i*12, 18, 5, 0, Math.PI*2); ctx.fill(); // 두개골
+            }
+            mgt['skull_altar'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // --- 지형 전용 메가타일 (Floor Terrains) ---
+
+        // 17. 대형 돌무더기 바닥 (3x2, 야외/던전)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            for(let i=0; i<12; i++) {
+                const px = rnd(i*7)*W, py = rnd(i*7+1)*H;
+                const r = 8 + rnd(i*7+2)*12;
+                ctx.fillStyle = ['#7a7a8a', '#6a6a7a', '#8a8a9a'][i%3];
+                ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.beginPath(); ctx.arc(px-2, py-2, r*0.6, 0, Math.PI*2); ctx.fill();
+            }
+            mgt['stone_patch'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'outdoor' };
+        }
+
+        // 18. 이끼 낀 바위 지대 (2x3, 숲/야외)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            const W = c.width, H = c.height;
+            for(let i=0; i<8; i++) {
+                const px = rnd(i*13)*W, py = rnd(i*13+1)*H;
+                ctx.fillStyle = '#5a5a6a';
+                ctx.beginPath(); ctx.ellipse(px, py, 12, 8, rnd(i), 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(50,120,40,0.4)'; // 이끼
+                ctx.fillRect(px-6, py-4, 12, 8);
+            }
+            mgt['mossy_rocks'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'forest' };
+        }
+
+        // 19. 사구 지형 (3x2, 사막)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W = c.width, H = c.height;
+            ctx.strokeStyle = 'rgba(180,150,80,0.5)'; ctx.lineWidth = 3;
+            for(let i=0; i<5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 10 + i*10);
+                ctx.bezierCurveTo(W/3, i*10-10, 2*W/3, i*10+20, W, 10 + i*10);
+                ctx.stroke();
+            }
+            mgt['sand_dunes'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'desert' };
+        }
+
+        // 20. 초가집 (3x2, 마을)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            ctx.fillStyle='#8b4513'; ctx.fillRect(10, 30, 76, 30); // 벽면
+            ctx.fillStyle='#daa520'; // 초가 지붕
+            ctx.beginPath(); ctx.moveTo(0,34); ctx.lineTo(48,4); ctx.lineTo(96,34); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#5d2e0a'; ctx.fillRect(38, 40, 20, 20); // 문
+            ctx.strokeStyle='#000'; ctx.lineWidth=1; ctx.strokeRect(38, 40, 20, 20);
+            mgt['straw_house'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'village' };
+        }
+
+        // 21. 고목 (2x3, 림/야외)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            ctx.fillStyle='#4b2e0a';
+            ctx.fillRect(24, 64, 16, 32); // 밑동
+            ctx.beginPath(); // 꼬인 가지 형태
+            ctx.moveTo(32, 64); ctx.quadraticCurveTo(10, 40, 20, 20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(32, 64); ctx.quadraticCurveTo(54, 40, 44, 10); ctx.stroke();
+            mgt['ancient_tree'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'outdoor' };
+        }
+
+        // 22. 던전 횃불 스탠드 (1x2, 던전)
+        {
+            const { c, x: ctx } = mk(1, 2);
+            ctx.fillStyle='#333'; ctx.fillRect(12, 32, 8, 32); // 기둥
+            ctx.fillStyle='#ff4500'; ctx.beginPath(); ctx.arc(16, 28, 6, 0, Math.PI*2); ctx.fill(); // 불꽃
+            ctx.fillStyle='#ffa500'; ctx.beginPath(); ctx.arc(16, 28, 3, 0, Math.PI*2); ctx.fill();
+            mgt['dungeon_torch'] = { canvas: c, tilesW: 1, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 23. 마을 수레 (2x2, 마을)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#8b4513'; ctx.fillRect(10, 20, 44, 24); // 몸체
+            ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(15, 44, 8, 0, Math.PI*2); ctx.fill(); // 바퀴1
+            ctx.beginPath(); ctx.arc(49, 44, 8, 0, Math.PI*2); ctx.fill(); // 바퀴2
+            ctx.fillStyle='#a0522d'; ctx.fillRect(0, 24, 10, 4); // 손잡이
+            mgt['village_cart'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 24. 마을 분수대 (2x2, 마을)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#aaa'; ctx.beginPath(); ctx.arc(32, 40, 28, 0, Math.PI*2); ctx.fill(); // 아래 수조
+            ctx.fillStyle='#4682b4'; ctx.beginPath(); ctx.arc(32, 40, 22, 0, Math.PI*2); ctx.fill(); // 물
+            ctx.fillStyle='#ccc'; ctx.fillRect(28, 10, 8, 30); // 중앙 기둥
+            ctx.strokeStyle='#fff'; ctx.beginPath(); ctx.moveTo(32, 10); ctx.lineTo(16, 20); ctx.moveTo(32,10); ctx.lineTo(48,20); ctx.stroke(); // 물줄기
+            mgt['village_fountain'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 25. 장식용 석조 기둥 (1x3, 던전/성)
+        {
+            const { c, x: ctx } = mk(1, 3);
+            ctx.fillStyle='#666'; ctx.fillRect(8, 64, 16, 32); // 기반
+            ctx.fillStyle='#888'; ctx.fillRect(10, 10, 12, 54); // 기둥 몸체
+            ctx.fillStyle='#999'; ctx.fillRect(6, 6, 20, 8); // 머리
+            mgt['stone_pillar'] = { canvas: c, tilesW: 1, tilesH: 3, theme: 'dungeon' };
+        }
+
+        // 26. 마을 시장 가판대 (2x2, 마을)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle = '#5d2e0a'; ctx.fillRect(4, 38, 56, 12); // 테이블
+            ctx.fillStyle = '#ff4444'; ctx.fillRect(0, 0, 64, 16); // 천막 (빨강)
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(16, 0, 16, 16); ctx.fillRect(48, 0, 16, 16); // 천막 스트라이프
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(4, 16); ctx.lineTo(4, 38); ctx.moveTo(60, 16); ctx.lineTo(60, 38); ctx.stroke(); // 기둥
+            mgt['market_stall'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 27. 전설의 석상 (2x3, 마을/던전)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            ctx.fillStyle = '#888'; ctx.fillRect(12, 70, 40, 20); // 받침대
+            ctx.fillStyle = '#aaa';
+            ctx.beginPath(); // 몸체
+            ctx.moveTo(32, 70); ctx.lineTo(16, 40); ctx.lineTo(48, 40); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.arc(32, 25, 12, 0, Math.PI * 2); ctx.fill(); // 머리
+            ctx.strokeStyle = '#777'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(48, 40); ctx.lineTo(56, 10); ctx.stroke(); // 검을 든 팔
+            mgt['hero_statue'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'village' };
+        }
+
+        // 28. 신비로운 포탈 (2x2, 마을/던전)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            const grad = ctx.createRadialGradient(32, 32, 5, 32, 32, 30);
+            grad.addColorStop(0, '#fff'); grad.addColorStop(0.3, '#4fc3f7'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(32, 32, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.setLineDash([5, 5]);
+            ctx.beginPath(); ctx.arc(32, 32, 25, 0, Math.PI * 2); ctx.stroke();
+            mgt['blue_portal'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 29. 던전 감옥 (2x2, 던전)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle = '#333'; ctx.fillRect(8, 8, 48, 48); // 배경
+            ctx.strokeStyle = '#666'; ctx.lineWidth = 3;
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.moveTo(16 + i*8, 8); ctx.lineTo(16 + i*8, 56); ctx.stroke(); // 창살
+            }
+            mgt['dungeon_cage'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 30. 제단 (2x2, 던전/성)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle = '#444'; ctx.fillRect(8, 40, 48, 16); // 기단
+            ctx.fillStyle = '#666'; ctx.fillRect(16, 20, 32, 20); // 상단부
+            ctx.fillStyle = '#800'; ctx.beginPath(); ctx.arc(32, 25, 8, 0, Math.PI * 2); ctx.fill(); // 붉은 보석
+            ctx.shadowBlur = 10; ctx.shadowColor = '#f00';
+            mgt['altar'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 31. 천하대장군 장승 (1x3, 마을)
+        {
+            const { c, x: ctx } = mk(1, 3);
+            ctx.fillStyle = '#5d4037'; ctx.fillRect(8, 20, 16, 76); // 몸통
+            ctx.fillStyle = '#ffecb3'; ctx.beginPath(); ctx.arc(16, 25, 12, 0, Math.PI*2); ctx.fill(); // 얼굴
+            ctx.fillStyle = '#000'; ctx.fillRect(10, 20, 12, 2); // 눈썹
+            ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(16, 32, 3, 0, Math.PI*2); ctx.fill(); // 입
+            mgt['totem_pole'] = { canvas: c, tilesW: 1, tilesH: 3, theme: 'village' };
+        }
+
+        // 32. 전통 석등 (1x2, 마을/야외)
+        {
+            const { c, x: ctx } = mk(1, 2);
+            ctx.fillStyle = '#78909c'; ctx.fillRect(12, 32, 8, 32); // 기둥
+            ctx.fillStyle = '#455a64'; ctx.fillRect(6, 10, 20, 22); // 상단부
+            const grad = ctx.createRadialGradient(16, 21, 2, 16, 21, 10);
+            grad.addColorStop(0, '#fff9c4'); grad.addColorStop(1, 'rgba(255,235,59,0)');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(16, 21, 10, 0, Math.PI*2); ctx.fill(); // 불빛
+            mgt['stone_lantern'] = { canvas: c, tilesW: 1, tilesH: 2, theme: 'village' };
+        }
+
+        // 33. 무기 거치대 (2x1, 실내/마을)
+        {
+            const { c, x: ctx } = mk(2, 1);
+            ctx.fillStyle = '#4e342e'; ctx.fillRect(5, 5, 2, 22); ctx.fillRect(57, 5, 2, 22); // 지지대
+            ctx.fillRect(5, 10, 54, 3); ctx.fillRect(5, 20, 54, 3); // 가로대
+            ctx.strokeStyle = '#90a4ae'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(10, 11); ctx.lineTo(54, 11); ctx.stroke(); // 검 1
+            ctx.beginPath(); ctx.moveTo(10, 21); ctx.lineTo(54, 21); ctx.stroke(); // 검 2
+            mgt['weapon_rack'] = { canvas: c, tilesW: 2, tilesH: 1, theme: 'village' };
+        }
+
+        // 34. 주막 카운터 (2x1, 실내)
+        {
+            const { c, x: ctx } = mk(2, 1);
+            ctx.fillStyle = '#795548'; ctx.fillRect(0, 5, 64, 27); // 카운터 몸체
+            ctx.fillStyle = '#5d4037'; ctx.fillRect(0, 5, 64, 5); // 선반 상단
+            ctx.fillStyle = '#81c784'; ctx.beginPath(); ctx.arc(15, 5, 4, 0, Math.PI*2); ctx.fill(); // 술병 1
+            ctx.fillStyle = '#64b5f6'; ctx.beginPath(); ctx.arc(32, 5, 4, 0, Math.PI*2); ctx.fill(); // 술병 2
+            mgt['tavern_counter'] = { canvas: c, tilesW: 2, tilesH: 1, theme: 'village' };
         }
 
         return mgt;
@@ -1446,6 +1877,66 @@ class AssetManager {
             ctx.fillStyle = 'rgba(100,255,120,0.4)';
             ctx.beginPath(); ctx.arc(C, C, 10, 0, Math.PI * 2); ctx.fill();
             fx['wind'] = c;
+        }
+
+        // --- 신성 (holy): 황금빛 폭발 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.beginPath(); ctx.arc(C, C, 25, 0, Math.PI * 2); ctx.fill();
+            for (let i = 0; i < 12; i++) {
+                const ang = (i * Math.PI * 2) / 12;
+                ctx.strokeStyle = '#fff700'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(C, C);
+                ctx.lineTo(C + Math.cos(ang) * 30, C + Math.sin(ang) * 30);
+                ctx.stroke();
+            }
+            fx['holy'] = c;
+        }
+
+        // --- 대지 (earth): 암석 및 먼지 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.fillStyle = '#8b4513';
+            for (let i = 0; i < 8; i++) {
+                const ox = Math.random() * 30 - 15;
+                const oy = Math.random() * 30 - 15;
+                const sz = 5 + Math.random() * 8;
+                ctx.fillRect(C + ox - sz / 2, C + oy - sz / 2, sz, sz);
+            }
+            ctx.fillStyle = 'rgba(139, 69, 19, 0.3)';
+            ctx.beginPath(); ctx.arc(C, C, 20, 0, Math.PI * 2); ctx.fill();
+            fx['earth'] = c;
+        }
+
+        // --- 중독 (poison): 보라색 거품 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.fillStyle = 'rgba(128, 0, 128, 0.5)';
+            for (let i = 0; i < 10; i++) {
+                const ox = Math.random() * 32 - 16;
+                const oy = Math.random() * 32 - 16;
+                const r = 3 + Math.random() * 6;
+                ctx.beginPath(); ctx.arc(C + ox, C + oy, r, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#dda0dd'; ctx.lineWidth = 1; ctx.stroke();
+            }
+            fx['poison'] = c;
+        }
+
+        // --- 얼음 (ice): 청백색 결정 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.strokeStyle = '#afeeee'; ctx.lineWidth = 2;
+            for (let i = 0; i < 6; i++) {
+                const ang = (i * Math.PI * 2) / 6;
+                ctx.beginPath(); ctx.moveTo(C, C);
+                ctx.lineTo(C + Math.cos(ang) * 28, C + Math.sin(ang) * 28);
+                ctx.stroke();
+                // 끝에 작은 결정
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(C + Math.cos(ang) * 25, C + Math.sin(ang) * 25, 3, 0, Math.PI * 2); ctx.fill();
+            }
+            fx['ice'] = c;
         }
 
         // --- 어둠 (dark): 보라 소용돌이 ---
@@ -1647,7 +2138,68 @@ class AssetManager {
             fx['hp_to_mp'] = c;
         }
 
+        // --- 폭발 (explosion): 주황빛 거대 구체 ---
+        {
+            const { c, x: ctx } = mk();
+            const g = ctx.createRadialGradient(C, C, 0, C, C, 30);
+            g.addColorStop(0, '#fff');
+            g.addColorStop(0.2, '#ffeb3b');
+            g.addColorStop(0.5, '#fb8c00');
+            g.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 30, 0, Math.PI * 2); ctx.fill();
+            fx['explosion'] = c;
+        }
+
+        // --- 임팩트 (impact): 충격파 선 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+            for(let i=0; i<4; i++) {
+                const r = 10 + i * 6;
+                ctx.globalAlpha = 1 - (i/4);
+                ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.stroke();
+            }
+            fx['impact'] = c;
+        }
+
+        // --- 크리티컬 (critical): 붉은 번개 느낌 ---
+        {
+            const { c, x: ctx } = mk();
+            ctx.strokeStyle = '#f00'; ctx.lineWidth = 4;
+            ctx.beginPath(); 
+            ctx.moveTo(10, 10); ctx.lineTo(32, 20); ctx.lineTo(15, 40); ctx.lineTo(50, 60);
+            ctx.stroke();
+            ctx.shadowBlur = 10; ctx.shadowColor = '#f00';
+            fx['critical'] = c;
+        }
+
         return fx;
+    }
+
+    /**
+     * NPC 종류에 따른 포트레이트(얼굴) 이미지 반환
+     */
+    getPortrait(npcName) {
+        if (!npcName) return null;
+        
+        // 1. 전용 포트레이트가 있는 경우
+        if (npcName.includes('안내자') || npcName.includes('수련')) return this.images.faces.guide;
+        if (npcName.includes('주모')) return this.images.faces.innkeeper;
+        
+        // 2. 이름 기반 매핑
+        const faceMap = {
+            '대장장이': this.images.faces.guide, // 임시 (전사 얼굴 등으로 추후 교체 가능)
+            '성황당 할머니': this.images.faces.innkeeper,
+            '비단': this.images.faces.innkeeper,
+            '목공': this.images.faces.guide
+        };
+        
+        for (const key in faceMap) {
+            if (npcName.includes(key)) return faceMap[key];
+        }
+        
+        // 3. 기본값 (안내자 얼굴)
+        return this.images.faces.guide;
     }
 }
 

@@ -19,6 +19,19 @@ class MapManager {
         // 이동 불가 타일 ID 목록
         this.solidTiles = new Set([1, 3, 6, 8]);
 
+        // 이동 불가 메가타일(장식 오브젝트) ID 목록
+        this.solidDecorations = new Set([
+            'big_tree', 'world_tree', 'ancient_tree',  // 나무류
+            'shrine', 'statue', 'hero_statue',          // 석상/사당
+            'castle_gate',                               // 성문
+            'stone_pillar', 'lava_pillar', 'ice_pillar', // 기둥류
+            'ice_crystal',                               // 얼음 결정
+            'dungeon_cage', 'altar', 'skull_altar',      // 던전 구조물
+            'straw_house', 'wooden_house',               // 건물
+            'cliff', 'ruin',                             // 절벽/폐허
+            'cherry_blossom', 'pavillion', 'ice_statue', // 장식물
+        ]);
+
         // 맵 데이터 저장소
         this.maps = this._defineAllMaps();
     }
@@ -44,7 +57,17 @@ class MapManager {
             tiles: this._generateBeginnerMap(),
             // NPC 배치
             npcs: [
-                { id: 'npc_guide', type: '길드마스터', name: '수련 안내자', x: 14, y: 12, dialog: '환영한다, 젊은 모험가여! 주변의 몬스터를 처치하고 경험을 쌓거라.' },
+                { 
+                    id: 'npc_guide', 
+                    type: '길드마스터', 
+                    name: '수련 안내자', 
+                    x: 14, y: 12, 
+                    dialogChain: [
+                        '환영한다, 젊은 모험가여! 이곳은 수련의 장이다.',
+                        '주변의 슬라임을 처치하여 기초를 다지도록 하게.',
+                        '어느 정도 강해지면 동쪽 포털을 통해 바람 마을로 갈 수 있다네.'
+                    ]
+                },
             ],
             // 포털 (맵 이동 지점)
             portals: [
@@ -52,9 +75,10 @@ class MapManager {
             ],
             // 몬스터 스폰 구역 (CombatManager 호환)
             monsterZones: [
-                { type: 'slime', x: 3, y: 3, width: 10, height: 10, count: 20, level: 1 },
-                { type: 'slime', x: 18, y: 3, width: 10, height: 10, count: 20, level: 1 },
-                { type: 'goblin', x: 3, y: 18, width: 10, height: 10, count: 15, level: 2 },
+                { type: 'm_001_slime', x: 3, y: 3, width: 10, height: 10, count: 15, level: 1 },
+                { type: 'm_001_slime', x: 18, y: 3, width: 10, height: 10, count: 15, level: 1 },
+                { type: 'm_013_goblin_scout', x: 3, y: 18, width: 10, height: 10, count: 10, level: 2 },
+                { type: 'm_005_bee', x: 18, y: 18, width: 8, height: 8, count: 8, level: 1 },
             ],
             // 메가타일 장식 오브젝트 배치 { id, tileX, tileY }
             decorations: [
@@ -63,6 +87,17 @@ class MapManager {
                 { id: 'waterfall',  tileX: 2,  tileY: 10 },
                 { id: 'cliff',      tileX: 10, tileY: 24 },
                 { id: 'big_tree',   tileX: 24, tileY: 22 },
+                { id: 'village_cart', tileX: 18, tileY: 16 },
+                { id: 'blue_portal', tileX: 28, tileY: 14 },
+                { id: 'market_stall', tileX: 12, tileY: 10 },
+                // 추가 장애물 — 탐험 경로 다양화
+                { id: 'big_tree',   tileX: 4,  tileY: 15 },
+                { id: 'big_tree',   tileX: 12, tileY: 20 },
+                { id: 'big_tree',   tileX: 22, tileY: 12 },
+                { id: 'ancient_tree', tileX: 16, tileY: 8 },
+            ],
+            terrains: [
+                { id: 'stone_patch', tileX: 5, tileY: 20, alpha: 0.6 },
             ],
         };
 
@@ -78,22 +113,91 @@ class MapManager {
             bgm: null,
             tiles: this._generateVillageMap(),
             npcs: [
-                { id: 'npc_innkeeper', type: '주모', name: '주모 봉선', x: 12, y: 8, dialog: '이 곳은 바람 마을의 주막이란다. 여기서 쉬어가렴. HP가 완전 회복됩니다!' },
-                { id: 'npc_smith', type: '대장장이', name: '대장장이 무쇠', x: 18, y: 14, dialog: '좋은 무기가 필요하면 나를 찾아라! 레벨이 오르면 더 강해진다.' },
-                { id: 'npc_quiz', type: '길드마스터', name: '퀴즈 마스터', x: 12, y: 19, dialog: '지식의 시험을 받아보겠나? 정답 시 특별 보상이 있다네!' },
+                { 
+                    id: 'npc_innkeeper', 
+                    type: '주모', 
+                    name: '주모 봉선', 
+                    x: 12, y: 8, 
+                    dialogChain: [
+                        '어서오렴! 먼 길 오느라 고생 많았지?',
+                        '맛있는 국밥 한 그릇 먹고 푹 쉬면 기운이 날 게다.',
+                        '(주모가 정성스레 차린 음식을 먹고 기운을 차립니다! HP/MP 완전 회복)'
+                    ]
+                },
+                { 
+                    id: 'npc_smith', 
+                    type: '대장장이', 
+                    name: '대장장이 무쇠', 
+                    x: 18, y: 14, 
+                    dialogChain: [
+                        '오, 자네! 무기가 좀 낡아 보이는군.',
+                        '더 강해지고 싶다면 내 물건들을 한번 구경해 보게나.',
+                        '돈만 충분하다면 최고의 장비를 마련해주지!'
+                    ]
+                },
+                { 
+                    id: 'npc_quiz', 
+                    type: '길드마스터', 
+                    name: '퀴즈 마스터', 
+                    x: 12, y: 19, 
+                    dialogChain: [
+                        '지혜는 힘보다 강할 때가 있는 법.',
+                        '내 퀴즈를 모두 맞춘다면 특별한 보상을 주겠네.',
+                        '도전해 보겠는가?'
+                    ]
+                },
+                { 
+                    id: 'npc_village_chief', 
+                    type: '촌장님', 
+                    name: '바람마을 촌장', 
+                    x: 10, y: 5, 
+                    dialogChain: [
+                        '요즘 마을 밖이 흉흉하네. 모험가여, 자네의 힘이 필요해.',
+                        '전설의 무기 드래곤 슬레이어를 얻는다면 어둠을 물리칠 수 있을 텐데...'
+                    ]
+                },
+                { 
+                    id: 'npc_guard', 
+                    type: '경비병', 
+                    name: '마을 경비대장', 
+                    x: 2, y: 12, 
+                    dialogChain: [
+                        '이 앞은 초보자들이 가기엔 위험합니다!',
+                        '장비를 단단히 정비하고 나가십시오.'
+                    ]
+                },
+                { 
+                    id: 'npc_merchant', 
+                    type: '떠돌이 상인', 
+                    name: '떠돌이 상인 카심', 
+                    x: 22, y: 18, 
+                    dialogChain: [
+                        '세상 곳곳을 돌아다니며 진귀한 물건을 구하죠.',
+                        '혹시 드래곤의 알이나 힘의 반지를 보셨나요?',
+                        '진귀한 물건을 찾으면 꼭 제게 가져오세요!'
+                    ]
+                },
             ],
             portals: [
                 { x: 0, y: 12, targetMap: 'map_000', targetX: 27, targetY: 15, label: '← 왕초보 사냥터' },
                 { x: 24, y: 12, targetMap: 'map_002', targetX: 1, targetY: 15, label: '→ 풍림 사냥터' },
+                { x: 5, y: 24, targetMap: 'map_004', targetX: 5, targetY: 6, label: '↓ 얼음 동굴' },
+                { x: 13, y: 0, targetMap: 'map_006', targetX: 5, targetY: 6, label: '↑ 잊혀진 광산' },
             ],
             monsterZones: [], // 마을은 안전 구역
             decorations: [
                 { id: 'shrine',     tileX: 10, tileY: 4  },
-                { id: 'shrine',     tileX: 18, tileY: 4  },
-                { id: 'tent',       tileX: 6,  tileY: 14 },
-                { id: 'tent',       tileX: 15, tileY: 18 },
-                { id: 'big_tree',   tileX: 21, tileY: 6  },
-                { id: 'waterfall',  tileX: 3,  tileY: 6  },
+                { id: 'well',       tileX: 13, tileY: 15 },
+                { id: 'market_stall', tileX: 16, tileY: 18 },
+                { id: 'castle_gate',  tileX: 0,  tileY: 10 }, // 서쪽 성문
+                { id: 'castle_gate',  tileX: 21, tileY: 10 }, // 동쪽 성문
+                { id: 'wooden_house', tileX: 5,  tileY: 2  }, // 신규 기와집
+                { id: 'wooden_house', tileX: 18, tileY: 2  },
+                { id: 'cherry_blossom', tileX: 8, tileY: 2 }, // 벚꽃
+                { id: 'cherry_blossom', tileX: 16, tileY: 2 },
+                { id: 'pavillion',    tileX: 11, tileY: 21 }, // 정자
+                { id: 'flower_bed',   tileX: 8, tileY: 18 }, // 꽃밭
+                { id: 'flower_bed',   tileX: 14, tileY: 18 },
             ],
         };
 
@@ -107,20 +211,25 @@ class MapManager {
             spawnX: 1,
             spawnY: 15,
             bgm: null,
+            weather: 'leaves',
             tiles: this._generateForestMap(),
             npcs: [
                 { id: 'npc_hunter', type: '길드마스터', name: '사냥꾼 진', x: 3, y: 14, dialog: '이곳은 풍림 사냥터다. 늑대와 해골 전사를 조심하게!' },
             ],
             portals: [
                 { x: 0, y: 15, targetMap: 'map_001', targetX: 23, targetY: 12, label: '← 바람 마을' },
+                { x: 34, y: 15, targetMap: 'map_003', targetX: 15, targetY: 26, label: '→ 불의 심장 (보스)' },
             ],
             monsterZones: [
-                { type: 'wolf', x: 8, y: 3, width: 12, height: 12, count: 25, level: 3 },
-                { type: 'skeleton', x: 20, y: 5, width: 12, height: 12, count: 20, level: 4 },
-                { type: 'wolf', x: 5, y: 20, width: 12, height: 12, count: 20, level: 3 },
-                { type: 'goblin', x: 20, y: 20, width: 12, height: 12, count: 20, level: 3 },
+                { type: 'm_011_wolf', x: 8, y: 3, width: 12, height: 12, count: 15, level: 3 },
+                { type: 'm_021_skeleton', x: 20, y: 5, width: 12, height: 12, count: 12, level: 4 },
+                { type: 'm_012_boar', x: 5, y: 20, width: 12, height: 12, count: 10, level: 3 },
+                { type: 'm_013_goblin_scout', x: 20, y: 20, width: 12, height: 12, count: 12, level: 3 },
+                { type: 'm_005_bee', x: 14, y: 8, width: 6, height: 6, count: 8, level: 3 },
+                { type: 'boss_slime_king', x: 25, y: 25, width: 6, height: 6, count: 1, level: 5 },
             ],
             decorations: [
+                { id: 'ruined_temple', tileX: 16, tileY: 16 },
                 { id: 'big_tree',   tileX: 4,  tileY: 4  },
                 { id: 'big_tree',   tileX: 15, tileY: 3  },
                 { id: 'big_tree',   tileX: 28, tileY: 5  },
@@ -128,11 +237,278 @@ class MapManager {
                 { id: 'ruin',       tileX: 22, tileY: 16 },
                 { id: 'cliff',      tileX: 12, tileY: 28 },
                 { id: 'waterfall',  tileX: 30, tileY: 20 },
+                { id: 'ancient_tree', tileX: 25, tileY: 25 },
+                { id: 'ancient_tree', tileX: 5,  tileY: 10 },
+                // 추가 나무 울타리 — 사냥 구역 분리용
+                { id: 'big_tree',   tileX: 10, tileY: 8  },
+                { id: 'big_tree',   tileX: 12, tileY: 8  },
+                { id: 'big_tree',   tileX: 20, tileY: 20 },
+                { id: 'big_tree',   tileX: 22, tileY: 22 },
+                { id: 'ancient_tree', tileX: 8,  tileY: 25 },
+                { id: 'ancient_tree', tileX: 30, tileY: 12 },
+                { id: 'big_tree',   tileX: 18, tileY: 28 },
+            ],
+            terrains: [
+                { id: 'mossy_rocks', tileX: 12, tileY: 12, alpha: 0.8 },
+                { id: 'stone_patch', tileX: 20, tileY: 25, alpha: 0.5 },
+            ],
+        };
+
+        // =============================================
+        // map_003: 불의 심장 (보스방, 30x30)
+        // =============================================
+        maps['map_003'] = {
+            name: '불의 심장 (보스)',
+            width: 30,
+            height: 30,
+            spawnX: 15,
+            spawnY: 25,
+            bgm: null,
+            weather: 'lava',
+            tiles: this._generateLavaMap(),
+            npcs: [],
+            portals: [
+                { x: 15, y: 29, targetMap: 'map_002', targetX: 17, targetY: 2, label: '← 풍림 사냥터' },
+            ],
+            monsterZones: [
+                { type: 'boss_black_dragon', x: 10, y: 5, width: 10, height: 10, count: 1, level: 10 },
+                { type: 'm_029_hell_hound', x: 5, y: 20, width: 8, height: 6, count: 5, level: 8 },
+                { type: 'm_024_gargoyle', x: 18, y: 20, width: 8, height: 6, count: 4, level: 8 },
+            ],
+            decorations: [
+                { id: 'magic_circle', tileX: 13, tileY: 13 }, // 중앙 보스 소환진
+                { id: 'skull_altar',  tileX: 5,  tileY: 5  },
+                { id: 'skull_altar',  tileX: 22, tileY: 5  },
+                { id: 'statue',      tileX: 8,  tileY: 10 },
+                { id: 'statue',      tileX: 20, tileY: 10 },
+                { id: 'lava_pillar', tileX: 5,  tileY: 20 },
+                { id: 'lava_pillar', tileX: 22, tileY: 20 },
+                { id: 'dungeon_torch', tileX: 12, tileY: 11 },
+                { id: 'dungeon_torch', tileX: 18, tileY: 11 },
+                { id: 'stone_pillar', tileX: 10, tileY: 15 },
+                { id: 'stone_pillar', tileX: 20, tileY: 15 },
+                { id: 'altar',       tileX: 14, tileY: 10 }, // 보석 제단
+                { id: 'dungeon_cage', tileX: 5,  tileY: 15 }, // 고립된 감옥
+                { id: 'lava_pit',     tileX: 10, tileY: 23 }, // 신규 용암 구덩이
+                { id: 'lava_pit',     tileX: 18, tileY: 23 },
+            ],
+        };
+
+        // =============================================
+        // map_004: 남천 얼음 동굴 (고급 사냥터, 30x30)
+        // =============================================
+        maps['map_004'] = {
+            name: '얼음 동굴',
+            width: 30,
+            height: 30,
+            spawnX: 5,
+            spawnY: 5,
+            bgm: null,
+            weather: 'snow',
+            tiles: this._generateIceMap(),
+            npcs: [],
+            portals: [
+                { x: 5, y: 5, targetMap: 'map_001', targetX: 5, targetY: 23, label: '↑ 바람 마을' },
+                { x: 28, y: 28, targetMap: 'map_005', targetX: 2, targetY: 2, label: '→ 하늘 성전' },
+            ],
+            monsterZones: [
+                { type: 'm_028_wraith', x: 8, y: 8, width: 10, height: 10, count: 10, level: 6 },
+                { type: 'm_038_polar_bear', x: 18, y: 15, width: 8, height: 8, count: 5, level: 8 },
+                { type: 'm_032_yeti', x: 5, y: 20, width: 10, height: 8, count: 4, level: 7 },
+                { type: 'm_039_ice_spirit', x: 20, y: 22, width: 8, height: 6, count: 6, level: 7 },
+                { type: 'boss_lich_king', x: 15, y: 15, width: 5, height: 5, count: 1, level: 9 },
+            ],
+            decorations: [
+                { id: 'ice_pillar',   tileX: 3,  tileY: 10 },
+                { id: 'ice_crystal',  tileX: 15, tileY: 20 },
+                { id: 'treasure_pile', tileX: 26, tileY: 26 }, // 숨겨진 보물
+                { id: 'stone_pillar', tileX: 10, tileY: 5 },
+                { id: 'stone_pillar', tileX: 20, tileY: 5 },
+                { id: 'ice_statue',   tileX: 5,  tileY: 20 }, // 신규 얼음 석상
+                { id: 'ice_statue',   tileX: 25, tileY: 5  },
+            ],
+        };
+
+        // =============================================
+        // map_005: 하늘 정원 (최종 결전, 40x40)
+        // =============================================
+        maps['map_005'] = {
+            name: '하늘 정원 (최종)',
+            width: 40,
+            height: 40,
+            spawnX: 2,
+            spawnY: 2,
+            bgm: null,
+            weather: 'leaves', // 꽃가루 느낌으로 낙엽 효과 재활용
+            tiles: this._generateHeavenMap(),
+            npcs: [
+                { 
+                    id: 'npc_final', 
+                    type: '길드마스터', 
+                    name: '천상의 수호자', 
+                    x: 20, y: 35, 
+                    dialogChain: [
+                        '너머에... 이 세계의 운명을 결정지을 존재가 기다리고 있다.',
+                        '용기를 잃지 마라, 모험가여.',
+                        '그대에게 신의 가호가 있기를.'
+                    ]
+                },
+            ],
+            portals: [
+                { x: 2, y: 2, targetMap: 'map_004', targetX: 27, targetY: 27, label: '← 얼음 동굴' },
+            ],
+            monsterZones: [
+                { type: 'boss_black_dragon', x: 15, y: 15, width: 10, height: 10, count: 1, level: 12 },
+                { type: 'm_028_wraith', x: 5, y: 10, width: 10, height: 15, count: 12, level: 9 },
+                { type: 'm_042_heavenly_knight', x: 25, y: 10, width: 10, height: 15, count: 8, level: 10 },
+                { type: 'm_044_valkyrie', x: 15, y: 30, width: 10, height: 8, count: 3, level: 11 },
+            ],
+            decorations: [
+                { id: 'magic_circle', tileX: 18, tileY: 18 },
+                { id: 'world_tree',   tileX: 30, tileY: 5  },
+                { id: 'castle_gate',  tileX: 18, tileY: 30 },
+                { id: 'statue',       tileX: 10, tileY: 35 },
+                { id: 'statue',       tileX: 30, tileY: 35 },
+            ],
+        };
+
+        // =============================================
+        // map_006: 잊혀진 광산 (광산 맵, 30x30)
+        // =============================================
+        maps['map_006'] = {
+            name: '잊혀진 광산',
+            width: 30,
+            height: 30,
+            spawnX: 5,
+            spawnY: 5,
+            bgm: null,
+            tiles: this._generateMineMap(),
+            npcs: [
+                { id: 'npc_miner', type: '길드마스터', name: '늙은 광부', x: 7, y: 7, dialog: '이곳은 한때 보물이 가득했지... 지금은 멧돼지들이 점령했다네.' },
+            ],
+            portals: [
+                { x: 5, y: 28, targetMap: 'map_001', targetX: 13, targetY: 2, label: '↑ 바람 마을' },
+            ],
+            monsterZones: [
+                { type: 'm_012_boar', x: 10, y: 10, width: 12, height: 12, count: 12, level: 5 },
+                { type: 'm_019_spider_web', x: 20, y: 8, width: 8, height: 10, count: 8, level: 4 },
+                { type: 'm_025_mimic', x: 22, y: 22, width: 6, height: 6, count: 3, level: 6 },
+            ],
+            decorations: [
+                { id: 'mine_rail',      tileX: 5,  tileY: 15 },
+                { id: 'mine_rail',      tileX: 7,  tileY: 15 },
+                { id: 'mine_rail',      tileX: 9,  tileY: 15 },
+                { id: 'mine_ore',       tileX: 15, tileY: 10 },
+                { id: 'mine_ore',       tileX: 18, tileY: 12 },
+                { id: 'mine_stalactite', tileX: 20, tileY: 5 },
+                { id: 'mine_stalactite', tileX: 10, tileY: 25 },
             ],
         };
 
         return maps;
     }
+
+    /**
+     * 광산 맵 생성 (30x30)
+     */
+    _generateMineMap() {
+        const W = 30, H = 30;
+        // 시드 기반 랜덤 (일관성 유지)
+        let seed = 42;
+        const seededRand = () => { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; };
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 5 && y === H - 1) row.push(4); // 남쪽 포털 (마을로 귀환)
+                    else row.push(8); // 동굴 벽
+                } else if (seededRand() < 0.08) {
+                    row.push(8); // 바위 기둥 (이동 불가)
+                } else {
+                    row.push(7); // 동굴 바닥 (이동 가능)
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
+    /**
+     * 얼음 맵 생성 (30x30)
+     */
+    _generateIceMap() {
+        const W = 30, H = 30;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 5 && y === 0) row.push(4); // 북쪽 포털
+                    else if (x === W - 2 && y === H - 1) row.push(4); // 남쪽 포털 (약간 우측 아래)
+                    else row.push(1);
+                } else if (Math.random() < 0.15) {
+                    row.push(3); // 얼음물
+                } else if (Math.random() < 0.08) {
+                    row.push(6); // 얼음 바위 (나무 타일 재활용)
+                } else {
+                    row.push(0); // 눈바닥
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
+    /**
+     * 하늘 성전 맵 생성 (40x40)
+     */
+    _generateHeavenMap() {
+        const W = 40, H = 40;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 2 && y === 0) row.push(4); // 입구 포털
+                    else row.push(1);
+                } else if ((x + y) % 10 === 0) {
+                    row.push(5); // 대리석 길 (나무바닥 재활용)
+                } else if (Math.random() < 0.05) {
+                    row.push(3); // 구름 구덩이 (물 재활용)
+                } else {
+                    row.push(0); // 황금 풀밭
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
+    /**
+     * 용암 맵 생성 (30x30)
+     */
+    _generateLavaMap() {
+        const W = 30, H = 30;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    row.push(1); // 벽
+                } else if ((x < 5 || x > 25 || y < 5 || y > 25) && !(x === 15 && y > 24)) {
+                    row.push(3); // 용암 (물 타일 재활용하거나 추후 용암 타일 추가)
+                } else if (Math.random() < 0.1) {
+                    row.push(2); // 흙
+                } else {
+                    row.push(5); // 나무바닥 (열기 있는 바닥 대용)
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
 
     /**
      * 왕초보 사냥터 맵 타일 데이터 생성 (30x30)
@@ -191,7 +567,9 @@ class MapManager {
                 // 외곽 벽
                 if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
                     if ((x === 0 && y === 12) || (x === W - 1 && y === 12)) {
-                        row.push(4); // 포털
+                        row.push(4); // 포털 (서쪽/동쪽)
+                    } else if (x === 13 && y === 0) {
+                        row.push(4); // 포털 (북쪽, 광산으로)
                     } else {
                         row.push(1);
                     }
@@ -246,7 +624,9 @@ class MapManager {
                 // 외곽 벽
                 if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
                     if (x === 0 && y === 15) {
-                        row.push(4); // 서쪽 포털
+                        row.push(4); // 서쪽 포털 (마을)
+                    } else if (x === W - 1 && y === 15) {
+                        row.push(4); // 동쪽 포털 (보스방)
                     } else {
                         row.push(1);
                     }
@@ -395,8 +775,25 @@ class MapManager {
             }
         }
 
-        // ④ 메가타일 데코레이션 레이어 렌더링 (타일 2~6개 크기 대형 오브젝트)
+        // ④ 메가타일 지형(Terrain) 레이어 렌더링 (바닥 배경용 대형 오브젝트)
         const megaTiles = assetManager.images.megaTiles;
+        if (megaTiles && map.terrains) {
+            map.terrains.forEach(terr => {
+                const mgt = megaTiles[terr.id];
+                if (!mgt || !mgt.canvas) return;
+                const sx = terr.tileX * this.TILE_SIZE - this.camera.x;
+                const sy = terr.tileY * this.TILE_SIZE - this.camera.y;
+                if (sx + mgt.canvas.width < 0 || sx > this.canvas.width) return;
+                if (sy + mgt.canvas.height < 0 || sy > this.canvas.height) return;
+                // 지형은 그림자 없이 바로 렌더링 (또는 매우 낮은 투명도)
+                this.ctx.save();
+                this.ctx.globalAlpha = terr.alpha || 1.0;
+                this.ctx.drawImage(mgt.canvas, Math.floor(sx), Math.floor(sy));
+                this.ctx.restore();
+            });
+        }
+
+        // ⑤ 메가타일 데코레이션 레이어 렌더링 (타일 2~6개 크기 대형 오브젝트)
         if (megaTiles && map.decorations) {
             map.decorations.forEach(deco => {
                 const mgt = megaTiles[deco.id];
@@ -482,8 +879,32 @@ class MapManager {
             return false;
         }
 
+        // ① 기본 타일 충돌 검사
         const tileId = this.currentMap.tiles[tileY][tileX];
-        return !this.solidTiles.has(tileId);
+        if (this.solidTiles.has(tileId)) return false;
+
+        // ② 메가타일(데코레이션) 충돌 검사
+        if (this.currentMap.decorations && typeof assetManager !== 'undefined' && assetManager.images.megaTiles) {
+            const decos = this.currentMap.decorations;
+            const megaTiles = assetManager.images.megaTiles;
+            for (let i = 0; i < decos.length; i++) {
+                const deco = decos[i];
+                // solid 오브젝트만 충돌 판정
+                if (!this.solidDecorations.has(deco.id)) continue;
+                // 메가타일 크기 정보 조회
+                const mgt = megaTiles[deco.id];
+                if (!mgt) continue;
+                const tw = mgt.tilesW || 2;
+                const th = mgt.tilesH || 2;
+                // 타일 좌표가 메가타일 영역 안에 있는지 확인
+                if (tileX >= deco.tileX && tileX < deco.tileX + tw &&
+                    tileY >= deco.tileY && tileY < deco.tileY + th) {
+                    return false; // 이동 불가
+                }
+            }
+        }
+
+        return true; // 이동 가능
     }
 
     /**

@@ -110,12 +110,7 @@ class InputManager {
             });
         }
         
-        const btnSettings = document.getElementById('hud-btn-settings');
-        if (btnSettings) {
-            btnSettings.addEventListener('click', () => {
-                alert('설정창은 개발 중입니다.');
-            });
-        }
+        // hud-btn-settings는 setupHUDButtons()에서 openSettingsPanel로 연결됨
 
 
         // 2. 공격 버튼 (⚔️)
@@ -151,8 +146,14 @@ class InputManager {
                     e.preventDefault();
                     if (window.localPlayer && window.combatManager) {
                         const result = skillManager.useSkill(i, window.localPlayer, window.combatManager);
-                        if (!result.success) {
-                            console.log(`[Input] Skill ${i} 실패: ${result.message}`);
+                        if (!result.success && window.combatManager._addDamageText) {
+                            // 스킬 사용 실패(미배치, 쿨다운, MP부족 등) 시 피드백 제공
+                            window.combatManager._addDamageText(
+                                window.localPlayer.x + 16, 
+                                window.localPlayer.y - 16, 
+                                result.message, 
+                                '#ff4444'
+                            );
                         }
                     }
                 });

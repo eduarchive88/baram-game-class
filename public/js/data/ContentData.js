@@ -50,6 +50,7 @@ const GameData = {
         'wpn_020_holy_fan': { name: '성스러운 기운의 부채', type: 'weapon', class: 'shaman', matk: 115, price: 46000 },
         'wpn_017b_excalibur': { name: '엑스칼리버', type: 'weapon', class: 'warrior', atk: 180, price: 100000 },
         'wpn_018b_moonlight_blade': { name: '달빛 화문도', type: 'weapon', class: 'rogue', atk: 155, crit: 45, price: 95000 },
+        'wpn_dragon_slayer': { name: '드래곤 슬레이어', type: 'weapon', class: 'warrior', atk: 150, price: 100000 },
 
         // --- [Armor - Body] ---
         'arm_001_cloth': { name: '누더기 옷', type: 'armor', def: 1, price: 30 },
@@ -60,6 +61,7 @@ const GameData = {
         'arm_b01_linen': { name: '삼베 옷', type: 'armor', def: 3, price: 100 },
         'arm_b02_studded': { name: '징 박힌 가죽갑', type: 'armor', def: 10, price: 1000 },
         'arm_b03_full_plate': { name: '풀 플레이트 메일', type: 'armor', def: 30, price: 8000 },
+        'arm_dragon_armor': { name: '드래곤 아머', type: 'armor', def: 80, price: 50000 },
 
         // --- [Armor - Shield/Misc] ---
         'shd_001_wood': { name: '나무 방패', type: 'shield', def: 2, price: 150 },
@@ -74,6 +76,7 @@ const GameData = {
         'acc_n01_beads': { name: '염주', type: 'acc', mp: 50, price: 1200 },
         'acc_n02_amulet': { name: '호신 부적', type: 'acc', def: 5, price: 5000 },
         'acc_n03_ruby': { name: '루비 펜던트', type: 'acc', atk: 15, price: 20000 },
+        'acc_ring_of_power': { name: '힘의 반지', type: 'acc', hp: 500, mp: 200, price: 30000 },
 
         // --- [Consumables] ---
         'pot_red_1': { name: '빨간 시약(소)', type: 'potion', heal: 50, price: 20 },
