@@ -242,18 +242,8 @@ class SkillManager {
     canLearn(skillId, player) {
         const skill = this.SKILLS[skillId];
         if (!skill) return { ok: false, reason: '존재하지 않는 스킬' };
-        if (skill.job !== player.job) return { ok: false, reason: '다른 직업의 스킬입니다' };
-        if (player.level < skill.reqLevel) return { ok: false, reason: `Lv.${skill.reqLevel} 필요` };
         if (player.learnedSkills && player.learnedSkills.includes(skillId)) return { ok: false, reason: '이미 습득한 스킬' };
-        if (player.gold < skill.learnCost.gold) return { ok: false, reason: '골드 부족' };
-
-        // 아이템 확인
-        for (const [itemId, qty] of Object.entries(skill.learnCost.items || {})) {
-            if (inventoryManager.getItemCount(itemId) < qty) {
-                const item = shopManager.getItem(itemId);
-                return { ok: false, reason: `${item ? item.name : itemId} ${qty}개 필요` };
-            }
-        }
+        // 오픈 모드: 직업·레벨·비용 제한 해제 — 모든 학생이 자유롭게 체험
         return { ok: true };
     }
 
@@ -266,13 +256,7 @@ class SkillManager {
 
         const skill = this.SKILLS[skillId];
 
-        // 비용 차감
-        player.gold -= skill.learnCost.gold;
-        for (const [itemId, qty] of Object.entries(skill.learnCost.items || {})) {
-            inventoryManager.removeItem(itemId, qty);
-        }
-
-        // 스킬 습득
+        // 오픈 모드: 비용 차감 없음 (모든 스킬 무료 습득)
         if (!player.learnedSkills) player.learnedSkills = [];
         player.learnedSkills.push(skillId);
 
@@ -326,8 +310,41 @@ class SkillManager {
         // 쿨타임 시작
         this.cooldowns[skillId] = skill.cooldown;
 
-        // 사운드: 스킬 시전
-        soundManager.play('skill');
+        // 사운드: 스킬 유형별 고유 효과음 재생
+        const skillSoundMap = {
+            // ── 전사 ──
+            warrior_heal1:      'skill_heal',
+            warrior_double:     'slash_heavy',
+            warrior_triple:     'slash_heavy',
+            warrior_buff_atk:   'skill_buff',
+            warrior_ultimate:   'skill_aoe',
+            warrior_super_buff: 'skill_buff',
+            // ── 도적 ──
+            thief_buff_atk:     'skill_buff',
+            thief_double:       'slash_fast',
+            thief_stealth:      'skill_debuff',
+            thief_blink:        'skill_thunder',
+            thief_ultimate:     'critical',
+            thief_clone:        'skill_buff',
+            // ── 주술사 ──
+            mage_magic1:        'skill_fire',
+            mage_magic2:        'skill_ice',
+            mage_protect:       'skill_buff',
+            mage_magic3:        'skill_fire',
+            mage_curse:         'skill_debuff',
+            mage_paralyze:      'skill_thunder',
+            mage_ultimate:      'skill_aoe',
+            // ── 도사 ──
+            poet_mana_drain:    'skill_heal',
+            poet_magic1:        'magic_cast',
+            poet_protect:       'skill_buff',
+            poet_heal_big:      'skill_heal',
+            poet_barrier:       'skill_buff',
+            poet_mega_heal:     'skill_heal',
+            poet_invincible:    'skill_buff',
+        };
+        const skillSound = skillSoundMap[skillId] || 'skill';
+        soundManager.play(skillSound);
 
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
@@ -344,39 +361,38 @@ class SkillManager {
 
         // ===== 개별 스킬별 고유 비주얼 이펙트 =====
         if (player.spawnSkillEffect) {
-            // 개별 스킬 ID별 고유 이펙트/색상 매핑
+            // 개별 스킬 ID별 고유 이펙트/색상 매핑 (AssetManager.images.procEffects ID 사용)
             const skillVisualMap = {
                 // ── 전사 ──
                 warrior_heal1:    { fx: 'heal',  color: '#80ff80' },
-                warrior_double:   { fx: 'magic', color: '#FF6B35' },
-                warrior_triple:   { fx: 'magic', color: '#FF4500' },
+                warrior_double:   { fx: 'proc',  id: 'double_slash' },
+                warrior_triple:   { fx: 'proc',  id: 'triple_slash' },
                 warrior_buff_atk: { fx: 'buff',  color: '#FF8C00' },
-                warrior_ultimate: { fx: 'aoe',   color: '#FF2200' },
+                warrior_ultimate: { fx: 'proc',  id: 'earth' },
                 warrior_super_buff: { fx: 'buff', color: '#FFD700' },
                 // ── 도적 ──
                 thief_buff_atk:   { fx: 'buff',  color: '#E0AAFF' },
-                thief_double:     { fx: 'magic', color: '#C77DFF' },
-                thief_stealth:    { fx: 'buff',  color: '#7B2D8E' },
-                thief_blink:      { fx: 'magic', color: '#9D4EDD' },
-                thief_ultimate:   { fx: 'aoe',   color: '#E040FB' },
+                thief_double:     { fx: 'proc',  id: 'double_slash' },
+                thief_stealth:    { fx: 'proc',  id: 'stealth' },
+                thief_blink:      { fx: 'proc',  id: 'wind' },
+                thief_ultimate:   { fx: 'proc',  id: 'triple_slash' },
                 thief_clone:      { fx: 'buff',  color: '#AA00FF' },
                 // ── 주술사 ──
-                mage_magic1:      { fx: 'magic', color: '#7B68EE' },
-                mage_magic2:      { fx: 'magic', color: '#6A5ACD' },
+                mage_magic1:      { fx: 'proc',  id: 'aoe_fire' },
+                mage_magic2:      { fx: 'proc',  id: 'aoe_ice' },
                 mage_protect:     { fx: 'buff',  color: '#4FC3F7' },
-                mage_magic3:      { fx: 'magic', color: '#9370DB' },
-                mage_curse:       { fx: 'magic', color: '#B71C1C' },
-                mage_paralyze:    { fx: 'magic', color: '#FFEB3B' },
-                mage_ultimate:    { fx: 'aoe',   color: '#FF5722' },
+                mage_magic3:      { fx: 'proc',  id: 'aoe_poison' },
+                mage_curse:       { fx: 'proc',  id: 'curse' },
+                mage_paralyze:    { fx: 'proc',  id: 'paralyze' },
+                mage_ultimate:    { fx: 'proc',  id: 'aoe_fire' }, 
                 // ── 도사 ──
-                poet_mana_drain:  { fx: 'heal',  color: '#80D8FF' },
-                poet_magic1:      { fx: 'magic', color: '#00E676' },
+                poet_mana_drain:  { fx: 'proc',  id: 'hp_to_mp' },
+                poet_magic1:      { fx: 'proc',  id: 'wind' },
                 poet_protect:     { fx: 'buff',  color: '#69F0AE' },
-                poet_heal1:       { fx: 'heal',  color: '#B9F6CA' },
-                poet_heal2:       { fx: 'heal',  color: '#00E5FF' },
-                poet_group_heal:  { fx: 'heal',  color: '#64FFDA' },
-                poet_resurrect:   { fx: 'heal',  color: '#FFD740' },
-                poet_ultimate:    { fx: 'aoe',   color: '#18FFFF' },
+                poet_heal_big:    { fx: 'proc',  id: 'holy' },
+                poet_barrier:     { fx: 'proc',  id: 'stealth' },
+                poet_mega_heal:   { fx: 'proc',  id: 'holy' },
+                poet_invincible:  { fx: 'proc',  id: 'holy' },
             };
 
             // 타입별 폴백 매핑
@@ -398,7 +414,9 @@ class SkillManager {
             const visual = skillVisualMap[skillId];
             const fxType = visual ? visual.fx : (typeEffectMap[skill.type] || 'magic');
             const fxColor = visual ? visual.color : (typeColorMap[skill.type] || '#ffffff');
-            player.spawnSkillEffect(fxType, fxColor);
+            const procId = visual ? visual.id : null;
+            
+            player.spawnSkillEffect(fxType, fxColor, procId);
         }
 
         return { success: true, message: `${skill.icon} ${skill.name}!` };
@@ -722,88 +740,183 @@ class SkillManager {
         const popup = overlay.querySelector('.skillbook-popup');
         if (!popup) return;
 
-        // 현재 직업 스킬만 필터링
-        const jobSkills = Object.values(this.SKILLS).filter(s => s.job === player.job);
+        // 직업 아이콘
+        const jobIcons = { '전사': '⚔️', '도적': '🗡️', '주술사': '🔮', '도사': '☯️' };
+
+        // 현재 직업 스킬만 필터링, 레벨순 정렬
+        const jobSkills = Object.values(this.SKILLS)
+            .filter(s => s.job === player.job)
+            .sort((a, b) => a.reqLevel - b.reqLevel);
         const learned = player.learnedSkills || [];
 
         popup.innerHTML = `
             <div class="sb-header">
-                <span class="sb-icon">📖</span>
-                <h3>${player.job} 스킬북</h3>
+                <span class="sb-job-icon">${jobIcons[player.job] || '📖'}</span>
+                <div class="sb-header-info">
+                    <h3>${player.job} 스킬 트리</h3>
+                    <span class="sb-level-badge">Lv.${player.level}</span>
+                </div>
                 <button class="sb-close-btn" id="sb-close">✕</button>
             </div>
-            <p class="sb-sub">💰 ${player.gold}전 | MP ${player.stats.mp}/${player.stats.maxMp}</p>
-            <div class="sb-skills" id="sb-skills-list"></div>
+            <div class="sb-stats-bar">
+                <span>💰 ${player.gold.toLocaleString()}전</span>
+                <span>💙 MP ${player.stats.mp}/${player.stats.maxMp}</span>
+                <span>✅ 습득 ${learned.filter(id => this.SKILLS[id] && this.SKILLS[id].job === player.job).length}/${jobSkills.length}</span>
+            </div>
+
+            <div class="sb-layout">
+                <div class="sb-tree-col">
+                    <h4 class="sb-col-title">스킬 트리</h4>
+                    <div id="sb-skills-list" class="sb-skills"></div>
+                </div>
+                <div class="sb-detail-col" id="sb-detail-panel">
+                    <div class="sb-detail-placeholder">
+                        <div style="font-size:2rem;margin-bottom:8px;">👆</div>
+                        <p>스킬을 클릭하면<br>상세 정보가 표시됩니다</p>
+                    </div>
+                </div>
+            </div>
+
             <p id="sb-message" class="sb-message"></p>
 
             <div class="sb-bar-section">
-                <h4>⚡ 스킬바 배치 (숫자키 1~4)</h4>
+                <h4>⚡ 스킬바 (숫자키 1~4로 사용)</h4>
                 <div class="sb-bar" id="sb-bar-slots"></div>
             </div>
         `;
 
         popup.querySelector('#sb-close').addEventListener('click', () => this.closeBook());
 
-        // 스킬 목록 렌더링
+        // 스킬 트리 렌더링
         const listEl = popup.querySelector('#sb-skills-list');
-        jobSkills.forEach(skill => {
+        jobSkills.forEach((skill, idx) => {
             const isLearned = learned.includes(skill.id);
-            const check = this.canLearn(skill.id, player);
-            const onBar = this.skillBar.includes(skill.id);
+            const stateClass = isLearned ? 'st-learned' : 'st-available';
 
-            // 습득 비용 텍스트
-            let costText = `${skill.learnCost.gold}전`;
-            for (const [itemId, qty] of Object.entries(skill.learnCost.items || {})) {
-                const item = shopManager.getItem(itemId);
-                costText += ` + ${item ? item.name : itemId}×${qty}`;
-            }
+            const row = document.createElement('div');
+            row.className = `sb-tree-row ${stateClass}`;
+            row.dataset.id = skill.id;
 
-            const card = document.createElement('div');
-            card.className = `sb-skill-card ${isLearned ? 'learned' : ''} ${!isLearned && !check.ok ? 'locked' : ''}`;
-            card.innerHTML = `
-                <div class="sb-skill-icon">${skill.icon}</div>
-                <div class="sb-skill-info">
-                    <div class="sb-skill-name">${skill.name} <span class="sb-skill-lv">Lv.${skill.reqLevel}</span></div>
-                    <div class="sb-skill-desc">${skill.desc}</div>
-                    <div class="sb-skill-cost">MP: ${skill.mpCost} | CD: ${skill.cooldown}s</div>
-                </div>
-                <div class="sb-skill-actions">
-                    ${isLearned
-                    ? `<span class="sb-learned-badge">✅ 습득</span>
-                           ${!onBar ? `<button class="sb-equip-btn" data-id="${skill.id}">배치</button>` : '<span class="sb-on-bar">⚡</span>'}`
-                    : `<div class="sb-learn-cost">${costText}</div>
-                           <button class="sb-learn-btn" data-id="${skill.id}" ${!check.ok ? 'disabled' : ''}>습득</button>`
-                }
+            // 레벨 진행도 바 (max level for job ~ 65)
+            const maxLv = 65;
+            const lvPct = Math.min(100, Math.round((skill.reqLevel / maxLv) * 100));
+
+            row.innerHTML = `
+                ${idx > 0 ? '<div class="sb-tree-connector"></div>' : ''}
+                <div class="sb-tree-node">
+                    <div class="sb-tree-icon">${skill.icon}</div>
+                    <div class="sb-tree-meta">
+                        <div class="sb-tree-name">${skill.name}</div>
+                        <div class="sb-tree-lv-bar">
+                            <div class="sb-tree-lv-fill" style="width:${lvPct}%"></div>
+                        </div>
+                        <div class="sb-tree-lv-label">추천 Lv.${skill.reqLevel}</div>
+                    </div>
+                    <div class="sb-tree-state">
+                        ${isLearned ? '<span class="sb-badge-learned">✅ 습득완료</span>'
+                                    : '<span class="sb-badge-available">✨ 배울 수 있어요!</span>'}
+                    </div>
                 </div>
             `;
-            listEl.appendChild(card);
+            listEl.appendChild(row);
         });
 
-        // 습득 버튼 이벤트
-        listEl.querySelectorAll('.sb-learn-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const result = this.learnSkill(btn.dataset.id, player);
-                this._showBookMessage(result.message, result.success);
-                if (result.success) this._renderBookUI(player);
-            });
-        });
-
-        // 배치 버튼 이벤트
-        listEl.querySelectorAll('.sb-equip-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const emptySlot = this.skillBar.indexOf(null);
-                if (emptySlot !== -1) {
-                    this.skillBar[emptySlot] = btn.dataset.id;
-                    this._save(player);
-                    this._renderBookUI(player);
-                } else {
-                    this._showBookMessage('스킬바가 가득 찼습니다. 기존 스킬을 제거하세요.', false);
-                }
+        // 스킬 클릭 → 상세 패널
+        listEl.querySelectorAll('.sb-tree-row').forEach(row => {
+            row.addEventListener('click', () => {
+                listEl.querySelectorAll('.sb-tree-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                this._showSkillDetail(row.dataset.id, player, popup);
             });
         });
 
         // 스킬바 슬롯 렌더링
         this._renderBarSlots(player);
+    }
+
+    /**
+     * 스킬 상세 패널 렌더링
+     */
+    _showSkillDetail(skillId, player, popup) {
+        const skill = this.SKILLS[skillId];
+        if (!skill) return;
+        const panel = popup.querySelector('#sb-detail-panel');
+        if (!panel) return;
+
+        const learned = player.learnedSkills || [];
+        const isLearned = learned.includes(skillId);
+        const onBar = this.skillBar.includes(skillId);
+        const costText = '무료 (오픈 모드)';
+
+        const typeNames = {
+            'self_heal': '🩹 회복', 'hp_to_mp': '🔄 전환',
+            'attack_multi': '⚔️ 물리공격', 'magic_attack': '✨ 마법공격',
+            'aoe_attack': '💥 광역물리', 'aoe_magic': '🌋 광역마법',
+            'buff': '🛡️ 버프', 'buff_multi': '✨ 복합버프', 'debuff': '☠️ 디버프',
+        };
+
+        panel.innerHTML = `
+            <div class="sb-detail-card">
+                <div class="sb-detail-icon">${skill.icon}</div>
+                <div class="sb-detail-name">${skill.name}</div>
+                <div class="sb-detail-type">${typeNames[skill.type] || skill.type}</div>
+                <div class="sb-detail-desc">${skill.desc}</div>
+                <div class="sb-detail-stats">
+                    <div class="sb-detail-stat"><span>추천 레벨</span><strong>Lv.${skill.reqLevel}</strong></div>
+                    <div class="sb-detail-stat"><span>MP 소모</span><strong>${skill.mpCost}</strong></div>
+                    <div class="sb-detail-stat"><span>쿨타임</span><strong>${skill.cooldown}초</strong></div>
+                </div>
+                <div class="sb-detail-cost">습득 비용: ${costText}</div>
+                <div class="sb-detail-actions" id="sb-detail-actions"></div>
+            </div>
+        `;
+
+        const actEl = panel.querySelector('#sb-detail-actions');
+
+        if (isLearned) {
+            actEl.innerHTML = `
+                <div class="sb-learned-info">✅ 이미 습득한 스킬입니다.</div>
+                ${onBar
+                    ? `<button class="sb-btn-unequip" data-id="${skillId}">⚡ 스킬바에서 제거</button>`
+                    : `<button class="sb-btn-equip" data-id="${skillId}">⚡ 스킬바에 배치</button>`
+                }
+            `;
+            actEl.querySelector('.sb-btn-equip, .sb-btn-unequip')?.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (onBar) {
+                    const slotIdx = this.skillBar.indexOf(id);
+                    if (slotIdx !== -1) this.skillBar[slotIdx] = null;
+                } else {
+                    const emptySlot = this.skillBar.indexOf(null);
+                    if (emptySlot !== -1) {
+                        this.skillBar[emptySlot] = id;
+                    } else {
+                        this._showBookMessage('스킬바가 가득 찼습니다.', false);
+                        return;
+                    }
+                }
+                this._save(player);
+                this._renderBookUI(player);
+                // 상세 패널 다시 표시
+                setTimeout(() => {
+                    const row = document.querySelector(`.sb-tree-row[data-id="${skillId}"]`);
+                    if (row) { row.classList.add('selected'); this._showSkillDetail(skillId, player, popup); }
+                }, 50);
+            });
+        } else {
+            actEl.innerHTML = `<button class="sb-btn-learn" data-id="${skillId}">✨ 스킬 습득하기</button>`;
+            actEl.querySelector('.sb-btn-learn').addEventListener('click', () => {
+                const result = this.learnSkill(skillId, player);
+                this._showBookMessage(result.message, result.success);
+                if (result.success) {
+                    this._renderBookUI(player);
+                    setTimeout(() => {
+                        const row = document.querySelector(`.sb-tree-row[data-id="${skillId}"]`);
+                        if (row) { row.classList.add('selected'); this._showSkillDetail(skillId, player, popup); }
+                    }, 50);
+                }
+            });
+        }
     }
 
     /**

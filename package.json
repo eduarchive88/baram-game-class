@@ -1,7 +1,7 @@
 {
     "name": "baram-game-class",
     "version": "1.0.0",
-    "description": "교육용 2D 실시간 멀티플레이 RPG - 바람의 나라 클래식 베이스",
+    "description": "미르의 땅 - 교육용 2D 실시간 멀티플레이 RPG",
     "private": true,
     "scripts": {
         "dev": "npx serve public -l 3000",

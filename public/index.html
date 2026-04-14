@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="바람의 나라 교육용 2D 실시간 멀티플레이 RPG">
-    <title>⚔️ 바람의 나라 - 교육용 RPG</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="description" content="미르의 땅 - 교육용 2D 실시간 멀티플레이 RPG">
+    <title>🌟 미르의 땅 - 모험이 시작되는 곳</title>
+    <link rel="stylesheet" href="css/style.css?v=3">
     <link
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@700&display=swap"
         rel="stylesheet">
@@ -19,8 +19,8 @@
             <div class="game-logo" style="margin-bottom:24px;">
                 <h2
                     style="font-family:'Noto Serif KR',serif; font-size:1.8rem; background:linear-gradient(180deg,#ffe070,#f0c040 60%,#c49a20); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px;">
-                    ⚔️ 바람의 나라</h2>
-                <p style="color:var(--text-secondary); font-size:0.85rem; margin-top:4px;">교육용 실시간 멀티플레이 RPG</p>
+                    🌟 미르의 땅</h2>
+                <p style="color:var(--text-secondary); font-size:0.85rem; margin-top:4px;">친구들과 함께 떠나는 모험 · 교육용 멀티플레이 RPG</p>
             </div>
 
             <!-- 로그인 탭 (학생 / 교사) -->
@@ -99,8 +99,8 @@
     <!-- ==================== 캐릭터 생성 화면 ==================== -->
     <div id="character-screen" class="game-title-screen" style="display:none;">
         <div class="game-logo">
-            <h1>⚔️ 바람의 나라</h1>
-            <p>교육용 실시간 멀티플레이 RPG</p>
+            <h1>🌟 미르의 땅</h1>
+            <p>친구들과 함께 떠나는 모험이 여기서 시작됩니다</p>
         </div>
         <div class="character-create">
             <h3>🎭 캐릭터 생성</h3>
@@ -143,6 +143,15 @@
 
     <!-- ==================== 게임 컨테이너 (초기 픽셀 RPG 스타일) ==================== -->
     <div id="game-container">
+        <!-- 게임 로딩 오버레이 -->
+        <div id="game-loading-overlay" style="display:none;">
+            <div class="loading-title">🌟 미르의 땅</div>
+            <div class="loading-subtitle">친구들과 함께 떠나는 모험이 시작됩니다</div>
+            <div class="loading-bar-wrap"><div id="loading-bar-fill" class="loading-bar-fill" style="width:0%"></div></div>
+            <div id="loading-status" style="color:var(--text-secondary);font-size:0.8rem;margin-top:8px;">모험 준비 중...</div>
+            <div class="loading-spinner"></div>
+            <div class="loading-tip" id="loading-tip">💡 팁: 스킬창(✨)에서 모든 스킬을 자유롭게 배울 수 있어요!</div>
+        </div>
         <!-- 메인 게임 월드 -->
         <div id="game-main-area">
             <canvas id="game-canvas"></canvas>
@@ -172,10 +181,18 @@
 
                 <!-- 상단 우측: 시스템 메뉴 -->
                 <div class="hud-top-right">
+                    <button id="hud-btn-party" class="hud-circle-btn" title="파티">👥</button>
+                    <button id="hud-btn-autopotion" class="hud-circle-btn" title="자동 포션 OFF" style="opacity:0.5;">💊</button>
                     <button id="hud-btn-inventory" class="hud-circle-btn" title="인벤토리">🎒</button>
                     <button id="hud-btn-skillbook" class="hud-circle-btn" title="스킬">✨</button>
                     <button id="hud-btn-settings" class="hud-circle-btn" title="설정">⚙️</button>
                     <button id="hud-btn-logout" class="hud-circle-btn" title="로그아웃" style="background: var(--red-accent);">🚪</button>
+                </div>
+
+                <!-- 모바일 미니맵 (좌측 하단 조이스틱 위) -->
+                <div id="mobile-minimap" class="mobile-minimap-container">
+                    <canvas id="mobile-minimap-canvas"></canvas>
+                    <div id="mobile-location-name" class="mobile-location-label">평리 마을</div>
                 </div>
                 
                 <!-- 파티 리스트 HUD -->
@@ -226,9 +243,14 @@
             <!-- 게임 내 팝업 (NPC 대화 등) -->
             <div id="world-ui">
                 <div id="dialog-box" class="dialog-box" style="display:none;">
-                    <div class="dialog-name" id="dialog-name">NPC</div>
-                    <div class="dialog-text" id="dialog-text">대화 내용</div>
-                    <div class="dialog-hint">[Space / 터치하여 닫기]</div>
+                    <div class="dialog-portrait-container">
+                        <img id="dialog-portrait" src="" alt="portrait" style="display:none;">
+                    </div>
+                    <div class="dialog-content">
+                        <div class="dialog-name" id="dialog-name">NPC</div>
+                        <div class="dialog-text" id="dialog-text">대화 내용</div>
+                        <div class="dialog-hint">[Space / 터치하여 닫기]</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -266,7 +288,10 @@
 
             <!-- 미니맵 영역 -->
             <div id="minimap-panel" class="interface-panel">
-                <div class="panel-title">지도</div>
+                <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>지도</span>
+                    <button id="btn-minimap-toggle" style="background:none;border:none;color:var(--text-secondary);font-size:0.7rem;cursor:pointer;padding:0 2px;" title="미니맵 크기 전환">⊞</button>
+                </div>
                 <div id="minimap-container">
                     <canvas id="minimap-canvas"></canvas>
                 </div>
@@ -278,6 +303,8 @@
                 <button id="btn-inventory" class="ui-btn" title="가방">🎒</button>
                 <button id="btn-skillbook" class="ui-btn" title="스킬">✨</button>
                 <button id="btn-interact" class="ui-btn" title="대화">💬</button>
+                <button id="btn-party" class="ui-btn" title="파티 (P)">👥</button>
+                <button id="btn-autopotion" class="ui-btn" title="자동 포션" style="opacity:0.5;">💊</button>
                 <button id="btn-hud-menu" class="ui-btn" title="설정">⚙️</button>
                 <button id="btn-attack" class="ui-btn attack-btn">⚔️</button>
             </div>
@@ -321,41 +348,115 @@
             </div>
         </div>
 
-    <!-- Firebase SDK -->
+        <!-- 설정 오버레이 -->
+        <div id="settings-overlay" class="overlay" style="display:none;">
+            <div class="settings-popup">
+                <div class="settings-header">
+                    <span class="settings-title">⚙️ 설정</span>
+                    <button id="settings-close" class="sb-close-btn">✕</button>
+                </div>
+                <div class="settings-body">
+
+                    <!-- 계정 섹션 -->
+                    <div class="settings-section" id="settings-account-section">
+                        <div class="settings-section-title">👤 계정</div>
+                        <div id="settings-account-info" class="settings-info-text"></div>
+
+                        <!-- 비밀번호 변경 (교사만) -->
+                        <div id="settings-pw-section" style="display:none;">
+                            <div class="settings-field-group">
+                                <label class="settings-label">현재 비밀번호</label>
+                                <input type="password" id="settings-pw-current" class="settings-input" placeholder="현재 비밀번호 입력">
+                            </div>
+                            <div class="settings-field-group">
+                                <label class="settings-label">새 비밀번호 (6자 이상)</label>
+                                <input type="password" id="settings-pw-new" class="settings-input" placeholder="새 비밀번호 입력">
+                            </div>
+                            <div class="settings-field-group">
+                                <label class="settings-label">새 비밀번호 확인</label>
+                                <input type="password" id="settings-pw-confirm" class="settings-input" placeholder="새 비밀번호 다시 입력">
+                            </div>
+                            <p id="settings-pw-error" class="settings-error"></p>
+                            <button id="settings-pw-submit" class="settings-btn-primary">🔑 비밀번호 변경</button>
+                        </div>
+                    </div>
+
+                    <!-- 사운드 섹션 -->
+                    <div class="settings-section">
+                        <div class="settings-section-title">🔊 사운드</div>
+                        <div class="settings-row">
+                            <span class="settings-label">BGM</span>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="settings-bgm-toggle" checked>
+                                <span class="settings-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label">효과음</span>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="settings-sfx-toggle" checked>
+                                <span class="settings-toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 게임 정보 -->
+                    <div class="settings-section">
+                        <div class="settings-section-title">ℹ️ 게임 정보</div>
+                        <div class="settings-info-text">🌟 미르의 땅 v1.0<br>제작: 경기도 지구과학 교사 뀨짱</div>
+                    </div>
+
+                    <!-- 로그아웃 -->
+                    <div class="settings-section">
+                        <button id="settings-logout-btn" class="settings-btn-danger">🚪 로그아웃</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- ==================== 푸터 (고정 하단) ==================== -->
+    <footer class="app-footer">
+        <p>만든 사람: 경기도 지구과학 교사 뀨짱</p>
+        <span style="color:var(--text-muted); opacity:0.5;">|</span>
+        <p>문의: <a href="https://open.kakao.com/o/s7hVU65h" target="_blank" rel="noopener">카카오톡 오픈채팅</a></p>
+        <span style="color:var(--text-muted); opacity:0.5;">|</span>
+        <p>블로그: <a href="https://eduarchive.tistory.com/" target="_blank" rel="noopener">뀨짱쌤의 교육자료 아카이브</a></p>
+    </footer>
+
+    <!-- Firebase SDK (v10) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-    <!-- Firebase 초기화 (firebase-config.js는 firebase.js와 중복 또는 누락으로 보임) -->
-    <script src="js/firebase.js"></script>
+    <!-- Firebase 초기화 -->
+    <script src="js/firebase.js?v=3"></script>
 
     <!-- 게임 엔진 모듈 (공통/환경) -->
-    <!-- <script src="js/firebase-config.js"></script> -->
-    <script src="js/managers/SoundManager.js"></script>
-    <script src="js/managers/AssetManager.js"></script>
-    
+    <script src="js/managers/SoundManager.js?v=3"></script>
+    <script src="js/data/ContentData.js?v=3"></script>
+    <script src="js/managers/AssetManager.js?v=3"></script>
+    <script src="js/managers/WeatherManager.js?v=3"></script>
+
     <!-- 엔티티 프로토타입 (공통) -->
-    <script src="js/entities/Player.js"></script>
-    <script src="js/entities/RemotePlayer.js"></script>
-    <script src="js/entities/Effect.js"></script>
-    <script src="js/entities/Monster.js"></script>
-    
+    <script src="js/entities/Player.js?v=3"></script>
+    <script src="js/entities/RemotePlayer.js?v=3"></script>
+    <script src="js/entities/Effect.js?v=3"></script>
+    <script src="js/entities/Monster.js?v=3"></script>
+
     <!-- 시스템 매니저 (기능) -->
-    <script src="js/managers/MapManager.js"></script>
-    <script src="js/managers/InputManager.js"></script>
-    <script src="js/managers/NetworkManager.js"></script>
-    <script src="js/managers/CombatManager.js"></script>
-    <!-- <script src="js/managers/AnimationManager.js"></script> -->
-    <script src="js/managers/QuizManager.js"></script>
-    <script src="js/managers/SkillManager.js"></script>
-    <script src="js/managers/InventoryManager.js"></script>
-    <!-- <script src="js/managers/QuestManager.js"></script> -->
-    <script src="js/managers/ShopManager.js"></script>
-    <script src="js/managers/PartyManager.js"></script>
-    
+    <script src="js/managers/MapManager.js?v=3"></script>
+    <script src="js/managers/InputManager.js?v=3"></script>
+    <script src="js/managers/NetworkManager.js?v=3"></script>
+    <script src="js/managers/CombatManager.js?v=3"></script>
+    <script src="js/managers/QuizManager.js?v=3"></script>
+    <script src="js/managers/SkillManager.js?v=3"></script>
+    <script src="js/managers/InventoryManager.js?v=3"></script>
+    <script src="js/managers/ShopManager.js?v=3"></script>
+    <script src="js/managers/PartyManager.js?v=3"></script>
+
     <!-- 메인 진입점 -->
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=3"></script>
 
     <!-- 푸터: 규정 준수 -->
     <footer class="app-footer">
