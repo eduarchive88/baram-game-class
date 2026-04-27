@@ -304,11 +304,34 @@ class SkillManager {
             return { success: false, message: 'MP가 부족합니다.' };
         }
 
+        // 공격형 스킬: 주변에 타겟이 없으면 MP를 소모하지 않고 취소
+        if (skill.type === 'attack_multi' || skill.type === 'magic_attack') {
+            if (!this._hasNearbyTarget(player, combat, 2)) {
+                return { success: false, message: '주변에 적이 없습니다.' };
+            }
+        }
+        if (skill.type === 'aoe_attack' || skill.type === 'aoe_magic') {
+            if (!this._hasNearbyTarget(player, combat, 3)) {
+                return { success: false, message: '주변에 적이 없습니다.' };
+            }
+        }
+
+        // HP→MP 변환 스킬: HP 30% 이하일 때 사용 불가 (안전 장치)
+        if (skill.type === 'hp_to_mp') {
+            const hpRatio = player.stats.hp / player.stats.maxHp;
+            if (hpRatio <= 0.3) {
+                return { success: false, message: '⚠️ HP가 너무 낮아 사용할 수 없습니다.' };
+            }
+        }
+
         // MP 소비
         player.stats.mp -= skill.mpCost;
 
         // 쿨타임 시작
         this.cooldowns[skillId] = skill.cooldown;
+
+        // 스킬 시전 직후 짧은 무적 프레임 (0.5초) - 시전 중 즉사 방지
+        this._grantSkillImmunity(player, 0.5);
 
         // 사운드: 스킬 유형별 고유 효과음 재생
         const skillSoundMap = {
@@ -434,11 +457,21 @@ class SkillManager {
                 break;
 
             case 'hp_to_mp':
-                // HP → MP 변환
+                // HP → MP 변환 (안전 장치: HP 30% 이하 보호는 useSkill에서 처리)
                 if (player.stats.hp > skill.value) {
                     player.stats.hp -= skill.value;
                     player.stats.mp = Math.min(player.stats.maxMp, player.stats.mp + skill.value);
                     combat._addDamageText(player.x + 16, player.y - 16, `MP+${skill.value}`, '#80d0ff');
+                } else {
+                    // HP가 변환량보다 적으면 실제 남은 HP 일부만 변환 (최소 1 유지)
+                    const safeAmount = Math.max(0, player.stats.hp - 1);
+                    if (safeAmount > 0) {
+                        player.stats.hp -= safeAmount;
+                        player.stats.mp = Math.min(player.stats.maxMp, player.stats.mp + safeAmount);
+                        combat._addDamageText(player.x + 16, player.y - 16, `MP+${safeAmount}`, '#80d0ff');
+                    } else {
+                        combat._addDamageText(player.x + 16, player.y - 16, 'HP 부족!', '#ff8080');
+                    }
                 }
                 break;
 
@@ -657,6 +690,37 @@ class SkillManager {
                 combat._addDamageText(closest.x + 16, closest.y, `${skill.icon} ${skill.name}!`, '#ff80ff');
             }
         }
+    }
+
+    // ============================================================
+    // 유틸리티: 주변 타겟 존재 확인
+    // ============================================================
+
+    /**
+     * 주변에 공격 가능한 몬스터가 있는지 확인
+     * @param {Player} player
+     * @param {CombatManager} combat
+     * @param {number} range - 탐색 거리 (타일)
+     * @returns {boolean}
+     */
+    _hasNearbyTarget(player, combat, range) {
+        if (!combat || !combat.monsters) return false;
+        return combat.monsters.some(m => {
+            if (m.state === 'dead') return false;
+            const dx = Math.abs(m.tileX - player.tileX);
+            const dy = Math.abs(m.tileY - player.tileY);
+            return (dx + dy) <= range;
+        });
+    }
+
+    /**
+     * 스킬 시전 후 짧은 무적 프레임 부여 (즉사 방지)
+     * @param {Player} player
+     * @param {number} duration - 무적 시간 (초)
+     */
+    _grantSkillImmunity(player, duration) {
+        // skillImmunityTimer를 플레이어에 설정 → CombatManager에서 확인
+        player._skillImmunityTimer = duration;
     }
 
     // ============================================================
@@ -983,62 +1047,56 @@ class SkillManager {
      * HUD 스킬바 업데이트 (초기 패널 버전)
      */
     updateSkillBarHUD() {
-        // 기존 데스크탑 스킬바
+        // ===== 모바일 HUD 스킬 버튼 동기화 =====
         for (let i = 0; i < 4; i++) {
-            const slot = document.getElementById(`skill-slot-${i}`);
-            if (!slot) continue;
+            // --- 모바일/터치 HUD 스킬 버튼 (hud-skill-0~3) ---
+            const mSlot = document.getElementById(`hud-skill-${i}`);
+            if (!mSlot) continue;
 
             const skillId = this.skillBar[i];
-            const cdOverlay = slot.querySelector('.cooldown-overlay');
-            const cdTime = slot.querySelector('.cooldown-time');
+            // cd-overlay 요소가 textContent로 덮어씌워지지 않도록 보존
+            let mCdOverlay = mSlot.querySelector('.cd-overlay');
 
             if (skillId) {
                 const skill = this.SKILLS[skillId];
-                slot.style.backgroundImage = `url(${skill.icon})`;
-                slot.classList.remove('empty');
+                // 이모지 아이콘을 텍스트로 표시 (cd-overlay 보존)
+                // 기존 자식 중 cd-overlay가 아닌 텍스트 노드만 업데이트
+                const existingText = Array.from(mSlot.childNodes).find(n => n.nodeType === 3);
+                if (existingText) {
+                    existingText.textContent = skill.icon;
+                } else {
+                    // 텍스트 노드가 없으면 맨 앞에 추가
+                    mSlot.insertBefore(document.createTextNode(skill.icon), mSlot.firstChild);
+                }
+                mSlot.classList.remove('empty');
+
+                // 쿨다운 오버레이 복구 (textContent로 삭제된 경우)
+                if (!mCdOverlay) {
+                    mCdOverlay = document.createElement('span');
+                    mCdOverlay.className = 'cd-overlay';
+                    mSlot.appendChild(mCdOverlay);
+                }
 
                 const remaining = this.cooldowns[skillId] || 0;
-
                 if (remaining > 0) {
                     const pct = (remaining / skill.cooldown) * 100;
-                    if (cdOverlay) cdOverlay.style.height = `${pct}%`;
-                    if (cdTime) {
-                        cdTime.style.display = 'block';
-                        cdTime.textContent = Math.ceil(remaining);
-                    }
+                    mCdOverlay.style.height = `${pct}%`;
+                    // 쿨타임 숫자 표시
+                    mSlot.classList.add('on-cooldown');
+                    mSlot.dataset.cd = Math.ceil(remaining);
                 } else {
-                    if (cdOverlay) cdOverlay.style.height = '0%';
-                    if (cdTime) cdTime.style.display = 'none';
+                    mCdOverlay.style.height = '0%';
+                    mSlot.classList.remove('on-cooldown');
+                    mSlot.dataset.cd = '';
                 }
             } else {
-                slot.style.backgroundImage = 'none';
-                slot.classList.add('empty');
-                if (cdOverlay) cdOverlay.style.height = '0%';
-                if (cdTime) cdTime.style.display = 'none';
-            }
-
-            // --- 신규 모바일 전용 HUD 스킬 버튼 동기화 ---
-            const mSlot = document.getElementById(`hud-skill-${i}`);
-            if (mSlot) {
-                const mCdOverlay = mSlot.querySelector('.cd-overlay');
-                if (skillId) {
-                    const skill = this.SKILLS[skillId];
-                    mSlot.textContent = skill.icon;
-                    mSlot.classList.remove('empty');
-
-                    const remaining = this.cooldowns[skillId] || 0;
-
-                    if (remaining > 0) {
-                        const pct = (remaining / skill.cooldown) * 100;
-                        if (mCdOverlay) mCdOverlay.style.height = `${pct}%`;
-                    } else {
-                        if (mCdOverlay) mCdOverlay.style.height = '0%';
-                    }
-                } else {
-                    mSlot.textContent = '';
-                    mSlot.classList.add('empty');
-                    if (mCdOverlay) mCdOverlay.style.height = '0%';
-                }
+                // 빈 슬롯
+                const existingText = Array.from(mSlot.childNodes).find(n => n.nodeType === 3);
+                if (existingText) existingText.textContent = '';
+                mSlot.classList.add('empty');
+                if (mCdOverlay) mCdOverlay.style.height = '0%';
+                mSlot.classList.remove('on-cooldown');
+                mSlot.dataset.cd = '';
             }
         }
     }

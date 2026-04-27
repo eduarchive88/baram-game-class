@@ -2374,7 +2374,8 @@ a:hover {
   margin-top: 10px;
 }
 
-.hud-skill-slot {
+.hud-skill-slot,
+.hud-skill-btn {
   width: 44px;
   height: 44px;
   background: rgba(30, 40, 50, 0.8);
@@ -2388,17 +2389,40 @@ a:hover {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: all 0.2s ease;
   cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.hud-skill-slot:hover:not(.empty) {
+.hud-skill-slot:hover:not(.empty),
+.hud-skill-btn:hover:not(.empty) {
   border-color: rgba(255, 215, 0, 0.8);
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.5);
   transform: translateY(-2px);
 }
 
-.hud-skill-slot.empty {
+.hud-skill-slot:active:not(.empty),
+.hud-skill-btn:active:not(.empty) {
+  transform: scale(0.9);
+  border-color: rgba(255, 215, 0, 1);
+}
+
+.hud-skill-slot.empty,
+.hud-skill-btn.empty {
   opacity: 0.5;
   cursor: default;
+}
+
+/* 쿨다운 오버레이 (span.cd-overlay) */
+.hud-skill-btn .cd-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 0 0 6px 6px;
+  transition: height 0.15s linear;
+  pointer-events: none;
 }
 
 .hud-skill-key {
@@ -2413,19 +2437,29 @@ a:hover {
 }
 
 /* 쿨타임 어두운 오버레이 */
-.hud-skill-slot.on-cooldown {
+.hud-skill-slot.on-cooldown,
+.hud-skill-btn.on-cooldown {
   opacity: 0.6;
 }
 
-.hud-skill-slot.on-cooldown::after {
-  content: '';
+.hud-skill-slot.on-cooldown::after,
+.hud-skill-btn.on-cooldown::after {
+  content: attr(data-cd);
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
+  z-index: 2;
 }
 
 .hud-skill-cd {

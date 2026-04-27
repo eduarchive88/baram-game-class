@@ -1020,10 +1020,10 @@ function openSettingsPanel() {
         infoEl.textContent = `${role === 'teacher' ? '👨‍🏫 교사' : '👨‍🎓 학생'}: ${name}`;
     }
 
-    // 비밀번호 변경 섹션 — 교사(이메일 로그인)만 표시
+    // 비밀번호 변경 섹션 — 이메일 로그인 사용자(학생/교사 모두) 표시
     if (pwSection) {
-        const isTeacher = role === 'teacher' && auth.currentUser && !auth.currentUser.isAnonymous;
-        pwSection.style.display = isTeacher ? 'block' : 'none';
+        const canChangePw = auth.currentUser && !auth.currentUser.isAnonymous;
+        pwSection.style.display = canChangePw ? 'block' : 'none';
     }
 
     // 사운드 토글 초기 상태 반영

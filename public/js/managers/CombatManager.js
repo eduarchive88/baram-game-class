@@ -294,6 +294,12 @@ class CombatManager {
     _checkMonsterAttacks(dt, player) {
         if (player.isDead) return;
 
+        // 스킬 시전 무적 프레임 타이머 감소
+        if (player._skillImmunityTimer && player._skillImmunityTimer > 0) {
+            player._skillImmunityTimer -= dt;
+            if (player._skillImmunityTimer > 0) return; // 무적 중이면 모든 몬스터 공격 무시
+        }
+
         this.monsters.forEach(m => {
             if (m.state !== 'attacking' || m.isMoving) return;
 
@@ -304,7 +310,9 @@ class CombatManager {
             if (m.aiTimer >= m.AI_THINK_INTERVAL * 0.8) {
                 if (typeof skillManager !== 'undefined') {
                     const buffBonus = skillManager.getBuffBonus();
+                    // 무적 또는 은신 버프 활성화 시 데미지 무시
                     if (buffBonus.invincible > 0) return;
+                    if (buffBonus.stealth > 0) return;
                 }
 
                 const effectiveStats = player.getEffectiveStats ? player.getEffectiveStats() : player.stats;
