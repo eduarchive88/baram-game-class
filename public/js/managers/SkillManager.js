@@ -721,21 +721,36 @@ class SkillManager {
     // ============================================================
 
     openBook(player) {
+        if (!player) {
+            console.error('[SkillManager] 플레이어 정보가 없어 스킬북을 열 수 없습니다.');
+            return;
+        }
         if (this.isBookOpen) return;
+        console.log('[SkillManager] ✨ 스킬북 열기');
         this.isBookOpen = true;
+        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
         this._renderBookUI(player);
     }
 
     closeBook() {
+        console.log('[SkillManager] ✨ 스킬북 닫기');
         this.isBookOpen = false;
         const overlay = document.getElementById('skillbook-overlay');
         if (overlay) overlay.style.display = 'none';
+        document.body.style.overflow = ''; // body 스크롤 복원
     }
 
     _renderBookUI(player) {
+        if (!player || !player.job) return;
+        
         const overlay = document.getElementById('skillbook-overlay');
         if (!overlay) return;
         overlay.style.display = 'flex';
+
+        // 오버레이 배경(어두운 영역) 클릭 시 닫기
+        overlay.onclick = (e) => {
+            if (e.target === overlay) this.closeBook();
+        };
 
         const popup = overlay.querySelector('.skillbook-popup');
         if (!popup) return;
@@ -745,7 +760,8 @@ class SkillManager {
 
         // 현재 직업 스킬만 필터링, 레벨순 정렬
         const jobSkills = Object.values(this.SKILLS)
-            .filter(s => s.job === player.job)
+            .filter(s => player && s.job === player.job)
+
             .sort((a, b) => a.reqLevel - b.reqLevel);
         const learned = player.learnedSkills || [];
 

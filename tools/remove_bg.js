@@ -38,6 +38,19 @@ const jobs = [
     // New Monsters (32x32)
     { in: 'monster_slime_king.png', out: 'monsters/slime_king.png', size: 32 },
     { in: 'monster_lich.png', out: 'monsters/lich.png', size: 32 },
+    { in: 'monster_slime.png', out: 'monsters/slime.png', size: 32 },
+    { in: 'monster_wild_boar.png', out: 'monsters/wild_boar.png', size: 32 },
+    { in: 'monster_boss_ogre.png', out: 'monsters/boss_ogre.png', size: 32 },
+    { in: 'monster_goblin.png', out: 'monsters/goblin.png', size: 32 },
+    { in: 'monster_skeleton.png', out: 'monsters/skeleton.png', size: 32 },
+    { in: 'monster_wolf.png', out: 'monsters/wolf.png', size: 32 },
+    { in: 'monster_bear.png', out: 'monsters/bear.png', size: 32 },
+    { in: 'monster_snake.png', out: 'monsters/snake.png', size: 32 },
+    { in: 'monster_spider.png', out: 'monsters/spider.png', size: 32 },
+    { in: 'monster_golem.png', out: 'monsters/golem.png', size: 32 },
+    { in: 'monster_mummy.png', out: 'monsters/mummy.png', size: 32 },
+    { in: 'monster_bat.png', out: 'monsters/bat.png', size: 32 },
+    { in: 'monster_ghost.png', out: 'monsters/ghost.png', size: 32 },
 
     // Mega Tiles
     { in: 'mega_ruined_temple.png', out: 'map/mega_ruined_temple.png', size: 96 },

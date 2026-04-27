@@ -53,6 +53,7 @@ class MapManager {
             spawnX: 15,
             spawnY: 15,
             bgm: null,
+            theme: 'grass',
             // 타일 레이어: 0=풀밭, 1=벽, 2=흙길, 3=물, 6=나무
             tiles: this._generateBeginnerMap(),
             // NPC 배치
@@ -111,30 +112,10 @@ class MapManager {
             spawnX: 1,
             spawnY: 12,
             bgm: null,
+            theme: 'grass',
             tiles: this._generateVillageMap(),
             npcs: [
-                { 
-                    id: 'npc_innkeeper', 
-                    type: '주모', 
-                    name: '주모 봉선', 
-                    x: 12, y: 8, 
-                    dialogChain: [
-                        '어서오렴! 먼 길 오느라 고생 많았지?',
-                        '맛있는 국밥 한 그릇 먹고 푹 쉬면 기운이 날 게다.',
-                        '(주모가 정성스레 차린 음식을 먹고 기운을 차립니다! HP/MP 완전 회복)'
-                    ]
-                },
-                { 
-                    id: 'npc_smith', 
-                    type: '대장장이', 
-                    name: '대장장이 무쇠', 
-                    x: 18, y: 14, 
-                    dialogChain: [
-                        '오, 자네! 무기가 좀 낡아 보이는군.',
-                        '더 강해지고 싶다면 내 물건들을 한번 구경해 보게나.',
-                        '돈만 충분하다면 최고의 장비를 마련해주지!'
-                    ]
-                },
+
                 { 
                     id: 'npc_quiz', 
                     type: '길드마스터', 
@@ -179,10 +160,12 @@ class MapManager {
                 },
             ],
             portals: [
-                { x: 0, y: 12, targetMap: 'map_000', targetX: 27, targetY: 15, label: '← 왕초보 사냥터' },
+                { x: 0, y: 12, targetMap: 'map_000', targetX: 28, targetY: 15, label: '← 왕초보 사냥터' },
                 { x: 24, y: 12, targetMap: 'map_002', targetX: 1, targetY: 15, label: '→ 풍림 사냥터' },
                 { x: 5, y: 24, targetMap: 'map_004', targetX: 5, targetY: 6, label: '↓ 얼음 동굴' },
                 { x: 13, y: 0, targetMap: 'map_006', targetX: 5, targetY: 6, label: '↑ 잊혀진 광산' },
+                { x: 12, y: 10, targetMap: 'map_001_inn', targetX: 5, targetY: 8, label: '↑ 주막 입장' },
+                { x: 18, y: 16, targetMap: 'map_001_smith', targetX: 5, targetY: 8, label: '↑ 대장간 입장' },
             ],
             monsterZones: [], // 마을은 안전 구역
             decorations: [
@@ -212,6 +195,7 @@ class MapManager {
             spawnY: 15,
             bgm: null,
             weather: 'leaves',
+            theme: 'forest',
             tiles: this._generateForestMap(),
             npcs: [
                 { id: 'npc_hunter', type: '길드마스터', name: '사냥꾼 진', x: 3, y: 14, dialog: '이곳은 풍림 사냥터다. 늑대와 해골 전사를 조심하게!' },
@@ -265,6 +249,7 @@ class MapManager {
             spawnY: 25,
             bgm: null,
             weather: 'lava',
+            theme: 'lava',
             tiles: this._generateLavaMap(),
             npcs: [],
             portals: [
@@ -305,6 +290,7 @@ class MapManager {
             spawnY: 5,
             bgm: null,
             weather: 'snow',
+            theme: 'snow',
             tiles: this._generateIceMap(),
             npcs: [],
             portals: [
@@ -339,7 +325,8 @@ class MapManager {
             spawnX: 2,
             spawnY: 2,
             bgm: null,
-            weather: 'leaves', // 꽃가루 느낌으로 낙엽 효과 재활용
+            weather: 'leaves',
+            theme: 'grass',
             tiles: this._generateHeavenMap(),
             npcs: [
                 { 
@@ -382,6 +369,7 @@ class MapManager {
             spawnX: 5,
             spawnY: 5,
             bgm: null,
+            theme: 'dungeon',
             tiles: this._generateMineMap(),
             npcs: [
                 { id: 'npc_miner', type: '길드마스터', name: '늙은 광부', x: 7, y: 7, dialog: '이곳은 한때 보물이 가득했지... 지금은 멧돼지들이 점령했다네.' },
@@ -404,8 +392,120 @@ class MapManager {
                 { id: 'mine_stalactite', tileX: 10, tileY: 25 },
             ],
         };
+        
+        // =============================================
+        // map_001_inn: 주막 내부 (8x10)
+        // =============================================
+        maps['map_001_inn'] = {
+            name: '바람 주막',
+            width: 10,
+            height: 10,
+            spawnX: 5,
+            spawnY: 8,
+            bgm: null,
+            theme: 'indoor',
+            tiles: this._generateInnMap(),
+            npcs: [
+                { 
+                    id: 'npc_innkeeper', 
+                    type: '주모', 
+                    name: '주모 봉선', 
+                    x: 5, y: 3, 
+                    dialogChain: [
+                        '어서오렴! 주막은 언제나 열려 있단다.',
+                        '맛있는 국밥 한 그릇 먹고 푹 쉬면 기운이 날 게다.',
+                        '(주모가 정성스레 차린 음식을 먹고 기운을 차립니다! HP/MP 완전 회복)'
+                    ]
+                },
+            ],
+            portals: [
+                { x: 5, y: 9, targetMap: 'map_001', targetX: 12, targetY: 11, label: '↓ 마을로 나가기' },
+            ],
+            decorations: [
+                { id: 'market_stall', tileX: 2, tileY: 2 }, // 주방 선반 대용
+                { id: 'well', tileX: 8, tileY: 2 },         // 물통 대용
+            ],
+        };
+
+        // =============================================
+        // map_001_smith: 대장간 내부 (10x10)
+        // =============================================
+        maps['map_001_smith'] = {
+            name: '바람 대장간',
+            width: 10,
+            height: 10,
+            spawnX: 5,
+            spawnY: 8,
+            bgm: null,
+            theme: 'indoor',
+            tiles: this._generateSmithMap(),
+            npcs: [
+                { 
+                    id: 'npc_smith', 
+                    type: '대장장이', 
+                    name: '대장장이 무쇠', 
+                    x: 5, y: 4, 
+                    dialogChain: [
+                        '오, 자네! 무기가 좀 낡아 보이는군.',
+                        '더 강해지고 싶다면 내 물건들을 한번 구경해 보게나.',
+                        '돈만 충분하다면 최고의 장비를 마련해주지!'
+                    ]
+                },
+            ],
+            portals: [
+                { x: 5, y: 9, targetMap: 'map_001', targetX: 18, targetY: 17, label: '↓ 마을로 나가기' },
+            ],
+            decorations: [
+                { id: 'stone_pillar', tileX: 1, tileY: 1 },
+                { id: 'stone_pillar', tileX: 8, tileY: 1 },
+            ],
+        };
 
         return maps;
+    }
+
+    /**
+     * 주막 내부 맵 생성 (10x10)
+     */
+    _generateInnMap() {
+        const W = 10, H = 10;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 5 && y === H - 1) row.push(4); // 출구
+                    else row.push(1); // 벽
+                } else {
+                    row.push(5); // 나무 바닥
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
+    }
+
+    /**
+     * 대장간 내부 맵 생성 (10x10)
+     */
+    _generateSmithMap() {
+        const W = 10, H = 10;
+        const tiles = [];
+        for (let y = 0; y < H; y++) {
+            const row = [];
+            for (let x = 0; x < W; x++) {
+                if (x === 0 || y === 0 || x === W - 1 || y === H - 1) {
+                    if (x === 5 && y === H - 1) row.push(4); // 출구
+                    else row.push(1); // 벽
+                } else if (y === 1 || x === 1 || x === W - 2) {
+                    row.push(2); // 흙길 (작업 공간 느낌)
+                } else {
+                    row.push(5); // 나무 바닥
+                }
+            }
+            tiles.push(row);
+        }
+        return tiles;
     }
 
     /**
@@ -696,6 +796,8 @@ class MapManager {
 
     /**
      * 타일맵 렌더링 (카메라 기준 가시 영역만)
+     * - 타일 깨짐 방지: 1px 오버드로우 버퍼, 정수 픽셀 스냅, null 체크 강화
+     * - 맵 경계 외부 검은 띠 방지: 캔버스 전체를 맵 테마 배경색으로 초기화
      */
     render() {
         if (!this.currentMap || !assetManager.loaded) return;
@@ -703,36 +805,59 @@ class MapManager {
         const map = this.currentMap;
         const tileImages = assetManager.images.tiles;
 
-        // 가시 타일 범위 계산
-        const startCol = Math.max(0, Math.floor(this.camera.x / this.TILE_SIZE));
-        const startRow = Math.max(0, Math.floor(this.camera.y / this.TILE_SIZE));
-        const endCol = Math.min(map.width - 1, Math.ceil((this.camera.x + this.canvas.width) / this.TILE_SIZE));
-        const endRow = Math.min(map.height - 1, Math.ceil((this.camera.y + this.canvas.height) / this.TILE_SIZE));
+        // ══════════════════════════════════
+        // ① 캔버스 전체를 맵 테마 배경색으로 초기화
+        //    (맵이 캔버스보다 작을 때 생기는 검은 띠 방지)
+        // ══════════════════════════════════
+        const BG_COLORS = {
+            grass:   '#3a6020',  // 초원 계열 (기본)
+            forest:  '#2a5015',  // 숲 계열
+            dungeon: '#1a1a2a',  // 던전 계열
+            snow:    '#c8d8e8',  // 설원 계열
+            lava:    '#2a0808',  // 용암 계열
+            indoor:  '#5a3a18',  // 실내 계열
+        };
+        const mapTheme = map.theme || 'grass';
+        this.ctx.fillStyle = BG_COLORS[mapTheme] || BG_COLORS.grass;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 카메라 좌표를 정수로 스냅 (소수점 오차로 인한 타일 경계 틈새 방지)
+        const camX = Math.floor(this.camera.x);
+        const camY = Math.floor(this.camera.y);
+
+        // 가시 타일 범위 계산 (1칸 여유 추가 → 화면 가장자리 깨짐 방지)
+        const startCol = Math.max(0, Math.floor(camX / this.TILE_SIZE) - 1);
+        const startRow = Math.max(0, Math.floor(camY / this.TILE_SIZE) - 1);
+        const endCol = Math.min(map.width - 1, Math.ceil((camX + this.canvas.width) / this.TILE_SIZE) + 1);
+        const endRow = Math.min(map.height - 1, Math.ceil((camY + this.canvas.height) / this.TILE_SIZE) + 1);
 
         // 타일 렌더링 (위치 기반 색조 변화 + 엣지 블렌딩)
         for (let row = startRow; row <= endRow; row++) {
+            // 행 데이터 자체가 없으면 스킵
+            if (!map.tiles[row]) continue;
             for (let col = startCol; col <= endCol; col++) {
                 const tileId = map.tiles[row][col];
-                const screenX = col * this.TILE_SIZE - this.camera.x;
-                const screenY = row * this.TILE_SIZE - this.camera.y;
+                // 타일 ID가 정의되지 않은 경우 기본값 0으로 처리
+                const safeTileId = (tileId !== undefined && tileId !== null) ? tileId : 0;
+                const screenX = col * this.TILE_SIZE - camX;
+                const screenY = row * this.TILE_SIZE - camY;
                 const sx = Math.floor(screenX);
                 const sy = Math.floor(screenY);
                 const S  = this.TILE_SIZE;
 
-                const tileImg = tileImages[tileId];
+                const tileImg = tileImages[safeTileId];
                 if (tileImg) {
-                    // ① 기본 타일 드로우
-                    this.ctx.drawImage(tileImg, sx, sy);
+                    // ① 기본 타일 드로우 (1px 더 크게 그려서 틈새 방지)
+                    this.ctx.drawImage(tileImg, sx, sy, S + 1, S + 1);
 
                     // ② 위치 시드 기반 미세 색조 오버레이
-                    // 같은 타일 반복 시 각 위치마다 미묘하게 다른 컬러로 변화
                     const seed = (col * 17 + row * 31) & 0xFFFFFF;
-                    const rOff = ((seed & 0x1F) - 8) ;     // -8 ~ +23
+                    const rOff = ((seed & 0x1F) - 8);
                     const gOff = (((seed >> 5) & 0x1F) - 8);
                     const bOff = (((seed >> 10) & 0x1F) - 8);
                     const alpha = 0.06 + ((seed >> 15) & 0xF) / 150; // 0.06~0.16
 
-                    if (tileId !== 1 && tileId !== 3) { // 벽/물은 오버레이 제외
+                    if (safeTileId !== 1 && safeTileId !== 3) { // 벽/물은 오버레이 제외
                         this.ctx.save();
                         this.ctx.globalAlpha = alpha;
                         this.ctx.fillStyle = `rgb(${128 + rOff},${128 + gOff},${128 + bOff})`;
@@ -747,10 +872,9 @@ class MapManager {
                     ];
                     for (const { dx, dy, edge } of edgeDirs) {
                         const nx = col + dx, ny = row + dy;
-                        if (nx < map.width && ny < map.height) {
+                        if (nx < map.width && ny < map.height && map.tiles[ny]) {
                             const nId = map.tiles[ny][nx];
-                            // 타일 종류가 다를 때만 블렌드 엣지 추가
-                            if (nId !== tileId) {
+                            if (nId !== safeTileId) {
                                 this.ctx.save();
                                 this.ctx.globalAlpha = 0.18;
                                 let grad;
@@ -771,35 +895,42 @@ class MapManager {
                             }
                         }
                     }
+                } else {
+                    // ① 이미지 없는 경우 폴백 색상 (빈 타일로 보이지 않도록)
+                    const fallbackColors = {
+                        0: '#4a7a30', 1: '#5a5a5a', 2: '#a07050',
+                        3: '#3060b0', 4: '#8060c0', 5: '#8b6040', 6: '#3a6020'
+                    };
+                    this.ctx.fillStyle = fallbackColors[safeTileId] || '#4a7a30';
+                    this.ctx.fillRect(sx, sy, S + 1, S + 1);
                 }
             }
         }
 
-        // ④ 메가타일 지형(Terrain) 레이어 렌더링 (바닥 배경용 대형 오브젝트)
+        // ④ 메가타일 지형(Terrain) 레이어 렌더링
         const megaTiles = assetManager.images.megaTiles;
         if (megaTiles && map.terrains) {
             map.terrains.forEach(terr => {
                 const mgt = megaTiles[terr.id];
                 if (!mgt || !mgt.canvas) return;
-                const sx = terr.tileX * this.TILE_SIZE - this.camera.x;
-                const sy = terr.tileY * this.TILE_SIZE - this.camera.y;
+                const sx = Math.floor(terr.tileX * this.TILE_SIZE - camX);
+                const sy = Math.floor(terr.tileY * this.TILE_SIZE - camY);
                 if (sx + mgt.canvas.width < 0 || sx > this.canvas.width) return;
                 if (sy + mgt.canvas.height < 0 || sy > this.canvas.height) return;
-                // 지형은 그림자 없이 바로 렌더링 (또는 매우 낮은 투명도)
                 this.ctx.save();
                 this.ctx.globalAlpha = terr.alpha || 1.0;
-                this.ctx.drawImage(mgt.canvas, Math.floor(sx), Math.floor(sy));
+                this.ctx.drawImage(mgt.canvas, sx, sy);
                 this.ctx.restore();
             });
         }
 
-        // ⑤ 메가타일 데코레이션 레이어 렌더링 (타일 2~6개 크기 대형 오브젝트)
+        // ⑤ 메가타일 데코레이션 레이어 렌더링
         if (megaTiles && map.decorations) {
             map.decorations.forEach(deco => {
                 const mgt = megaTiles[deco.id];
                 if (!mgt || !mgt.canvas) return;
-                const sx = deco.tileX * this.TILE_SIZE - this.camera.x;
-                const sy = deco.tileY * this.TILE_SIZE - this.camera.y;
+                const sx = Math.floor(deco.tileX * this.TILE_SIZE - camX);
+                const sy = Math.floor(deco.tileY * this.TILE_SIZE - camY);
                 // 화면 범위 안에 있는지 확인
                 if (sx + mgt.canvas.width < 0 || sx > this.canvas.width) return;
                 if (sy + mgt.canvas.height < 0 || sy > this.canvas.height) return;

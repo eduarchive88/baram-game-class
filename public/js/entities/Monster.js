@@ -148,10 +148,19 @@ class Monster {
 
         // 걷기 애니메이션
         if (this.isMoving) {
+            // 이동 중: 빠른 프레임 (보행이 보이도록)
             this.animTimer += dt;
-            if (this.animTimer >= 0.2) {
+            if (this.animTimer >= 0.18) {
                 this.animTimer = 0;
                 this.animFrame = (this.animFrame + 1) % 4;
+            }
+        } else {
+            // 정지 중: 느린 호흡/흔들림 (0,2 프레임 사이 천천히)
+            this.animTimer += dt;
+            if (this.animTimer >= 0.7) {
+                this.animTimer = 0;
+                // 0↔2 사이만 교대 (두드러진 움직임 없이 미세하게)
+                this.animFrame = this.animFrame === 0 ? 2 : 0;
             }
         }
     }

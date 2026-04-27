@@ -306,6 +306,13 @@ function showScreen(screenId) {
         }
     });
 
+    // 게임 화면 진입 시 body 스크롤 방지 (오버레이가 body 밖에서 스크롤 유발하는 문제 해결)
+    if (screenId === 'game-container') {
+        document.body.classList.add('game-active');
+    } else {
+        document.body.classList.remove('game-active');
+    }
+
     // 화면 전환 시마다 잠재적인 팝업들 닫기
     if (screenId !== 'game-container') {
         const overlays = document.querySelectorAll('.overlay, .shop-overlay, .inventory-overlay, .quiz-overlay');
@@ -832,7 +839,10 @@ function setupHUDButtons() {
         if (btn) {
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', () => {
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`[HUD] ✨ 스킬북 버튼 클릭 (${id}), isBookOpen=${skillManager.isBookOpen}`);
                 if (skillManager.isBookOpen) skillManager.closeBook();
                 else skillManager.openBook(localPlayer);
             });
@@ -845,7 +855,12 @@ function setupHUDButtons() {
         if (btn) {
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', () => openSettingsPanel());
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`[HUD] ⚙️ 설정 버튼 클릭 (${id})`);
+                openSettingsPanel();
+            });
         }
     });
 
@@ -981,9 +996,19 @@ function setupHUDButtons() {
 // ============================================================
 
 function openSettingsPanel() {
+    console.log('[Main] ⚙️ 설정 패널 열기');
     const overlay = document.getElementById('settings-overlay');
-    if (!overlay) return;
+    if (!overlay) {
+        console.error('[Main] settings-overlay 요소를 찾을 수 없습니다.');
+        return;
+    }
     overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+
+    // 오버레이 배경(어두운 영역) 클릭 시 닫기
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeSettingsPanel();
+    };
 
     const role = localStorage.getItem('userRole') || 'student';
     const infoEl = document.getElementById('settings-account-info');
@@ -1096,8 +1121,10 @@ function openSettingsPanel() {
 }
 
 function closeSettingsPanel() {
+    console.log('[Main] ⚙️ 설정 패널 닫기');
     const overlay = document.getElementById('settings-overlay');
     if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = ''; // body 스크롤 복원
 }
 
 /**

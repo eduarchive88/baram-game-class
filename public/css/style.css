@@ -16,6 +16,7 @@
   --bg-input: #0d1120;
   --border-color: #2a3055;
   --border-accent: #4a5a9a;
+  --popup-bg: #2a201c; /* 클래식 바람의나라 느낌의 짙은 갈색 */
 
   /* 액센트 컬러 */
   --gold: #f0c040;
@@ -74,6 +75,12 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+/* 게임 실행 중 body 스크롤 방지 */
+body.game-active {
+  overflow: hidden !important;
+  height: 100vh;
 }
 
 /* 배경 패턴 (동양 문양 느낌) */
@@ -1249,19 +1256,44 @@ a:hover {
   }
 }
 
-/* --- 퀴즈/상점/인벤토리 모던화 (바람 테마 유지) --- */
+/* --- 퀴즈/상점/인벤토리/스킬/설정 공통 오버레이 스타일 --- */
 .quiz-overlay, .shop-overlay, .inventory-overlay, .overlay {
-  background: rgba(0,0,0,0.4);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9500; /* 모바일 HUD(5000)보다 높게 설정 */
+  pointer-events: auto; /* 오버레이 클릭 이벤트 활성화 */
+  overflow-y: auto; /* 내용이 긴 경우 스크롤 허용 */
 }
 
-.quiz-popup, .shop-popup, .inventory-popup, .skillbook-popup {
-  background: #2a201c;
-  border: 4px double #f0c040;
+
+.quiz-popup, .shop-popup, .inventory-popup, .skillbook-popup, .settings-popup {
+  background: #2a201c !important; /* 클래식 다크 브라운 배경 강제 */
+  border: 4px double #f0c040 !important; /* 금색 테두리 강제 */
   box-shadow: 0 0 30px rgba(0,0,0,1);
   color: #d4c4a8;
   max-width: 90%;
-  max-height: 90%;
+  max-height: 85vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* 내부 컴포넌트가 자체 padding 관리 */
+  border-radius: var(--radius-lg);
+  position: relative; /* 내부 요소 위치 기준 */
+}
+
+/* 스킬북 팝업 크기 지정 */
+.skillbook-popup {
+  width: min(480px, 90vw);
+  padding: 0;
 }
 
 /* 대화창 (월드 UI 내) */
@@ -1590,16 +1622,11 @@ a:hover {
   to { transform: rotate(360deg); }
 }
 
-/* ===== 설정 패널 ===== */
+/* ===== 설정 패널 (구조) ===== */
 .settings-popup {
-  background: var(--popup-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  width: 90%; max-width: 400px;
-  max-height: 85vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.7);
-  overflow: hidden;
+  width: 90%;
+  max-width: 400px;
+  overflow: hidden; /* 헤더 고정을 위해 */
 }
 .settings-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1981,28 +2008,10 @@ a:hover {
    Phase 4: 상점 팝업 스타일
    ==================================================== */
 
-.shop-overlay,
-.inventory-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.2s ease;
-}
-
+/* 상점 및 인벤토리 구체 스타일 (통합됨) */
 .shop-popup,
 .inventory-popup {
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
-  border: 2px solid var(--gold-primary, #c49a20);
-  border-radius: 12px;
-  padding: 20px;
   width: min(420px, 90vw);
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 0 40px rgba(196, 154, 32, 0.15);
 }
 
 /* 상점 헤더 */
@@ -2428,17 +2437,10 @@ a:hover {
   text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
 }
 
-/* ===== 스킬북 팝업 (스킬 트리) ===== */
+/* ===== 스킬북 팝업 (구조) ===== */
 .skillbook-popup {
-  background: var(--popup-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
   width: 92%;
   max-width: 700px;
-  max-height: 88vh;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.7);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
