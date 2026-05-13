@@ -255,6 +255,20 @@ class AssetManager {
             monster_yeti:      await this.loadImage('/assets/images/monsters/yeti.png'),
             monster_ice_spirit:await this.loadImage('/assets/images/monsters/ice_spirit.png'),
             effect_fire_storm: await this.loadImage('/assets/images/effects/fire_storm.png'),
+            // === 신규 몬스터 에셋 ===
+            monster_red_slime:  await this.loadImage('/assets/images/monsters/red_slime.png'),
+            monster_rabbit:     await this.loadImage('/assets/images/monsters/rabbit.png'),
+            monster_crow:       await this.loadImage('/assets/images/monsters/crow.png'),
+            monster_fox:        await this.loadImage('/assets/images/monsters/fox.png'),
+            monster_ice_slime:  await this.loadImage('/assets/images/monsters/ice_slime.png'),
+            // === 신규 NPC 에셋 ===
+            npc_innkeeper:      await this.loadImage('/assets/images/characters/innkeeper.png'),
+            npc_blacksmith:     await this.loadImage('/assets/images/characters/blacksmith.png'),
+            npc_guild_master:   await this.loadImage('/assets/images/characters/guild_master.png'),
+            // === 신규 맵 오브젝트 에셋 ===
+            mega_waterfall:     await this.loadImage('/assets/images/map/mega_waterfall.png'),
+            mega_campfire:      await this.loadImage('/assets/images/map/mega_campfire.png'),
+            mega_stone_gate:    await this.loadImage('/assets/images/map/mega_stone_gate.png'),
             // === NPC 초상화 ===
             face_guide:     await this.loadImage('/assets/images/faces/guide.png'),
             face_innkeeper: await this.loadImage('/assets/images/faces/innkeeper.png'),
@@ -361,6 +375,20 @@ class AssetManager {
             monster_yeti:      this._removeWhiteBackground(rawAssets.monster_yeti),
             monster_ice_spirit:this._removeWhiteBackground(rawAssets.monster_ice_spirit),
             effect_fire_storm: rawAssets.effect_fire_storm,
+            // 신규 몬스터 에셋 (배경 제거 적용)
+            monster_red_slime:  this._removeWhiteBackground(rawAssets.monster_red_slime),
+            monster_rabbit:     this._removeWhiteBackground(rawAssets.monster_rabbit),
+            monster_crow:       this._removeWhiteBackground(rawAssets.monster_crow),
+            monster_fox:        this._removeWhiteBackground(rawAssets.monster_fox),
+            monster_ice_slime:  this._removeWhiteBackground(rawAssets.monster_ice_slime),
+            // 신규 NPC 에셋
+            npc_innkeeper:      rawAssets.npc_innkeeper,
+            npc_blacksmith:     rawAssets.npc_blacksmith,
+            npc_guild_master:   rawAssets.npc_guild_master,
+            // 신규 맵 오브젝트
+            mega_waterfall:     rawAssets.mega_waterfall,
+            mega_campfire:      rawAssets.mega_campfire,
+            mega_stone_gate:    rawAssets.mega_stone_gate,
         };
 
         // 타일셋 스프라이트 생성
@@ -381,11 +409,11 @@ class AssetManager {
         // GM 캐릭터 스프라이트 (황금색 특수)
         this.images.gm = this._generateCharacterSheet('GM', assets.warrior);
 
-        // NPC 스프라이트
+        // NPC 스프라이트 (신규 전용 에셋 적용)
         this.images.npcs = {
-            '주모': this._generateNPCSprite('#e07050', '#ffd0b0', assets.shop),
-            '대장장이': this._generateNPCSprite('#808080', '#c0c0c0', assets.shop),
-            '길드마스터': this._generateNPCSprite('#6040a0', '#d0b0ff', assets.shop),
+            '주모': this._generateNPCSprite(null, null, assets.npc_innkeeper),
+            '대장장이': this._generateNPCSprite(null, null, assets.npc_blacksmith),
+            '길드마스터': this._generateNPCSprite(null, null, assets.npc_guild_master),
             '촌장님': this._generateNPCSprite(null, null, assets.npc_village_chief),
             '경비병': this._generateNPCSprite(null, null, assets.npc_guard),
             '떠돌이 상인': this._generateNPCSprite(null, null, assets.npc_merchant),
@@ -435,6 +463,12 @@ class AssetManager {
             death_knight:this._generateMonsterSprite('death_knight',assets.monster_death_knight),
             slime_king:  this._generateMonsterSprite('slime_king',  assets.monster_slime_king),
             lich:        this._generateMonsterSprite('lich',        assets.monster_lich),
+            // 신규 몬스터 스프라이트
+            red_slime:   this._generateMonsterSprite('red_slime',   assets.monster_red_slime),
+            rabbit:      this._generateMonsterSprite('rabbit',      assets.monster_rabbit),
+            crow:        this._generateMonsterSprite('crow',        assets.monster_crow),
+            fox:         this._generateMonsterSprite('fox',         assets.monster_fox),
+            ice_slime:   this._generateMonsterSprite('ice_slime',   assets.monster_ice_slime),
         };
 
         // 스킬 이펙트 이미지 등록 (검정 배경 → 투명 처리)
@@ -518,52 +552,89 @@ class AssetManager {
         // 긴 타입 ID → 짧은 키 매핑 테이블
         const TYPE_MAP = {
             'm_001_slime':         'slime',
-            'm_002_mushroom':      'slime',      // 버섯은 슬라임 폴백
+            'm_002_slime_red':     'red_slime',   // 빨간 슬라임 → 전용 에셋
+            'm_002_mushroom':      'slime',
+            'm_003_squirrel':      'squirrel',
             'm_003_worm':          'snake',
+            'm_004_rabbit':        'rabbit',       // 산토끼 → 전용 에셋
             'm_004_snake':         'snake',
             'm_005_bee':           'wasp',
+            'm_001b_slime_blue':   'slime',        // 파랑 슬라임 → 슬라임 폴백
+            'm_003b_squirrel_strong': 'squirrel',  // 힘센 다람쥐
+            'm_006_crow':          'crow',          // 까마귀 → 전용 에셋
             'm_006_bat':           'bat',
+            'm_007_caterpillar':   'mantis',        // 송충이 → 사마귀 폴백
             'm_007_ghost':         'ghost',
+            'm_008_fox':           'fox',           // 여우 → 전용 에셋
             'm_008_skeleton':      'skeleton',
             'm_009_zombie':        'skeleton',
             'm_010_squirrel':      'squirrel',
             'm_011_wolf':          'wolf',
             'm_012_boar':          'wild_boar',
             'm_013_goblin_scout':  'goblin',
+            'm_014_goblin_warrior':'goblin',
             'm_014_goblin_archer': 'goblin',
+            'm_015_goblin_shaman': 'goblin',
             'm_015_orc':           'boss_ogre',
+            'm_016_snake_forest':  'snake',
             'm_016_troll':         'boss_ogre',
+            'm_017_owl_bear':      'bear',
             'm_017_spider':        'spider',
+            'm_018_ent_corrupt':   'treant',
             'm_018_harpy':         'harpy',
+            'm_019_spider_web':    'spider',
             'm_019_mimic':         'mimic',
+            'm_020_kobold':        'goblin',
             'm_020_golem':         'golem',
             'm_021_skeleton':      'skeleton',
+            'm_022_zombie':        'skeleton',
             'm_022_mummy':         'mummy',
+            'm_023_bat_giant':     'bat',
             'm_023_minotaur':      'minotaur',
             'm_024_gargoyle':      'gargoyle',
+            'm_025_mimic':         'mimic',
             'm_025_medusa':        'medusa',
+            'm_026_dark_elf':      'dark_knight',
             'm_026_centaur':       'centaur',
+            'm_027_troll':         'boss_ogre',
             'm_027_chimera':       'chimera',
             'm_028_wraith':        'ghost',
             'm_029_hell_hound':    'wolf',
+            'm_030_ogre':          'boss_ogre',
             'm_030_demon':         'demon',
+            'm_031_ice_slime':     'ice_slime',    // 빙결 슬라임 → 전용 에셋
             'm_031_mantis':        'mantis',
             'm_032_yeti':          'yeti',
+            'm_033_ice_ghost':     'ghost',
             'm_033_treant':        'treant',
+            'm_034_frost_golem':   'golem',
             'm_034_griffin':       'griffin',
+            'm_035_snow_leopard':  'fox',           // 눈표범 → 여우 폴백
             'm_035_kraken':        'kraken',
+            'm_036_ice_spider':    'spider',
             'm_036_phoenix':       'phoenix',
+            'm_037_frozen_warrior':'death_knight',
             'm_037_succubus':      'succubus',
             'm_038_polar_bear':    'bear',
             'm_039_ice_spirit':    'ice_spirit',
+            'm_040_frost_dragon_small': 'dragon_boss',
             'm_040_tentacle':      'tentacle',
+            'm_041_angel_novice':  'succubus',
             'm_041_sand_worm':     'sand_worm',
             'm_042_heavenly_knight':'death_knight',
+            'm_043_pegasus_wild':  'griffin',
             'm_043_fire_spirit':   'fire_spirit',
             'm_044_valkyrie':      'succubus',
+            'm_045_light_orb':     'fire_spirit',
             'm_045_dark_elf':      'dark_knight',
+            'm_046_guardian_archon':'death_knight',
+            'm_047_seraphim_servant':'succubus',
+            'm_048_heaven_beast':  'griffin',
+            'm_049_cherubim':      'succubus',
+            'm_050_divine_dragon': 'dragon_boss',
             'boss_black_dragon':   'dragon_boss',
             'boss_slime_king':     'slime_king',
+            'boss_goblin_king':    'goblin',
             'boss_lich_king':      'lich',
             'boss_ogre':           'boss_ogre',
         };
@@ -3134,6 +3205,21 @@ class AssetManager {
         // 8. 헬 하운드 용암 구덩이 (실제 에셋: hell_lava 활용)
         if (assets.hell_lava) {
             mgt['lava_pit'] = { canvas: assets.hell_lava, tilesW: 3, tilesH: 2, theme: 'lava' };
+        }
+
+        // 9. 폭포 (신규 에셋: mega_waterfall 활용)
+        if (assets.mega_waterfall) {
+            mgt['waterfall'] = { canvas: assets.mega_waterfall, tilesW: 3, tilesH: 3, theme: 'forest' };
+        }
+
+        // 10. 캠프파이어 (신규 에셋: mega_campfire 활용)
+        if (assets.mega_campfire) {
+            mgt['campfire'] = { canvas: assets.mega_campfire, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 11. 돌문 (신규 에셋: mega_stone_gate 활용)
+        if (assets.mega_stone_gate) {
+            mgt['stone_gate'] = { canvas: assets.mega_stone_gate, tilesW: 3, tilesH: 3, theme: 'dungeon' };
         }
 
         // --- 기존 절차적 타일들도 유지 (에셋이 없을 경우 대비) ---

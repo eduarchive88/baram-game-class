@@ -30,6 +30,7 @@ class MapManager {
             'straw_house', 'wooden_house',               // 건물
             'cliff', 'ruin',                             // 절벽/폐허
             'cherry_blossom', 'pavillion', 'ice_statue', // 장식물
+            'stone_gate', 'waterfall',                   // 신규 장식물
         ]);
 
         // 맵 데이터 저장소
@@ -96,6 +97,8 @@ class MapManager {
                 { id: 'big_tree',   tileX: 12, tileY: 20 },
                 { id: 'big_tree',   tileX: 22, tileY: 12 },
                 { id: 'ancient_tree', tileX: 16, tileY: 8 },
+                { id: 'campfire',     tileX: 8, tileY: 14 }, // 사냥터 캠프
+                { id: 'stone_gate',   tileX: 26, tileY: 20 }, // 던전 입구 장식
             ],
             terrains: [
                 { id: 'stone_patch', tileX: 5, tileY: 20, alpha: 0.6 },
@@ -181,6 +184,7 @@ class MapManager {
                 { id: 'pavillion',    tileX: 11, tileY: 21 }, // 정자
                 { id: 'flower_bed',   tileX: 8, tileY: 18 }, // 꽃밭
                 { id: 'flower_bed',   tileX: 14, tileY: 18 },
+                { id: 'campfire',     tileX: 13, tileY: 12 }, // 모닥불 (마을 광장)
             ],
         };
 

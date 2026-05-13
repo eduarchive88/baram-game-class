@@ -138,27 +138,8 @@ class InputManager {
             });
         }
 
-        // 4. 스킬 버튼 (0~3)
-        for (let i = 0; i < 4; i++) {
-            const skillBtn = document.getElementById(`hud-skill-${i}`);
-            if (skillBtn) {
-                skillBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (window.localPlayer && window.combatManager) {
-                        const result = skillManager.useSkill(i, window.localPlayer, window.combatManager);
-                        if (!result.success && window.combatManager._addDamageText) {
-                            // 스킬 사용 실패(미배치, 쿨다운, MP부족 등) 시 피드백 제공
-                            window.combatManager._addDamageText(
-                                window.localPlayer.x + 16, 
-                                window.localPlayer.y - 16, 
-                                result.message, 
-                                '#ff4444'
-                            );
-                        }
-                    }
-                });
-            }
-        }
+        // 4. 스킬 버튼 이벤트는 main.js에서 pointerdown으로 통합 처리
+        //    (InputManager의 click 이벤트는 main.js cloneNode와 중복되어 제거됨)
     }
 
     /**
