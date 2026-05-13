@@ -268,7 +268,12 @@ class SkillManager {
 
         // RTDB 저장
         this._save(player);
-        shopManager._savePlayerGold(player);
+        if (typeof shopManager !== 'undefined' && shopManager && shopManager._savePlayerGold) {
+            shopManager._savePlayerGold(player);
+        }
+
+        // 스킬바 HUD 즉시 갱신
+        this.updateSkillBarHUD();
 
         return { success: true, message: `✨ ${skill.name} 습득!` };
     }
@@ -290,6 +295,9 @@ class SkillManager {
 
         // 유령 상태에서는 스킬 사용 불가
         if (player.isDead) return { success: false, message: '👻 유령 상태에서는 스킬을 사용할 수 없습니다.' };
+
+        // 전투 매니저 미초기화 방어
+        if (!combat || !combat.monsters) return { success: false, message: '전투 준비 중...' };
 
         const skill = this.SKILLS[skillId];
         if (!skill) return { success: false, message: '알 수 없는 스킬' };
@@ -367,7 +375,9 @@ class SkillManager {
             poet_invincible:    'skill_buff',
         };
         const skillSound = skillSoundMap[skillId] || 'skill';
-        soundManager.play(skillSound);
+        if (typeof soundManager !== 'undefined' && soundManager && soundManager.play) {
+            soundManager.play(skillSound);
+        }
 
         // 스킬 효과 적용
         this._applySkillEffect(skill, player, combat);
@@ -976,6 +986,7 @@ class SkillManager {
                     }
                 }
                 this._save(player);
+                this.updateSkillBarHUD(); // 인게임 HUD 즉시 반영
                 this._renderBookUI(player);
                 // 상세 패널 다시 표시
                 setTimeout(() => {

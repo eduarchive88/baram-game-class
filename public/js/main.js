@@ -938,7 +938,14 @@ function setupHUDButtons() {
                     return;
                 }
                 if (!inventoryManager.isOpen && !skillManager.isBookOpen) {
-                    skillManager.useSkill(i, localPlayer, combatManager);
+                    const result = skillManager.useSkill(i, localPlayer, combatManager);
+                    // 스킬 사용 실패 시 피드백 메시지 표시
+                    if (!result.success && combatManager && combatManager._addDamageText) {
+                        combatManager._addDamageText(
+                            localPlayer.x + 16, localPlayer.y - 16,
+                            result.message, '#ff4444'
+                        );
+                    }
                 }
             });
         }
@@ -1768,7 +1775,14 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
     } else if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code) && !inventoryManager.isOpen && !skillManager.isBookOpen) {
         const slotIndex = parseInt(e.key) - 1;
-        skillManager.useSkill(slotIndex, localPlayer, combatManager);
+        const result = skillManager.useSkill(slotIndex, localPlayer, combatManager);
+        // 스킬 사용 실패 시 피드백 메시지 표시 (키보드)
+        if (!result.success && combatManager && combatManager._addDamageText) {
+            combatManager._addDamageText(
+                localPlayer.x + 16, localPlayer.y - 16,
+                result.message, '#ff4444'
+            );
+        }
         e.preventDefault();
     }
 });

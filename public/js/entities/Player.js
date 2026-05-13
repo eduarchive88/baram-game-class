@@ -610,6 +610,35 @@ class Player {
                         timer: 0, duration: 0.6,
                         procId: procId
                     });
+                    // 프로시저럴 이펙트에도 파티클 추가 (시각적 임팩트 강화)
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI * 2 / 6) * i;
+                        this.effects.push({
+                            type: 'particle',
+                            x: cx + Math.cos(angle) * 6,
+                            y: cy + Math.sin(angle) * 6,
+                            vx: Math.cos(angle) * 50, vy: Math.sin(angle) * 50,
+                            timer: 0, duration: 0.4,
+                            color: color || '#ffffff', size: 2,
+                        });
+                    }
+                } else {
+                    // procId가 없을 때 폴백: 원형 에너지 파동 이펙트
+                    this.effects.push({
+                        type: 'buff_ring', x: cx, y: cy,
+                        timer: 0, duration: 0.5, color: color || '#c080ff',
+                    });
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Math.PI * 2 / 8) * i;
+                        this.effects.push({
+                            type: 'particle',
+                            x: cx + Math.cos(angle) * 10,
+                            y: cy + Math.sin(angle) * 10,
+                            vx: Math.cos(angle) * 70, vy: Math.sin(angle) * 70,
+                            timer: 0, duration: 0.5,
+                            color: color || '#c080ff', size: 2.5,
+                        });
+                    }
                 }
                 break;
             }
