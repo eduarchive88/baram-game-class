@@ -75,9 +75,9 @@ class AssetManager {
             }
 
             // 2단계: 배경색과 유사한 픽셀 + 밝은 픽셀 투명화
-            const BG_TOLERANCE = 45;   // 배경색과의 허용 차이
-            const WHITE_THRESHOLD = 200; // 밝은 픽셀 임계값 (기존 230에서 강화)
-            const LIGHT_THRESHOLD = 210; // 연한 파스텔/베이지 임계값
+            const BG_TOLERANCE = 55;   // 배경색과의 허용 차이 (상향: 45 -> 55)
+            const WHITE_THRESHOLD = 180; // 밝은 픽셀 임계값 (상향: 200 -> 180)
+            const LIGHT_THRESHOLD = 190; // 연한 파스텔/베이지 임계값 (상향: 210 -> 190)
 
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i + 1], b = data[i + 2];
@@ -239,10 +239,10 @@ class AssetManager {
             effect_shield:    await this.loadImage('/assets/images/effects/shield.png'),
             effect_ice:       await this.loadImage('/assets/images/effects/ice.png'),
             // === 고해상도 신규 에셋 (Mega-objects & Props) ===
-            mega_ruined_temple: await this.loadImage('/assets/images/map/mega_ruined_temple.png'),
-            mega_house:       await this.loadImage('/assets/images/map/mega_wooden_house.png'),
-            mega_cherry:      await this.loadImage('/assets/images/map/mega_cherry_blossom.png'),
-            mega_pavillion:   await this.loadImage('/assets/images/map/mega_pavillion.png'),
+            mega_ruined_temple: await this.loadImage('/assets/images/map/mega_ruins.png'),
+            mega_house:       await this.loadImage('/assets/images/map/mega_house.png'),
+            mega_cherry:      await this.loadImage('/assets/images/map/mega_tree_large.png'),
+            mega_pavillion:   await this.loadImage('/assets/images/map/mega_fountain.png'),
             mega_flower:      await this.loadImage('/assets/images/map/mega_flower_bed.png'),
             mine_rail:        await this.loadImage('/assets/images/map/mine_rail.png'),
             mine_ore:         await this.loadImage('/assets/images/map/mine_ore.png'),
@@ -410,14 +410,27 @@ class AssetManager {
         this.images.gm = this._generateCharacterSheet('GM', assets.warrior);
 
         // NPC 스프라이트 (신규 전용 에셋 적용)
-        this.images.npcs = {
-            '주모': this._generateNPCSprite(null, null, assets.npc_innkeeper),
-            '대장장이': this._generateNPCSprite(null, null, assets.npc_blacksmith),
-            '길드마스터': this._generateNPCSprite(null, null, assets.npc_guild_master),
-            '촌장님': this._generateNPCSprite(null, null, assets.npc_village_chief),
-            '경비병': this._generateNPCSprite(null, null, assets.npc_guard),
-            '떠돌이 상인': this._generateNPCSprite(null, null, assets.npc_merchant),
+        // NPC 스프라이트 생성 및 매핑 (한글/영어 공용)
+        const npcMap = {
+            'Innkeeper':      assets.npc_innkeeper,
+            'Blacksmith':     assets.npc_blacksmith,
+            'GuildMaster':    assets.npc_guild_master,
+            'VillageChief':   assets.npc_village_chief,
+            'Guard':          assets.npc_guard,
+            'Merchant':       assets.npc_merchant,
+            '주모':           assets.npc_innkeeper,
+            '대장장이':        assets.npc_blacksmith,
+            '길드장':          assets.npc_guild_master,
+            '촌장':           assets.npc_village_chief,
+            '포졸':           assets.npc_guard,
+            '상인':           assets.npc_merchant
         };
+
+        this.images.npcs = {};
+        for (const [key, asset] of Object.entries(npcMap)) {
+            this.images.npcs[key] = this._generateNPCSprite(null, null, asset);
+        }
+        this.images.npcs['default'] = this._generateNPCSprite(null, null, null);
 
         // UI 아이콘 생성
         this.images.icons = this._generateUIIcons(assets);
@@ -718,7 +731,7 @@ class AssetManager {
                     ctx.fillRect(fx, fy, 2, 1);
                 }
             }
-        }, assets.grass);
+        });
 
         // 1: 벽/바위 (이동 불가) - 고퀄리티 벽돌
         tiles[1] = this._createTile((ctx) => {
@@ -755,7 +768,7 @@ class AssetManager {
             ctx.fillStyle = '#4a6a4a';
             ctx.fillRect(3, 28, 2, 2);
             ctx.fillRect(22, 7, 1, 2);
-        }, assets.wall);
+        });
 
         // 2: 흙길 (이동 가능) - 자갈+발자국 디테일
         tiles[2] = this._createTile((ctx) => {
@@ -782,7 +795,7 @@ class AssetManager {
             ctx.fillStyle = 'rgba(60,40,20,0.2)';
             ctx.fillRect(10, 8, 4, 3);
             ctx.fillRect(18, 18, 4, 3);
-        }, assets.dirt);
+        });
 
         // 3: 물 (이동 불가) - 반짝임+수초 디테일
         tiles[3] = this._createTile((ctx) => {
@@ -814,7 +827,7 @@ class AssetManager {
             ctx.fillRect(2, 26, 1, 4);
             ctx.fillRect(3, 25, 1, 3);
             ctx.fillRect(27, 28, 1, 3);
-        }, assets.water);
+        });
 
         // 4: 포털/계단 (맵 이동 트리거) - 글로우 개선
         tiles[4] = this._createTile((ctx) => {
@@ -839,7 +852,7 @@ class AssetManager {
                 ctx.fillStyle = 'rgba(200,180,255,0.2)';
                 ctx.fillRect(x, y, 1, 1);
             }
-        }, assets.portal);
+        });
 
         // 5: 나무 타일 바닥 (실내) - 나무결 디테일
         tiles[5] = this._createTile((ctx) => {
@@ -891,7 +904,7 @@ class AssetManager {
             ctx.fillStyle = '#5aba5a';
             ctx.fillRect(11, 7, 2, 1);
             ctx.fillRect(17, 5, 2, 1);
-        }, assets.tree);
+        });
 
         // 7: 동굴 바닥 (이동 가능) - 광석+균열 디테일
         tiles[7] = this._createTile((ctx) => {
@@ -999,6 +1012,130 @@ class AssetManager {
                 ctx.fillStyle = '#408040';
                 ctx.fillRect(f.x, f.y + 2, 1, 3); // 줄기
             });
+        });
+
+        // 11: 설원 바닥 (이동 가능) - 눈 결정 디테일
+        tiles[11] = this._createTile((ctx) => {
+            const grd = ctx.createLinearGradient(0, 0, S, S);
+            grd.addColorStop(0, '#e8f0f8');
+            grd.addColorStop(0.5, '#d8e8f5');
+            grd.addColorStop(1, '#cce0f0');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, S, S);
+            // 눈 결정 무늬
+            const snowColors = ['rgba(255,255,255,0.7)', 'rgba(200,220,240,0.5)', 'rgba(180,210,230,0.4)'];
+            for (let i = 0; i < 20; i++) {
+                const sx = Math.floor(this._seededRandom(i * 5 + 500) * S);
+                const sy = Math.floor(this._seededRandom(i * 5 + 501) * S);
+                ctx.fillStyle = snowColors[i % snowColors.length];
+                if (i % 4 === 0) {
+                    // 별 모양 결정
+                    ctx.fillRect(sx, sy, 3, 1);
+                    ctx.fillRect(sx + 1, sy - 1, 1, 3);
+                } else {
+                    ctx.fillRect(sx, sy, 2, 2);
+                }
+            }
+            // 눈 발자국 흔적
+            ctx.fillStyle = 'rgba(150,180,210,0.3)';
+            ctx.fillRect(8, 10, 4, 3);
+            ctx.fillRect(18, 22, 4, 3);
+        });
+
+        // 12: 용암 바닥 (이동 불가) - 붉은 용암+균열
+        tiles[12] = this._createTile((ctx) => {
+            ctx.fillStyle = '#2a0808';
+            ctx.fillRect(0, 0, S, S);
+            // 용암 흐름 그라데이션
+            const lavaGrd = ctx.createRadialGradient(16, 16, 2, 16, 16, 16);
+            lavaGrd.addColorStop(0, '#ff6000');
+            lavaGrd.addColorStop(0.4, '#cc2200');
+            lavaGrd.addColorStop(1, '#1a0000');
+            ctx.fillStyle = lavaGrd;
+            ctx.fillRect(0, 0, S, S);
+            // 용암 균열 라인
+            ctx.strokeStyle = '#ff8020';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 8); ctx.lineTo(12, 16); ctx.lineTo(8, 24); ctx.lineTo(20, 32);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(20, 0); ctx.lineTo(16, 10); ctx.lineTo(28, 20); ctx.lineTo(24, 32);
+            ctx.stroke();
+            // 밝은 용암 코어
+            const coreColors = ['#ff9040', '#ffb060', '#ff6020'];
+            for (let i = 0; i < 8; i++) {
+                const lx = Math.floor(this._seededRandom(i * 3 + 600) * S);
+                const ly = Math.floor(this._seededRandom(i * 3 + 601) * S);
+                ctx.fillStyle = coreColors[i % coreColors.length];
+                ctx.fillRect(lx, ly, 3, 2);
+            }
+        });
+
+        // 13: 돌 바닥 던전 (이동 가능) - 매끈한 회색 돌
+        tiles[13] = this._createTile((ctx) => {
+            ctx.fillStyle = '#484860';
+            ctx.fillRect(0, 0, S, S);
+            // 돌 타일 패턴
+            ctx.fillStyle = '#525270';
+            ctx.fillRect(0, 0, 15, 15);
+            ctx.fillRect(17, 17, 15, 15);
+            ctx.fillStyle = '#3e3e58';
+            ctx.fillRect(0, 16, S, 1);
+            ctx.fillRect(16, 0, 1, S);
+            // 하이라이트
+            ctx.fillStyle = '#5e5e78';
+            ctx.fillRect(1, 1, 13, 1);
+            ctx.fillRect(1, 1, 1, 13);
+            ctx.fillRect(18, 18, 13, 1);
+            ctx.fillRect(18, 18, 1, 13);
+            // 이끼/먼지
+            ctx.fillStyle = '#3a5040';
+            ctx.fillRect(6, 14, 2, 1);
+            ctx.fillRect(24, 6, 1, 2);
+        });
+
+        // 14: 짙은 숲 바닥 (이동 가능) - 어두운 풀+낙엽
+        tiles[14] = this._createTile((ctx) => {
+            const grd = ctx.createLinearGradient(0, 0, S, S);
+            grd.addColorStop(0, '#1a4a1a');
+            grd.addColorStop(1, '#142e14');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, S, S);
+            // 낙엽 디테일
+            const leafColors = ['#3a5a1a', '#4a6a2a', '#c87020', '#d08020', '#8a4a10'];
+            for (let i = 0; i < 20; i++) {
+                const lx = Math.floor(this._seededRandom(i * 4 + 700) * S);
+                const ly = Math.floor(this._seededRandom(i * 4 + 701) * S);
+                ctx.fillStyle = leafColors[i % leafColors.length];
+                if (i % 3 === 0) {
+                    ctx.fillRect(lx, ly, 3, 2);
+                } else {
+                    ctx.fillRect(lx, ly, 2, 2);
+                }
+            }
+            // 이끼+균류
+            ctx.fillStyle = '#2a6a2a';
+            ctx.fillRect(14, 18, 4, 2);
+            ctx.fillRect(6, 8, 3, 2);
+        });
+
+        // 15: 눈 쌓인 풀 (이동 가능) - 반설원
+        tiles[15] = this._createTile((ctx) => {
+            ctx.fillStyle = '#4a7a4a';
+            ctx.fillRect(0, 0, S, S);
+            // 눈 덮인 부분
+            ctx.fillStyle = '#d8eef8';
+            for (let i = 0; i < 18; i++) {
+                const sx = Math.floor(this._seededRandom(i * 3 + 800) * S);
+                const sy = Math.floor(this._seededRandom(i * 3 + 801) * S);
+                ctx.fillRect(sx, sy, 3 + (i % 3), 2);
+            }
+            // 풀잎
+            ctx.fillStyle = '#3a6a3a';
+            ctx.fillRect(10, 6, 1, 4);
+            ctx.fillRect(22, 18, 1, 4);
+            ctx.fillRect(4, 22, 1, 3);
         });
 
         return tiles;
@@ -3066,16 +3203,14 @@ class AssetManager {
     /**
      * 타일 생성 헬퍼
      */
-    _createTile(drawFn, img = null) {
+    _createTile(drawFn, _img = null) {
+        // 항상 프로시저럴 코드로 그림 (외부 이미지 의존 없음 - 깨짐 방지)
         const canvas = document.createElement('canvas');
         canvas.width = this.TILE_SIZE;
         canvas.height = this.TILE_SIZE;
         const ctx = canvas.getContext('2d');
-        if (img) {
-            ctx.drawImage(img, 0, 0, this.TILE_SIZE, this.TILE_SIZE);
-        } else {
-            drawFn(ctx);
-        }
+        ctx.imageSmoothingEnabled = false;
+        drawFn(ctx);
         return canvas;
     }
 
@@ -3112,11 +3247,29 @@ class AssetManager {
         ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = data.data;
+        
+        // 더 정교한 배경 제거: 흰색 계열(R,G,B 모두 높음) 및 주변색 고려
+        const threshold = 230; // 기준값 강화
         for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i+1], b = d[i+2];
-            if (r > 200 && g > 200 && b > 200) {
-                const factor = ((r - 200) + (g - 200) + (b - 200)) / (3 * 55);
-                d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - factor)));
+            
+            // 1. 순수 흰색에 가까운 경우 (230 이상)
+            if (r > threshold && g > threshold && b > threshold) {
+                // 부드러운 투명화 적용
+                const avg = (r + g + b) / 3;
+                const alpha = Math.max(0, (255 - avg) / (255 - threshold));
+                d[i+3] = Math.min(d[i+3], Math.floor(d[i+3] * (1 - (1 - alpha))));
+                
+                // 완전히 밝으면 제거
+                if (avg > 250) d[i+3] = 0;
+            }
+            
+            // 2. 약간의 색조가 섞인 흰 배경 (채도가 낮고 밝은 경우)
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const diff = max - min;
+            if (max > 220 && diff < 15) {
+                d[i+3] = 0;
             }
         }
         ctx.putImageData(data, 0, 0);
@@ -3163,69 +3316,243 @@ class AssetManager {
             return { c, x: c.getContext('2d') };
         };
 
-        if (assets.mega_ruined_temple) {
-            mgt['ruined_temple'] = { canvas: assets.mega_ruined_temple, tilesW: 3, tilesH: 3, theme: 'dungeon' };
-        }
-
-        // 1. 대형 고목 (실제 에셋: mega_cherry 활용)
-        if (assets.mega_cherry) {
-            mgt['cherry_blossom'] = { canvas: assets.mega_cherry, tilesW: 3, tilesH: 3, theme: 'village' };
-        }
-
-        // 2. 대형 기와집 (실제 에셋: mega_house 활용)
-        if (assets.mega_house) {
-            mgt['wooden_house'] = { canvas: assets.mega_house, tilesW: 4, tilesH: 3, theme: 'village' };
-        }
-
-        // 3. 정자 (실제 에셋: mega_pavillion 활용)
-        if (assets.mega_pavillion) {
-            mgt['pavillion'] = { canvas: assets.mega_pavillion, tilesW: 3, tilesH: 3, theme: 'village' };
-        }
-
-        // 4. 꽃단지 (실제 에셋: mega_flower 활용)
-        if (assets.mega_flower) {
-            mgt['flower_bed'] = { canvas: assets.mega_flower, tilesW: 2, tilesH: 2, theme: 'village' };
-        }
-
-        // 5. 광산 레일 (실제 에셋: mine_rail 활용)
-        if (assets.mine_rail) {
-            mgt['mine_rail'] = { canvas: assets.mine_rail, tilesW: 2, tilesH: 2, theme: 'dungeon' };
-        }
-
-        // 6. 광산 광석 (실제 에셋: mine_ore 활용)
-        if (assets.mine_ore) {
-            mgt['mine_ore'] = { canvas: assets.mine_ore, tilesW: 1, tilesH: 1, theme: 'dungeon' };
-        }
-
-        // 7. 설원 얼음 석상 (실제 에셋: snow_statue 활용)
-        if (assets.snow_statue) {
-            mgt['ice_statue'] = { canvas: assets.snow_statue, tilesW: 2, tilesH: 3, theme: 'snow' };
-        }
-
-        // 8. 헬 하운드 용암 구덩이 (실제 에셋: hell_lava 활용)
-        if (assets.hell_lava) {
-            mgt['lava_pit'] = { canvas: assets.hell_lava, tilesW: 3, tilesH: 2, theme: 'lava' };
-        }
-
-        // 9. 폭포 (신규 에셋: mega_waterfall 활용)
-        if (assets.mega_waterfall) {
-            mgt['waterfall'] = { canvas: assets.mega_waterfall, tilesW: 3, tilesH: 3, theme: 'forest' };
-        }
-
-        // 10. 캠프파이어 (신규 에셋: mega_campfire 활용)
-        if (assets.mega_campfire) {
-            mgt['campfire'] = { canvas: assets.mega_campfire, tilesW: 2, tilesH: 2, theme: 'village' };
-        }
-
-        // 11. 돌문 (신규 에셋: mega_stone_gate 활용)
-        if (assets.mega_stone_gate) {
-            mgt['stone_gate'] = { canvas: assets.mega_stone_gate, tilesW: 3, tilesH: 3, theme: 'dungeon' };
-        }
-
-        // --- 기존 절차적 타일들도 유지 (에셋이 없을 경우 대비) ---
+        // --- 외부 이미지 의존 없이 모두 프로시저럴로 생성 ---
         const rnd = (seed) => { const v = Math.sin(seed + 1) * 10000; return v - Math.floor(v); };
-        
-        if (!mgt['big_tree']) {
+
+        // 폐허 유적 (3x3, 던전)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            const W = c.width, H = c.height;
+            ctx.fillStyle = '#3a3040'; ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#5a5868';
+            // 깨진 기둥들
+            [[10,10,14,80],[40,5,14,75],[70,15,14,70]].forEach(([px,py,pw,ph]) => {
+                ctx.fillRect(px, py, pw, ph);
+                ctx.fillStyle='#6a6878'; ctx.fillRect(px,py,pw,4);
+                ctx.fillStyle='#4a4858'; ctx.fillRect(px,ph-4,pw,8);
+            });
+            // 아치 형태
+            ctx.strokeStyle='#6a6878'; ctx.lineWidth=4;
+            ctx.beginPath(); ctx.arc(48,40,30,Math.PI,0); ctx.stroke();
+            // 이끼
+            ctx.fillStyle='rgba(40,80,40,0.4)';
+            for(let i=0;i<12;i++) ctx.fillRect(rnd(i*7)*W, rnd(i*7+1)*H, 6, 3);
+            mgt['ruins'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'dungeon' };
+        }
+
+        // 대형 벚꽃나무 / 대형 나무 (3x3, 마을)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            // 줄기
+            ctx.fillStyle='#5a3a1a'; ctx.fillRect(42,60,12,36);
+            ctx.fillStyle='#7a5a3a'; ctx.fillRect(44,60,4,36);
+            // 잎 레이어 (여러 원)
+            const leaves = [[48,50,30,'#e8a0c0'],[28,44,24,'#f0b0d0'],[68,46,22,'#d890b8'],[48,28,26,'#f8c0e0'],[36,36,18,'#e0a0c8']];
+            leaves.forEach(([lx,ly,lr,lc]) => {
+                ctx.fillStyle=lc; ctx.beginPath(); ctx.arc(lx,ly,lr,0,Math.PI*2); ctx.fill();
+            });
+            // 꽃잎 점 디테일
+            ctx.fillStyle='rgba(255,240,250,0.6)';
+            for(let i=0;i<20;i++) ctx.fillRect(20+rnd(i*3)*56, 18+rnd(i*3+1)*50, 3, 2);
+            mgt['large_tree'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'village' };
+        }
+
+        // 대형 기와집 (4x3, 마을)
+        {
+            const { c, x: ctx } = mk(4, 3);
+            const W = c.width;
+            // 벽면
+            ctx.fillStyle='#c8b090'; ctx.fillRect(10,50,108,46);
+            ctx.fillStyle='#a89070'; ctx.fillRect(10,50,108,4);
+            // 창문
+            [[25,60],[65,60],[90,60]].forEach(([wx,wy]) => {
+                ctx.fillStyle='#7a6040'; ctx.fillRect(wx,wy,16,20);
+                ctx.fillStyle='#b09870'; ctx.fillRect(wx+2,wy+2,12,16);
+                ctx.fillStyle='rgba(180,220,255,0.5)'; ctx.fillRect(wx+3,wy+3,10,14);
+            });
+            // 문
+            ctx.fillStyle='#6a4020'; ctx.fillRect(56,66,16,30);
+            // 지붕 (기와)
+            ctx.fillStyle='#607090'; ctx.beginPath();
+            ctx.moveTo(0,54); ctx.lineTo(64,10); ctx.lineTo(128,54); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#708090';
+            for(let rx=0;rx<128;rx+=8) { ctx.fillRect(rx,30+Math.abs(rx-64)*0.3,8,4); }
+            // 용마루
+            ctx.fillStyle='#505060'; ctx.fillRect(54,8,20,6);
+            mgt['house'] = { canvas: c, tilesW: 4, tilesH: 3, theme: 'village' };
+        }
+
+        // 정자/누각 (3x3, 마을)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            // 마루
+            ctx.fillStyle='#8a6040'; ctx.fillRect(8,60,80,36);
+            ctx.fillStyle='#a08060'; ctx.fillRect(8,60,80,4);
+            // 기둥 4개
+            [[12,20],[72,20],[12,60],[72,60]].forEach(([px,py]) => {
+                ctx.fillStyle='#6a4020'; ctx.fillRect(px,py,8,40);
+                ctx.fillStyle='#8a6040'; ctx.fillRect(px,py,3,40);
+            });
+            // 지붕 (팔작지붕)
+            ctx.fillStyle='#607090';
+            ctx.beginPath(); ctx.moveTo(0,28); ctx.lineTo(48,6); ctx.lineTo(96,28); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#708090'; ctx.fillRect(0,26,96,4);
+            // 지붕 꼭지
+            ctx.fillStyle='#506070'; ctx.fillRect(42,4,12,6);
+            mgt['fountain'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'village' };
+            mgt['pavillion'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'village' };
+        }
+
+        // 꽃단지 (2x2, 마을)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            // 화분
+            ctx.fillStyle='#a06040'; ctx.fillRect(16,38,32,22);
+            ctx.fillStyle='#c08060'; ctx.fillRect(14,34,36,8);
+            // 꽃들
+            const fls = [[22,20,'#ff6080'],[32,16,'#ffff60'],[40,22,'#ff80ff'],[28,18,'#60c0ff']];
+            fls.forEach(([fx,fy,fc]) => {
+                ctx.fillStyle='#408040'; ctx.fillRect(fx,fy+4,2,12);
+                ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(fx+1,fy,5,0,Math.PI*2); ctx.fill();
+            });
+            mgt['flower_bed'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 광산 레일 (2x2, 던전)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            ctx.fillStyle='#2a2030'; ctx.fillRect(0,0,64,64);
+            // 침목
+            ctx.fillStyle='#5a3a1a';
+            for(let ty=8;ty<60;ty+=12) ctx.fillRect(8,ty,48,6);
+            // 레일
+            ctx.fillStyle='#888898';
+            ctx.fillRect(16,4,4,56); ctx.fillRect(44,4,4,56);
+            // 반짝임
+            ctx.fillStyle='#b0b0c0';
+            ctx.fillRect(16,4,4,2); ctx.fillRect(44,4,4,2);
+            mgt['mine_rail'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'dungeon' };
+        }
+
+        // 광산 광석 (1x1, 던전)
+        {
+            const { c, x: ctx } = mk(1, 1);
+            ctx.fillStyle='#3a3048'; ctx.fillRect(0,0,32,32);
+            // 광석 결정
+            ctx.fillStyle='#8080c0';
+            ctx.beginPath(); ctx.moveTo(16,4); ctx.lineTo(26,14); ctx.lineTo(16,24); ctx.lineTo(6,14); ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#a0a0e0'; ctx.beginPath(); ctx.moveTo(16,6); ctx.lineTo(22,14); ctx.lineTo(16,18); ctx.closePath(); ctx.fill();
+            mgt['mine_ore'] = { canvas: c, tilesW: 1, tilesH: 1, theme: 'dungeon' };
+        }
+
+        // 얼음 석상 (2x3, 설원)
+        {
+            const { c, x: ctx } = mk(2, 3);
+            // 받침대
+            ctx.fillStyle='#8090a8'; ctx.fillRect(10,80,44,16);
+            ctx.fillStyle='#6080a0'; ctx.fillRect(8,76,48,6);
+            // 석상 몸체
+            ctx.fillStyle='#a0b8d0';
+            ctx.beginPath(); ctx.moveTo(32,76); ctx.lineTo(16,40); ctx.lineTo(48,40); ctx.closePath(); ctx.fill();
+            // 얼음 결정 장식
+            ctx.strokeStyle='#c0e0ff'; ctx.lineWidth=2;
+            [[32,20],[16,50],[48,50]].forEach(([ix,iy]) => {
+                for(let a=0;a<6;a++) {
+                    const ang=a*Math.PI/3;
+                    ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(ix+Math.cos(ang)*10,iy+Math.sin(ang)*10); ctx.stroke();
+                }
+            });
+            // 머리
+            ctx.fillStyle='#b0c8e0'; ctx.beginPath(); ctx.arc(32,26,12,0,Math.PI*2); ctx.fill();
+            mgt['ice_statue'] = { canvas: c, tilesW: 2, tilesH: 3, theme: 'snow' };
+        }
+
+        // 용암 구덩이 (3x2, 용암)
+        {
+            const { c, x: ctx } = mk(3, 2);
+            const W=c.width, H=c.height;
+            // 어두운 테두리
+            ctx.fillStyle='#1a0808'; ctx.fillRect(0,0,W,H);
+            // 용암 풀 (방사형)
+            const lg=ctx.createRadialGradient(W/2,H/2,4,W/2,H/2,40);
+            lg.addColorStop(0,'#ff8000'); lg.addColorStop(0.5,'#cc2200'); lg.addColorStop(1,'#400000');
+            ctx.fillStyle=lg; ctx.beginPath(); ctx.ellipse(W/2,H/2,44,28,0,0,Math.PI*2); ctx.fill();
+            // 거품
+            ctx.fillStyle='#ff6000';
+            [[20,32],[50,24],[80,30],[36,44],[64,20]].forEach(([bx,by]) => {
+                ctx.beginPath(); ctx.arc(bx,by,4,0,Math.PI*2); ctx.fill();
+            });
+            mgt['lava_pit'] = { canvas: c, tilesW: 3, tilesH: 2, theme: 'lava' };
+        }
+
+        // 폭포 (3x3, 숲)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            const W=c.width, H=c.height;
+            // 절벽 배경
+            ctx.fillStyle='#5a6040'; ctx.fillRect(0,0,W,H);
+            ctx.fillStyle='#4a5030'; ctx.fillRect(30,0,36,H);
+            // 물줄기 (다층)
+            for(let wx=32;wx<66;wx+=4) {
+                const wg=ctx.createLinearGradient(0,0,0,H);
+                wg.addColorStop(0,'rgba(100,180,255,0.9)');
+                wg.addColorStop(1,'rgba(80,160,240,0.6)');
+                ctx.fillStyle=wg; ctx.fillRect(wx,0,3,H);
+            }
+            // 물보라
+            ctx.fillStyle='rgba(220,240,255,0.7)';
+            for(let i=0;i<15;i++) ctx.fillRect(26+rnd(i*3)*44, H-20+rnd(i*3+1)*16, 4, 3);
+            // 이끼 바위
+            ctx.fillStyle='#406030'; ctx.fillRect(0,0,28,H); ctx.fillRect(68,0,28,H);
+            mgt['mega_waterfall'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'forest' };
+        }
+
+        // 캠프파이어 (2x2, 마을/야외)
+        {
+            const { c, x: ctx } = mk(2, 2);
+            // 돌 원형
+            ctx.fillStyle='#707068'; 
+            ctx.beginPath(); ctx.arc(32,44,18,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#505048'; ctx.beginPath(); ctx.arc(32,44,14,0,Math.PI*2); ctx.fill();
+            // 장작
+            ctx.fillStyle='#5a3a1a'; ctx.fillRect(20,40,24,6);
+            ctx.fillStyle='#5a3a1a';
+            ctx.save(); ctx.translate(32,42); ctx.rotate(0.5); ctx.fillRect(-12,-3,24,6); ctx.restore();
+            // 불꽃
+            const fg=ctx.createRadialGradient(32,32,2,32,32,14);
+            fg.addColorStop(0,'rgba(255,255,180,1)'); fg.addColorStop(0.4,'rgba(255,140,0,0.9)'); fg.addColorStop(1,'rgba(200,0,0,0)');
+            ctx.fillStyle=fg; ctx.beginPath(); ctx.ellipse(32,32,14,16,0,0,Math.PI*2); ctx.fill();
+            // 불꽃 코어
+            ctx.fillStyle='rgba(255,255,200,0.8)'; ctx.beginPath(); ctx.arc(32,30,5,0,Math.PI*2); ctx.fill();
+            mgt['mega_campfire'] = { canvas: c, tilesW: 2, tilesH: 2, theme: 'village' };
+        }
+
+        // 돌문 (3x3, 던전)
+        {
+            const { c, x: ctx } = mk(3, 3);
+            const W=c.width, H=c.height;
+            // 돌 벽면
+            ctx.fillStyle='#5a5a66'; ctx.fillRect(0,0,W,H);
+            // 벽돌 패턴
+            ctx.fillStyle='#4a4a58';
+            for(let bx=0;bx<W;bx+=16) ctx.fillRect(bx,0,1,H);
+            for(let by=0;by<H;by+=12) ctx.fillRect(0,by,W,1);
+            // 아치형 문
+            ctx.fillStyle='#1a1a22'; 
+            ctx.beginPath(); ctx.moveTo(34,H); ctx.lineTo(34,44); ctx.arc(48,44,14,Math.PI,0); ctx.lineTo(62,H); ctx.closePath(); ctx.fill();
+            // 문 테두리
+            ctx.strokeStyle='#8888a0'; ctx.lineWidth=3;
+            ctx.beginPath(); ctx.moveTo(34,H); ctx.lineTo(34,44); ctx.arc(48,44,14,Math.PI,0); ctx.lineTo(62,H); ctx.stroke();
+            // 횃불 장식
+            ctx.fillStyle='#8a6040'; ctx.fillRect(22,30,4,20); ctx.fillRect(70,30,4,20);
+            ctx.fillStyle='#ff8020'; ctx.beginPath(); ctx.arc(24,28,6,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#ff8020'; ctx.beginPath(); ctx.arc(72,28,6,0,Math.PI*2); ctx.fill();
+            mgt['mega_stone_gate'] = { canvas: c, tilesW: 3, tilesH: 3, theme: 'dungeon' };
+        }
+
+        // --- 나머지 프로시저럴 타일들 ---
+        // 대형 고목 (big_tree)
+        {
             const { c, x: ctx } = mk(2, 3);
             ctx.fillStyle = '#5a3a1a'; ctx.fillRect(24, 44, 16, 52);
             [ [10,6,19,'#2e6014'],[33,2,22,'#3a7820'],[54,8,17,'#286010'],[20,22,23,'#348018'],[44,24,20,'#3a7820'],[32,36,25,'#2c7016'] ].forEach(([lx,ly,r,col]) => {
