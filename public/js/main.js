@@ -977,6 +977,21 @@ function setupHUDButtons() {
 
         // 게임 플레이 중 키 입력
         switch (e.key.toLowerCase()) {
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                const slotIdx = parseInt(e.key) - 1;
+                if (!inventoryManager.isOpen && !skillManager.isBookOpen) {
+                    const result = skillManager.useSkill(slotIdx, localPlayer, combatManager);
+                    if (!result.success && combatManager && combatManager._addDamageText) {
+                        combatManager._addDamageText(
+                            localPlayer.x + 16, localPlayer.y - 16,
+                            result.message, '#ff4444'
+                        );
+                    }
+                }
+                break;
             case 'i': // 인벤토리 (I)
                 if (inventoryManager.isOpen) inventoryManager.close();
                 else inventoryManager.open(localPlayer);

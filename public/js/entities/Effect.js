@@ -103,6 +103,64 @@ class ParticleEffect extends Effect {
     }
 }
 
+/**
+ * 스프라이트 이미지 기반 전투 이펙트 (신규 추가)
+ */
+class SpriteEffect extends Effect {
+    constructor(x, y, imageKey, duration = 0.35, size = 64, rotation = 0) {
+        super(x, y, duration);
+        this.imageKey = imageKey; // 예: 'double_slash', 'critical', 'explosion', 'holy', 'impact', 'triple_slash'
+        this.size = size;
+        this.rotation = rotation;
+    }
+
+    render(ctx, camera) {
+        // AssetManager에서 이미지 가져오기
+        let img = null;
+        if (typeof assetManager !== 'undefined' && assetManager.images) {
+            // 1) procEffects에서 먼저 찾기 (동적 로드 대응)
+            if (assetManager.images.procEffects && assetManager.images.procEffects[this.imageKey]) {
+                img = assetManager.images.procEffects[this.imageKey];
+            } 
+            // 2) effects에서 찾기
+            else if (assetManager.images.effects && assetManager.images.effects[this.imageKey]) {
+                img = assetManager.images.effects[this.imageKey];
+            }
+        }
+        
+        if (!img) return;
+
+        const sx = this.x - camera.x;
+        const sy = this.y - camera.y;
+        const progress = this.timer / this.duration;
+
+        ctx.save();
+        
+        // 페이드아웃 효과
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // 중심 좌표 이동 및 회전
+        ctx.translate(sx, sy);
+        if (this.rotation !== 0) {
+            ctx.rotate(this.rotation);
+        }
+
+        // 크기 펄싱 효과 (점점 커지며 흩어짐)
+        const scale = 0.8 + progress * 0.4;
+        const currentSize = this.size * scale;
+
+        // 픽셀아트 렌더링 최적화
+        ctx.imageSmoothingEnabled = false;
+
+        // 그리기
+        ctx.drawImage(img, -currentSize / 2, -currentSize / 2, currentSize, currentSize);
+
+        ctx.restore();
+    }
+}
+
 // 전역 변수로 노출 (기존 코드와의 호환성)
 window.SlashEffect = SlashEffect;
 window.ParticleEffect = ParticleEffect;
+window.SpriteEffect = SpriteEffect;

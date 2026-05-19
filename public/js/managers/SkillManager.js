@@ -46,36 +46,50 @@ class SkillManager {
                 desc: '공격력 2배 데미지',
                 learnCost: { gold: 150, items: { c01: 3 } },
             },
+            warrior_dash: {
+                id: 'warrior_dash', job: '전사', name: '진격', icon: '🏃',
+                reqLevel: 15, mpCost: 25, cooldown: 8,
+                type: 'attack_multi', value: 2.5,
+                desc: '전방으로 돌진하며 2.5배 피해',
+                learnCost: { gold: 300, items: { c01: 4 } },
+            },
             warrior_triple: {
                 id: 'warrior_triple', job: '전사', name: '삼중공격', icon: '🗡️',
-                reqLevel: 20, mpCost: 35, cooldown: 5,
+                reqLevel: 22, mpCost: 35, cooldown: 5,
                 type: 'attack_multi', value: 3,
                 desc: '공격력 3배 데미지',
-                learnCost: { gold: 400, items: { c01: 5 } },
+                learnCost: { gold: 600, items: { c01: 5 } },
             },
             warrior_buff_atk: {
                 id: 'warrior_buff_atk', job: '전사', name: '신검합일', icon: '🔥',
-                reqLevel: 30, mpCost: 25, cooldown: 15,
+                reqLevel: 32, mpCost: 25, cooldown: 15,
                 type: 'buff', buffStat: 'atk', buffValue: 15, buffDuration: 30,
                 desc: 'ATK+15 (30초)',
-                learnCost: { gold: 800, items: { c03: 2 } },
+                learnCost: { gold: 1000, items: { c03: 2 } },
+            },
+            warrior_roar: {
+                id: 'warrior_roar', job: '전사', name: '포효', icon: '🦁',
+                reqLevel: 40, mpCost: 40, cooldown: 20,
+                type: 'debuff', debuffStat: 'def', debuffValue: -10, debuffDuration: 10,
+                desc: '주변 적 방어력 -10 (10초)',
+                learnCost: { gold: 1800, items: { c03: 4 } },
             },
             warrior_ultimate: {
                 id: 'warrior_ultimate', job: '전사', name: '건곤대나이', icon: '💥',
-                reqLevel: 45, mpCost: 60, cooldown: 20,
+                reqLevel: 50, mpCost: 65, cooldown: 20,
                 type: 'aoe_attack', value: 5,
                 desc: '광역 5배 데미지 (주변 적 전체)',
-                learnCost: { gold: 1500, items: { c03: 5 } },
+                learnCost: { gold: 3000, items: { c03: 6 } },
             },
             warrior_super_buff: {
                 id: 'warrior_super_buff', job: '전사', name: '백호령', icon: '🐯',
-                reqLevel: 60, mpCost: 50, cooldown: 30,
+                reqLevel: 65, mpCost: 60, cooldown: 30,
                 type: 'buff_multi', buffs: [
-                    { stat: 'atk', value: 30, duration: 30 },
-                    { stat: 'def', value: 10, duration: 30 },
+                    { stat: 'atk', value: 35, duration: 30 },
+                    { stat: 'def', value: 15, duration: 30 },
                 ],
-                desc: 'ATK+30, DEF+10 (30초)',
-                learnCost: { gold: 3000, items: { c03: 10 } },
+                desc: 'ATK+35, DEF+15 (30초)',
+                learnCost: { gold: 5000, items: { c03: 12 } },
             },
 
             // ===================================================
@@ -93,35 +107,49 @@ class SkillManager {
                 reqLevel: 12, mpCost: 20, cooldown: 3,
                 type: 'attack_multi', value: 2,
                 desc: '공격력 2배 데미지',
-                learnCost: { gold: 150, items: { c02: 3 } },
+                learnCost: { gold: 200, items: { c02: 3 } },
+            },
+            thief_poison: {
+                id: 'thief_poison', job: '도적', name: '독바르기', icon: '🧪',
+                reqLevel: 18, mpCost: 20, cooldown: 15,
+                type: 'buff', buffStat: 'atk', buffValue: 10, buffDuration: 20,
+                desc: '무기에 독을 발라 ATK+10 (20초)',
+                learnCost: { gold: 450, items: { c02: 4 } },
             },
             thief_stealth: {
                 id: 'thief_stealth', job: '도적', name: '투명', icon: '👻',
-                reqLevel: 20, mpCost: 30, cooldown: 20,
-                type: 'buff', buffStat: 'stealth', buffValue: 1, buffDuration: 10,
-                desc: '10초간 은신 (몬스터 무시)',
-                learnCost: { gold: 400, items: { c02: 5 } },
+                reqLevel: 25, mpCost: 35, cooldown: 20,
+                type: 'buff', buffStat: 'stealth', buffValue: 1, buffDuration: 12,
+                desc: '12초간 은신 (몬스터 무시)',
+                learnCost: { gold: 800, items: { c02: 6 } },
             },
             thief_blink: {
                 id: 'thief_blink', job: '도적', name: '비영승보', icon: '💨',
-                reqLevel: 30, mpCost: 25, cooldown: 8,
-                type: 'attack_multi', value: 3,
-                desc: '순간이동 후 3배 타격',
-                learnCost: { gold: 800, items: { c03: 2 } },
+                reqLevel: 35, mpCost: 30, cooldown: 8,
+                type: 'attack_multi', value: 3.5,
+                desc: '순간이동 후 3.5배 타격',
+                learnCost: { gold: 1500, items: { c03: 3 } },
+            },
+            thief_backstab: {
+                id: 'thief_backstab', job: '도적', name: '기습', icon: '🌑',
+                reqLevel: 45, mpCost: 50, cooldown: 12,
+                type: 'attack_multi', value: 5,
+                desc: '적의 뒤를 노려 5배 치명적 피해',
+                learnCost: { gold: 2500, items: { c03: 5 } },
             },
             thief_ultimate: {
                 id: 'thief_ultimate', job: '도적', name: '필살검무', icon: '⚡',
-                reqLevel: 45, mpCost: 55, cooldown: 15,
-                type: 'attack_multi', value: 6,
-                desc: '6배 크리티컬 데미지',
-                learnCost: { gold: 1500, items: { c03: 5 } },
+                reqLevel: 55, mpCost: 65, cooldown: 15,
+                type: 'attack_multi', value: 7,
+                desc: '7배 강력한 크리티컬 피해',
+                learnCost: { gold: 4000, items: { c03: 8 } },
             },
             thief_clone: {
                 id: 'thief_clone', job: '도적', name: '분신', icon: '👥',
-                reqLevel: 60, mpCost: 60, cooldown: 30,
-                type: 'buff', buffStat: 'atk', buffValue: 25, buffDuration: 30,
-                desc: 'ATK+25 (30초, 분신 공격)',
-                learnCost: { gold: 3000, items: { c03: 10 } },
+                reqLevel: 65, mpCost: 70, cooldown: 30,
+                type: 'buff', buffStat: 'atk', buffValue: 30, buffDuration: 30,
+                desc: 'ATK+30 (30초, 분신 공격)',
+                learnCost: { gold: 6000, items: { c03: 15 } },
             },
 
             // ===================================================
@@ -129,52 +157,52 @@ class SkillManager {
             // ===================================================
             mage_magic1: {
                 id: 'mage_magic1', job: '주술사', name: '신수마법 1차', icon: '🔮',
-                reqLevel: 3, mpCost: 10, cooldown: 2,
-                type: 'magic_attack', value: 2,
-                desc: '원거리 마법 (마력×2)',
-                learnCost: { gold: 30, items: { c02: 1 } },
+                reqLevel: 5, mpCost: 10, cooldown: 2,
+                type: 'magic_attack', value: 2.2,
+                desc: '원거리 마법 (마력×2.2)',
+                learnCost: { gold: 50, items: { c02: 1 } },
             },
             mage_magic2: {
                 id: 'mage_magic2', job: '주술사', name: '신수마법 2차', icon: '✨',
-                reqLevel: 12, mpCost: 20, cooldown: 3,
-                type: 'magic_attack', value: 3,
-                desc: '원거리 마법 (마력×3)',
-                learnCost: { gold: 150, items: { c02: 3 } },
+                reqLevel: 15, mpCost: 20, cooldown: 3,
+                type: 'magic_attack', value: 3.5,
+                desc: '원거리 마법 (마력×3.5)',
+                learnCost: { gold: 250, items: { c02: 3 } },
             },
             mage_protect: {
                 id: 'mage_protect', job: '주술사', name: '보호', icon: '🛡️',
-                reqLevel: 20, mpCost: 30, cooldown: 20,
-                type: 'buff', buffStat: 'def', buffValue: 20, buffDuration: 30,
-                desc: 'DEF+20 (30초)',
-                learnCost: { gold: 400, items: { c02: 5 } },
+                reqLevel: 22, mpCost: 30, cooldown: 20,
+                type: 'buff', buffStat: 'def', buffValue: 25, buffDuration: 30,
+                desc: 'DEF+25 (30초)',
+                learnCost: { gold: 550, items: { c02: 5 } },
             },
             mage_magic3: {
                 id: 'mage_magic3', job: '주술사', name: '신수마법 3차', icon: '💫',
-                reqLevel: 30, mpCost: 35, cooldown: 4,
-                type: 'magic_attack', value: 5,
-                desc: '원거리 마법 (마력×5)',
-                learnCost: { gold: 800, items: { c03: 2 } },
-            },
-            mage_curse: {
-                id: 'mage_curse', job: '주술사', name: '저주', icon: '☠️',
-                reqLevel: 40, mpCost: 40, cooldown: 15,
-                type: 'debuff', debuffStat: 'def', debuffValue: -15, debuffDuration: 20,
-                desc: '적 DEF-15 (20초)',
+                reqLevel: 32, mpCost: 40, cooldown: 4,
+                type: 'magic_attack', value: 5.5,
+                desc: '원거리 마법 (마력×5.5)',
                 learnCost: { gold: 1200, items: { c03: 3 } },
             },
-            mage_paralyze: {
-                id: 'mage_paralyze', job: '주술사', name: '마비', icon: '⚡',
-                reqLevel: 50, mpCost: 45, cooldown: 20,
-                type: 'debuff', debuffStat: 'stun', debuffValue: 1, debuffDuration: 3,
-                desc: '적 3초 행동불가',
+            mage_fire_wall: {
+                id: 'mage_fire_wall', job: '주술사', name: '화염장벽', icon: '🔥',
+                reqLevel: 42, mpCost: 55, cooldown: 18,
+                type: 'aoe_magic', value: 4,
+                desc: '주변 넓은 범위 마력×4 지속 피해',
                 learnCost: { gold: 2000, items: { c03: 5 } },
+            },
+            mage_mana_shield: {
+                id: 'mage_mana_shield', job: '주술사', name: '마력방패', icon: '💠',
+                reqLevel: 52, mpCost: 60, cooldown: 40,
+                type: 'buff', buffStat: 'def', buffValue: 50, buffDuration: 20,
+                desc: '강력한 마력 방패 생성 DEF+50 (20초)',
+                learnCost: { gold: 3500, items: { c03: 8 } },
             },
             mage_ultimate: {
                 id: 'mage_ultimate', job: '주술사', name: '헬파이어', icon: '🌋',
-                reqLevel: 65, mpCost: 80, cooldown: 25,
-                type: 'aoe_magic', value: 8,
-                desc: '광역 마력×8 마법 폭발',
-                learnCost: { gold: 3500, items: { c03: 10 } },
+                reqLevel: 65, mpCost: 90, cooldown: 25,
+                type: 'aoe_magic', value: 10,
+                desc: '광역 마력×10 마법 대폭발',
+                learnCost: { gold: 6000, items: { c03: 15 } },
             },
 
             // ===================================================
@@ -182,53 +210,61 @@ class SkillManager {
             // ===================================================
             poet_mana_drain: {
                 id: 'poet_mana_drain', job: '도사', name: '공력증강', icon: '🔄',
-                reqLevel: 5, mpCost: 0, cooldown: 10,
-                type: 'hp_to_mp', value: 50,
-                desc: 'HP 50 소비 → MP 50 회복',
-                learnCost: { gold: 50, items: { c02: 2 } },
+                reqLevel: 6, mpCost: 0, cooldown: 8,
+                type: 'hp_to_mp', value: 60,
+                desc: 'HP 60 소비 → MP 80 회복',
+                learnCost: { gold: 60, items: { c02: 2 } },
             },
             poet_magic1: {
                 id: 'poet_magic1', job: '도사', name: '신수마법', icon: '🔮',
-                reqLevel: 10, mpCost: 15, cooldown: 3,
-                type: 'magic_attack', value: 2,
-                desc: '원거리 마법 (마력×2)',
-                learnCost: { gold: 100, items: { c02: 3 } },
+                reqLevel: 12, mpCost: 15, cooldown: 3,
+                type: 'magic_attack', value: 2.5,
+                desc: '원거리 마법 (마력×2.5)',
+                learnCost: { gold: 150, items: { c02: 3 } },
             },
             poet_protect: {
                 id: 'poet_protect', job: '도사', name: '보호', icon: '🛡️',
-                reqLevel: 18, mpCost: 25, cooldown: 15,
-                type: 'buff', buffStat: 'def', buffValue: 15, buffDuration: 20,
-                desc: 'DEF+15 (20초, 피해 감소)',
-                learnCost: { gold: 300, items: { c01: 5 } },
+                reqLevel: 20, mpCost: 25, cooldown: 15,
+                type: 'buff', buffStat: 'def', buffValue: 20, buffDuration: 25,
+                desc: 'DEF+20 (25초, 피해 감소)',
+                learnCost: { gold: 450, items: { c01: 5 } },
+            },
+            poet_mana_share: {
+                id: 'poet_mana_share', job: '도사', name: '공력주입', icon: '💉',
+                reqLevel: 30, mpCost: 50, cooldown: 15,
+                type: 'hp_to_mp', value: 150, // 폴백 처리 예정 (아군 마나용)
+                desc: '자신의 HP를 깎아 마나 대폭 회복',
+                learnCost: { gold: 1200, items: { c03: 3 } },
             },
             poet_heal_big: {
                 id: 'poet_heal_big', job: '도사', name: '태양의기원', icon: '☀️',
-                reqLevel: 30, mpCost: 40, cooldown: 12,
-                type: 'self_heal', value: 300,
-                desc: 'HP 300 대량 회복',
-                learnCost: { gold: 800, items: { c03: 2 } },
+                reqLevel: 38, mpCost: 45, cooldown: 10,
+                type: 'self_heal', value: 400,
+                desc: 'HP 400 즉시 대량 회복',
+                learnCost: { gold: 1800, items: { c03: 5 } },
             },
             poet_barrier: {
                 id: 'poet_barrier', job: '도사', name: '차폐', icon: '🔰',
-                reqLevel: 40, mpCost: 35, cooldown: 25,
-                type: 'buff', buffStat: 'stealth', buffValue: 1, buffDuration: 15,
-                desc: '15초 몬스터 무시',
-                learnCost: { gold: 1200, items: { c03: 3 } },
+                reqLevel: 48, mpCost: 40, cooldown: 25,
+                type: 'buff', buffStat: 'stealth', buffValue: 1, buffDuration: 18,
+                desc: '18초간 적의 공격 무시',
+                learnCost: { gold: 3000, items: { c03: 7 } },
             },
             poet_mega_heal: {
                 id: 'poet_mega_heal', job: '도사', name: '생명의기원', icon: '💖',
-                reqLevel: 55, mpCost: 60, cooldown: 15,
-                type: 'self_heal', value: 800,
-                desc: 'HP 800 초대형 회복',
-                learnCost: { gold: 2500, items: { c03: 5 } },
+                reqLevel: 58, mpCost: 70, cooldown: 12,
+                type: 'self_heal', value: 1000,
+                desc: 'HP 1000 초대형 즉시 회복',
+                learnCost: { gold: 4500, items: { c03: 10 } },
             },
             poet_invincible: {
                 id: 'poet_invincible', job: '도사', name: '금강불체', icon: '✨',
-                reqLevel: 65, mpCost: 80, cooldown: 60,
-                type: 'buff', buffStat: 'invincible', buffValue: 1, buffDuration: 10,
-                desc: '10초간 완전 무적',
-                learnCost: { gold: 3500, items: { c03: 10 } },
+                reqLevel: 68, mpCost: 100, cooldown: 60,
+                type: 'buff', buffStat: 'invincible', buffValue: 1, buffDuration: 12,
+                desc: '12초간 완전 무적 상태',
+                learnCost: { gold: 8000, items: { c03: 20 } },
             },
+
         };
     }
 
@@ -242,8 +278,27 @@ class SkillManager {
     canLearn(skillId, player) {
         const skill = this.SKILLS[skillId];
         if (!skill) return { ok: false, reason: '존재하지 않는 스킬' };
-        if (player.learnedSkills && player.learnedSkills.includes(skillId)) return { ok: false, reason: '이미 습득한 스킬' };
-        // 오픈 모드: 직업·레벨·비용 제한 해제 — 모든 학생이 자유롭게 체험
+        
+        // 1. 이미 습득했는지 확인
+        if (player.learnedSkills && player.learnedSkills.includes(skillId)) {
+            return { ok: false, reason: '이미 습득한 스킬' };
+        }
+
+        // 2. 직업 제한 확인
+        if (skill.job !== player.job) {
+            return { ok: false, reason: `${skill.job} 전용 스킬입니다.` };
+        }
+
+        // 3. 레벨 제한 확인
+        if (player.level < skill.reqLevel) {
+            return { ok: false, reason: `레벨 ${skill.reqLevel} 이상부터 가능합니다.` };
+        }
+
+        // 4. 비용(금전) 확인
+        if (player.gold < skill.learnCost.gold) {
+            return { ok: false, reason: `금전이 부족합니다. (필요: ${skill.learnCost.gold})` };
+        }
+
         return { ok: true };
     }
 
@@ -256,7 +311,9 @@ class SkillManager {
 
         const skill = this.SKILLS[skillId];
 
-        // 오픈 모드: 비용 차감 없음 (모든 스킬 무료 습득)
+        // 실제 금전 차감
+        player.gold -= skill.learnCost.gold;
+
         if (!player.learnedSkills) player.learnedSkills = [];
         player.learnedSkills.push(skillId);
 
@@ -274,6 +331,9 @@ class SkillManager {
 
         // 스킬바 HUD 즉시 갱신
         this.updateSkillBarHUD();
+
+        // [추가] 플레이어 스탯 즉시 반영 (MP 회복 등)
+        if (player.calculateStats) player.calculateStats();
 
         return { success: true, message: `✨ ${skill.name} 습득!` };
     }
@@ -314,12 +374,12 @@ class SkillManager {
 
         // 공격형 스킬: 주변에 타겟이 없으면 MP를 소모하지 않고 취소
         if (skill.type === 'attack_multi' || skill.type === 'magic_attack') {
-            if (!this._hasNearbyTarget(player, combat, 2)) {
+            if (!this._hasNearbyTarget(player, combat, 2.5)) { // 범위 소폭 확대 (2 -> 2.5)
                 return { success: false, message: '주변에 적이 없습니다.' };
             }
         }
         if (skill.type === 'aoe_attack' || skill.type === 'aoe_magic') {
-            if (!this._hasNearbyTarget(player, combat, 3)) {
+            if (!this._hasNearbyTarget(player, combat, 4.0)) { // 범위 확대 (3 -> 4.0)
                 return { success: false, message: '주변에 적이 없습니다.' };
             }
         }
@@ -334,6 +394,7 @@ class SkillManager {
 
         // MP 소비
         player.stats.mp -= skill.mpCost;
+        if (player.resetCombatTimer) player.resetCombatTimer(); // 스킬 시전 시 전투 상태 돌입
 
         // 쿨타임 시작
         this.cooldowns[skillId] = skill.cooldown;
@@ -346,15 +407,19 @@ class SkillManager {
             // ── 전사 ──
             warrior_heal1:      'skill_heal',
             warrior_double:     'slash_heavy',
+            warrior_dash:       'slash_fast',
             warrior_triple:     'slash_heavy',
             warrior_buff_atk:   'skill_buff',
+            warrior_roar:       'skill_debuff',
             warrior_ultimate:   'skill_aoe',
             warrior_super_buff: 'skill_buff',
             // ── 도적 ──
             thief_buff_atk:     'skill_buff',
             thief_double:       'slash_fast',
+            thief_poison:       'skill_buff',
             thief_stealth:      'skill_debuff',
             thief_blink:        'skill_thunder',
+            thief_backstab:     'slash_heavy',
             thief_ultimate:     'critical',
             thief_clone:        'skill_buff',
             // ── 주술사 ──
@@ -362,6 +427,8 @@ class SkillManager {
             mage_magic2:        'skill_ice',
             mage_protect:       'skill_buff',
             mage_magic3:        'skill_fire',
+            mage_fire_wall:     'skill_fire',
+            mage_mana_shield:   'skill_buff',
             mage_curse:         'skill_debuff',
             mage_paralyze:      'skill_thunder',
             mage_ultimate:      'skill_aoe',
@@ -369,6 +436,7 @@ class SkillManager {
             poet_mana_drain:    'skill_heal',
             poet_magic1:        'magic_cast',
             poet_protect:       'skill_buff',
+            poet_mana_share:    'skill_heal',
             poet_heal_big:      'skill_heal',
             poet_barrier:       'skill_buff',
             poet_mega_heal:     'skill_heal',
@@ -391,6 +459,12 @@ class SkillManager {
             });
         }
 
+        // [추가] 시전 시 플레이어 시각 피드백 (흔들림)
+        if (player) {
+            player.shakeAmount = 4;
+            player.shakeTimer = 0.2;
+        }
+
 
         // ===== 개별 스킬별 고유 비주얼 이펙트 =====
         if (player.spawnSkillEffect) {
@@ -399,15 +473,19 @@ class SkillManager {
                 // ── 전사 ──
                 warrior_heal1:    { fx: 'heal',  color: '#80ff80' },
                 warrior_double:   { fx: 'proc',  id: 'double_slash' },
+                warrior_dash:     { fx: 'proc',  id: 'wind' },
                 warrior_triple:   { fx: 'proc',  id: 'triple_slash' },
                 warrior_buff_atk: { fx: 'buff',  color: '#FF8C00' },
+                warrior_roar:     { fx: 'proc',  id: 'curse' },
                 warrior_ultimate: { fx: 'proc',  id: 'earth' },
                 warrior_super_buff: { fx: 'buff', color: '#FFD700' },
                 // ── 도적 ──
                 thief_buff_atk:   { fx: 'buff',  color: '#E0AAFF' },
                 thief_double:     { fx: 'proc',  id: 'double_slash' },
+                thief_poison:     { fx: 'buff',  color: '#ADFF2F' },
                 thief_stealth:    { fx: 'proc',  id: 'stealth' },
                 thief_blink:      { fx: 'proc',  id: 'wind' },
+                thief_backstab:   { fx: 'proc',  id: 'triple_slash' },
                 thief_ultimate:   { fx: 'proc',  id: 'triple_slash' },
                 thief_clone:      { fx: 'buff',  color: '#AA00FF' },
                 // ── 주술사 ──
@@ -415,6 +493,8 @@ class SkillManager {
                 mage_magic2:      { fx: 'proc',  id: 'aoe_ice' },
                 mage_protect:     { fx: 'buff',  color: '#4FC3F7' },
                 mage_magic3:      { fx: 'proc',  id: 'aoe_poison' },
+                mage_fire_wall:   { fx: 'proc',  id: 'aoe_fire' },
+                mage_mana_shield: { fx: 'buff',  color: '#FFD700' },
                 mage_curse:       { fx: 'proc',  id: 'curse' },
                 mage_paralyze:    { fx: 'proc',  id: 'paralyze' },
                 mage_ultimate:    { fx: 'proc',  id: 'aoe_fire' }, 
@@ -422,6 +502,7 @@ class SkillManager {
                 poet_mana_drain:  { fx: 'proc',  id: 'hp_to_mp' },
                 poet_magic1:      { fx: 'proc',  id: 'wind' },
                 poet_protect:     { fx: 'buff',  color: '#69F0AE' },
+                poet_mana_share:  { fx: 'proc',  id: 'holy' },
                 poet_heal_big:    { fx: 'proc',  id: 'holy' },
                 poet_barrier:     { fx: 'proc',  id: 'stealth' },
                 poet_mega_heal:   { fx: 'proc',  id: 'holy' },
@@ -604,18 +685,20 @@ class SkillManager {
         let target = null;
         for (const m of combat.monsters) {
             if (m.state === 'dead') continue;
-            const dx = Math.abs(m.tileX - (player.tileX + ox));
-            const dy = Math.abs(m.tileY - (player.tileY + oy));
-            if (dx + dy <= 1) { target = m; break; }
+            const dx = m.tileX - (player.tileX + ox);
+            const dy = m.tileY - (player.tileY + oy);
+            const dist = Math.sqrt(dx * dx + dy * dy); // 유클리드 거리
+            if (dist <= 1.2) { target = m; break; }
         }
 
         if (!target) {
             // 인접 확장 검색
             for (const m of combat.monsters) {
                 if (m.state === 'dead') continue;
-                const dx = Math.abs(m.tileX - player.tileX);
-                const dy = Math.abs(m.tileY - player.tileY);
-                if (dx + dy <= 2) { target = m; break; }
+                const dx = m.tileX - player.tileX;
+                const dy = m.tileY - player.tileY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= 2.2) { target = m; break; }
             }
         }
 
@@ -640,9 +723,10 @@ class SkillManager {
 
         combat.monsters.forEach(m => {
             if (m.state === 'dead') return;
-            const dx = Math.abs(m.tileX - player.tileX);
-            const dy = Math.abs(m.tileY - player.tileY);
-            if (dx + dy <= 3) {
+            const dx = m.tileX - player.tileX;
+            const dy = m.tileY - player.tileY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist <= 4.0) { // 범위 확대
                 const killed = m.takeDamage(dmg);
                 combat._addDamageText(m.x + 16, m.y, dmg, isMagic ? '#ff80ff' : '#FFD700');
                 if (killed) combat._onMonsterKill(player, m);
@@ -717,9 +801,10 @@ class SkillManager {
         if (!combat || !combat.monsters) return false;
         return combat.monsters.some(m => {
             if (m.state === 'dead') return false;
-            const dx = Math.abs(m.tileX - player.tileX);
-            const dy = Math.abs(m.tileY - player.tileY);
-            return (dx + dy) <= range;
+            const dx = m.tileX - player.tileX;
+            const dy = m.tileY - player.tileY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            return dist <= range;
         });
     }
 
@@ -936,7 +1021,7 @@ class SkillManager {
         const learned = player.learnedSkills || [];
         const isLearned = learned.includes(skillId);
         const onBar = this.skillBar.includes(skillId);
-        const costText = '무료 (오픈 모드)';
+        const costText = `${skill.learnCost.gold.toLocaleString()}전`;
 
         const typeNames = {
             'self_heal': '🩹 회복', 'hp_to_mp': '🔄 전환',

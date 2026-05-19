@@ -78,6 +78,11 @@ class Player {
         // ===== 자동 포션 시스템 =====
         this.autoPotionEnabled = false; // 기본 OFF
         this._autoPotionCooldown = 0;   // 자동 포션 쿨다운
+
+        // ===== 시각적 피드백 & 무적 =====
+        this.shakeAmount = 0;
+        this.shakeTimer = 0;
+        this.skillImmunityTimer = 0;    // 스킬 시전 후 짧은 무적 시간
     }
 
     /**
@@ -174,6 +179,15 @@ class Player {
             return e.timer < e.duration;
         });
 
+        // ===== 흔들림 & 무적 타이머 업데이트 =====
+        if (this.shakeTimer > 0) {
+            this.shakeTimer -= dt;
+            if (this.shakeTimer <= 0) this.shakeAmount = 0;
+        }
+        if (this.skillImmunityTimer > 0) {
+            this.skillImmunityTimer -= dt;
+        }
+
         // ===== 유령 모드 처리 =====
         if (this.isDead) {
             this.deathTimer -= dt;
@@ -198,6 +212,12 @@ class Player {
             }
             return; // 유령 상태에서는 공격/스킬 불가
         }
+
+        // ===== HP/MP 자연 회복 =====
+        this._updateRegen(dt, map);
+
+        // ===== 자동 포션 =====
+        this._updateAutoPotion(dt);
 
         // 이동 중이면 목표까지 부드럽게 보간
         if (this.isMoving) {
@@ -225,17 +245,11 @@ class Player {
         if (input && input.actionPressed && !this.isAttacking) {
             this._attack();
         }
-
-        // ===== HP/MP 자연 회복 =====
-        this._updateRegen(dt, map);
-
-        // ===== 자동 포션 =====
-        this._updateAutoPotion(dt);
     }
 
     /**
      * HP/MP 자연 회복 업데이트
-     * 3초마다 HP 2%, MP 3% 회복 (전투 중 일시 정지, 마을 3배)
+     * 3초마다 HP 2%, MP 5% 회복 (전투 중 일시 정지, 마을 3배)
      */
     _updateRegen(dt, map) {
         // 피격 타이머 갱신
@@ -260,8 +274,8 @@ class Player {
             this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + hpRegen);
         }
 
-        // MP 회복 (최대 MP 대비 3% * 배율)
-        const mpRegen = Math.ceil(this.stats.maxMp * 0.03 * multiplier);
+        // MP 회복 (최대 MP 대비 5% * 배율) - 상향 조정 (3% -> 5%)
+        const mpRegen = Math.ceil(this.stats.maxMp * 0.05 * multiplier);
         if (this.stats.mp < this.stats.maxMp) {
             this.stats.mp = Math.min(this.stats.maxMp, this.stats.mp + mpRegen);
         }
@@ -299,10 +313,19 @@ class Player {
     }
 
     /**
+     * 전투 상태 리셋 (회복 타이머 지연용)
+     */
+    resetCombatTimer() {
+        this._lastHitTimer = 0;
+    }
+
+    /**
      * 피격 시 호출 (리젠 타이머 리셋용)
      */
     onHit() {
-        this._lastHitTimer = 0;
+        if (this.skillImmunityTimer > 0) return false; // 무적 상태면 피격 무시
+        this.resetCombatTimer();
+        return true;
     }
 
     /**
@@ -379,6 +402,7 @@ class Player {
         
         this.isAttacking = true;
         this.attackTimer = 0.4; // 0.4초 동안 공격 상태 유지 (네트워크 동기화 보장)
+        this.resetCombatTimer(); // 공격 시 전투 상태 돌입
 
         // 직업에 따른 기본 이펙트 처리
         const job = this.job;
@@ -478,7 +502,7 @@ class Player {
     // ===== 이펙트 생성 헬퍼 =====
 
     /**
-     * 직업별 고유 평타 이펙트 (각 직업마다 색상/형태/파티클이 다름)
+     * 직업별 고유 평타 이펙트 (각 직업마다 색상/형태/파티클이 다름 + 고화질 픽셀아트 이펙트 연동)
      */
     _spawnSlashEffect(x, y, dir) {
         const job = this.job;
@@ -491,13 +515,63 @@ class Player {
             type = 'quick_slash';
             color = '#A020F0';
             glow = '#DDA0DD';
+        } else if (job === '주술사') {
+            color = '#8A2BE2';
+            glow = '#BA55D3';
+        } else if (job === '도사') {
+            color = '#00FA9A';
+            glow = '#ADFF2F';
         }
 
-        // 통합 이펙트 시스템 사용
-        const effect = new SlashEffect(x, y, dir, color, glow, type);
-        this.effects.push(effect);
+        // 방향별 스프라이트 회전각 매핑
+        const dirRotations = {
+            right: 0,
+            down: Math.PI / 2,
+            left: Math.PI,
+            up: -Math.PI / 2
+        };
+        const rotation = dirRotations[dir] || 0;
 
-        // [추가] 파티클 이펙트로 타격감 극대화
+        // 1. 20% 확률로 크리티컬 이펙트 연동 또는 직업별 고유 고화질 스프라이트 이펙트 추가 소환
+        const isCritical = Math.random() < 0.20;
+        
+        if (isCritical) {
+            // 크리티컬 픽셀아트 이펙트 소환 (주황/빨강 광채 파티클 동반)
+            this.effects.push(new SpriteEffect(x, y, 'critical', 0.4, 76, rotation));
+            soundManager.play('slash_heavy'); // 치명타용 묵직한 소리
+            
+            // 크리티컬 파티클 생성
+            for (let i = 0; i < 10; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 5 + Math.random() * 20;
+                const px = x + Math.cos(angle) * dist;
+                const py = y + Math.sin(angle) * dist;
+                const vx = Math.cos(angle) * (80 + Math.random() * 80);
+                const vy = Math.sin(angle) * (80 + Math.random() * 80);
+                this.effects.push(new ParticleEffect(px, py, vx, vy, 0.4, '#FF4500', 2 + Math.random() * 2));
+            }
+        } else {
+            // 일반 공격 시 직업별 고유 고화질 이펙트 매핑
+            if (job === '전사') {
+                // 전사: 무거운 대검 이중 슬래시 고화질 이미지 연동
+                this.effects.push(new SpriteEffect(x, y, 'double_slash', 0.35, 72, rotation));
+            } else if (job === '도적') {
+                // 도적: 예리하고 빠른 삼중 슬래시 고화질 이미지 연동
+                this.effects.push(new SpriteEffect(x, y, 'triple_slash', 0.3, 64, rotation));
+            } else if (job === '주술사') {
+                // 주술사: 마법적인 충격 이펙트 고화질 이미지 연동
+                this.effects.push(new SpriteEffect(x, y, 'impact', 0.3, 56, rotation));
+            } else if (job === '도사') {
+                // 도사: 신성한 타격 이펙트 고화질 이미지 연동
+                this.effects.push(new SpriteEffect(x, y, 'holy', 0.35, 60, rotation));
+            }
+
+            // 기본 물리 아크 슬래시 효과도 중첩 소환하여 입체감 향상
+            const effect = new SlashEffect(x, y, dir, color, glow, type);
+            this.effects.push(effect);
+        }
+
+        // 2. 파티클 이펙트로 타격감 극대화
         for (let i = 0; i < 6; i++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = 5 + Math.random() * 15;
@@ -603,13 +677,21 @@ class Player {
                 break;
             }
             case 'proc': {
-                // AssetManager의 프로시저럴 에셋 직접 사용
+                // AssetManager의 프로시저럴 에셋 직접 사용 및 SpriteEffect로 리팩토링 (시각 이펙트 고도화)
                 if (procId) {
-                    this.effects.push({
-                        type: 'proc_asset', x: cx, y: cy,
-                        timer: 0, duration: 0.6,
-                        procId: procId
-                    });
+                    // 스킬별 최적 렌더링 크기 설정
+                    let size = 64;
+                    if (procId === 'explosion' || procId === 'earth' || procId === 'aoe_fire' || procId === 'aoe_ice' || procId === 'aoe_poison') {
+                        size = 120; // 광역 및 강력한 마법/물리 대폭발은 120 크기로 키워 웅장한 연출
+                    } else if (procId === 'holy') {
+                        size = 80;  // 신성 치유 이펙트는 80 크기로 최적화
+                    } else if (procId === 'wind' || procId === 'thunder' || procId === 'dark') {
+                        size = 72;  // 기타 속성 마법은 72 크기로 연출
+                    }
+
+                    // 정식 SpriteEffect 인스턴스 생성하여 스폰
+                    this.effects.push(new SpriteEffect(cx, cy, procId, 0.6, size, 0));
+
                     // 프로시저럴 이펙트에도 파티클 추가 (시각적 임팩트 강화)
                     for (let i = 0; i < 6; i++) {
                         const angle = (Math.PI * 2 / 6) * i;
@@ -674,8 +756,16 @@ class Player {
     render(ctx, camera) {
         if (!assetManager.loaded) return;
 
-        const screenX = this.x - 16 - camera.x;
-        const screenY = this.y - 16 - camera.y;
+        // 흔들림 효과 적용
+        let offsetX = 0;
+        let offsetY = 0;
+        if (this.shakeTimer > 0) {
+            offsetX = (Math.random() - 0.5) * this.shakeAmount;
+            offsetY = (Math.random() - 0.5) * this.shakeAmount;
+        }
+
+        const screenX = this.x - 16 - camera.x + offsetX;
+        const screenY = this.y - 16 - camera.y + offsetY;
 
         ctx.save();
 
@@ -742,6 +832,12 @@ class Player {
      */
     _renderEffects(ctx, camera) {
         this.effects.forEach(e => {
+            // [개선] 이펙트 객체가 자체 render 메소드를 가지고 있다면 직접 render를 호출하여 모듈성 극대화
+            if (e && typeof e.render === 'function') {
+                e.render(ctx, camera);
+                return;
+            }
+
             const sx = e.x - camera.x;
             const sy = e.y - camera.y;
             const progress = e.timer / e.duration;

@@ -147,7 +147,7 @@ class MapManager {
                 },
                 { 
                     id: 'npc_village_chief', 
-                    type: 'Innkeeper', 
+                    type: 'VillageChief', 
                     name: '바람마을 촌장', 
                     x: 10, y: 5, 
                     dialogChain: [

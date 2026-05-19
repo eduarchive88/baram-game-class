@@ -41,82 +41,108 @@ class AssetManager {
     _removeWhiteBackground(img) {
         if (!img) return null;
         const canvas = document.createElement('canvas');
-        canvas.width = img.width || this.SPRITE_SIZE;
-        canvas.height = img.height || this.SPRITE_SIZE;
+        const w = img.width || this.SPRITE_SIZE;
+        const h = img.height || this.SPRITE_SIZE;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, w, h);
 
         try {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, w, h);
             const data = imageData.data;
-            const w = canvas.width;
-            const h = canvas.height;
 
-            // 1단계: 코너 4곳의 색상을 샘플링하여 배경색 추정
-            const corners = [
-                0,                           // 좌상
-                (w - 1) * 4,                  // 우상
-                (h - 1) * w * 4,              // 좌하
-                ((h - 1) * w + (w - 1)) * 4,  // 우하
-            ];
-            let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
-            corners.forEach(idx => {
-                if (idx >= 0 && idx < data.length - 2) {
-                    bgR += data[idx];
-                    bgG += data[idx + 1];
-                    bgB += data[idx + 2];
-                    bgCount++;
+            // 1단계: 테두리 픽셀을 분석하여 가장 지배적인 배경색 추출
+            const borderColors = {};
+            let maxCount = 0;
+            let bgR = 255, bgG = 255, bgB = 255;
+
+            const addColor = (idx) => {
+                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+                if (data[idx + 3] === 0) return; // 이미 투명
+                // 색상을 15 단위로 묶어서 그룹화 (미세한 노이즈 무시)
+                const key = `${Math.floor(r / 15)},${Math.floor(g / 15)},${Math.floor(b / 15)}`;
+                borderColors[key] = (borderColors[key] || 0) + 1;
+                if (borderColors[key] > maxCount) {
+                    maxCount = borderColors[key];
+                    bgR = r; bgG = g; bgB = b;
                 }
-            });
-            if (bgCount > 0) {
-                bgR = Math.floor(bgR / bgCount);
-                bgG = Math.floor(bgG / bgCount);
-                bgB = Math.floor(bgB / bgCount);
-            }
+            };
 
-            // 2단계: 배경색과 유사한 픽셀 + 밝은 픽셀 투명화
-            const BG_TOLERANCE = 55;   // 배경색과의 허용 차이 (상향: 45 -> 55)
-            const WHITE_THRESHOLD = 180; // 밝은 픽셀 임계값 (상향: 200 -> 180)
-            const LIGHT_THRESHOLD = 190; // 연한 파스텔/베이지 임계값 (상향: 210 -> 190)
+            for (let x = 0; x < w; x++) { addColor(x * 4); addColor(((h - 1) * w + x) * 4); }
+            for (let y = 0; y < h; y++) { addColor((y * w) * 4); addColor((y * w + w - 1) * 4); }
 
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i + 1], b = data[i + 2];
-                const a = data[i + 3];
-                if (a === 0) continue; // 이미 투명
+            // 2단계: Flood Fill 알고리즘으로 외곽에서부터 배경색 지우기
+            const queue = [];
+            const visited = new Uint8Array(w * h);
+            const TOLERANCE = 85; // 배경색과의 허용 오차 (꽤 넓게 잡아 노이즈 포함)
 
-                // 조건 1: 순백/밝은 회색 제거
-                if (r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD) {
-                    data[i + 3] = 0;
-                    continue;
-                }
+            const isBackground = (idx) => {
+                const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+                if (a === 0) return false;
 
-                // 조건 2: 추정된 배경색과 유사한 픽셀 제거
                 const dr = Math.abs(r - bgR);
                 const dg = Math.abs(g - bgG);
                 const db = Math.abs(b - bgB);
-                if (dr < BG_TOLERANCE && dg < BG_TOLERANCE && db < BG_TOLERANCE) {
-                    data[i + 3] = 0;
-                    continue;
-                }
 
-                // 조건 3: 연한 색상(채도가 낮고 밝은) 제거
-                const maxC = Math.max(r, g, b);
-                const minC = Math.min(r, g, b);
-                const saturation = maxC === 0 ? 0 : (maxC - minC) / maxC;
-                if (maxC >= LIGHT_THRESHOLD && saturation < 0.15) {
-                    data[i + 3] = 0;
-                    continue;
+                // 지배적인 배경색과 비슷하면 배경
+                if (dr < TOLERANCE && dg < TOLERANCE && db < TOLERANCE) return true;
+                // 완전히 밝은 흰색 계통이면 배경 (180 이상)
+                if (r > 180 && g > 180 && b > 180 && Math.abs(r-g) < 20 && Math.abs(g-b) < 20) return true;
+                return false;
+            };
+
+            // 테두리 픽셀 중 배경 조건에 맞는 것들을 큐에 삽입
+            for (let x = 0; x < w; x++) {
+                if (isBackground(x * 4)) { queue.push(x); visited[x] = 1; }
+                const bottomIdx = (h - 1) * w + x;
+                if (isBackground(bottomIdx * 4)) { queue.push(bottomIdx); visited[bottomIdx] = 1; }
+            }
+            for (let y = 0; y < h; y++) {
+                const leftIdx = y * w;
+                if (!visited[leftIdx] && isBackground(leftIdx * 4)) { queue.push(leftIdx); visited[leftIdx] = 1; }
+                const rightIdx = y * w + w - 1;
+                if (!visited[rightIdx] && isBackground(rightIdx * 4)) { queue.push(rightIdx); visited[rightIdx] = 1; }
+            }
+
+            // Flood Fill 실행
+            let qIndex = 0;
+            while (qIndex < queue.length) {
+                const curr = queue[qIndex++];
+                const cx = curr % w;
+                const cy = Math.floor(curr / w);
+
+                const pxIdx = curr * 4;
+                data[pxIdx + 3] = 0; // 투명화
+
+                // 상하좌우 인접 픽셀
+                const neighbors = [
+                    { nx: cx, ny: cy - 1 },
+                    { nx: cx, ny: cy + 1 },
+                    { nx: cx - 1, ny: cy },
+                    { nx: cx + 1, ny: cy }
+                ];
+
+                for (const n of neighbors) {
+                    if (n.nx >= 0 && n.nx < w && n.ny >= 0 && n.ny < h) {
+                        const nIdx = n.ny * w + n.nx;
+                        if (!visited[nIdx]) {
+                            visited[nIdx] = 1;
+                            if (isBackground(nIdx * 4)) {
+                                queue.push(nIdx);
+                            }
+                        }
+                    }
                 }
             }
 
-            // 3단계: 반투명 경계 부드럽게 처리 (anti-aliasing)
+            // 3단계: 외곽선 안티앨리어싱 찌꺼기 처리
             const tempData = new Uint8ClampedArray(data);
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
                     const idx = (y * w + x) * 4;
                     if (tempData[idx + 3] === 0) continue;
 
-                    // 주변 8방향 투명 픽셀 수 확인
                     let transparentNeighbors = 0;
                     for (let dy = -1; dy <= 1; dy++) {
                         for (let dx = -1; dx <= 1; dx++) {
@@ -125,11 +151,19 @@ class AssetManager {
                             if (tempData[nIdx + 3] === 0) transparentNeighbors++;
                         }
                     }
-                    // 투명 이웃이 5개 이상이면 반투명 처리
-                    if (transparentNeighbors >= 5) {
-                        data[idx + 3] = Math.floor(data[idx + 3] * 0.3);
-                    } else if (transparentNeighbors >= 3) {
-                        data[idx + 3] = Math.floor(data[idx + 3] * 0.7);
+
+                    if (transparentNeighbors > 0) {
+                        const r = tempData[idx], g = tempData[idx + 1], b = tempData[idx + 2];
+                        const dr = Math.abs(r - bgR), dg = Math.abs(g - bgG), db = Math.abs(b - bgB);
+                        
+                        // 배경색과 비슷하거나 매우 밝은 외곽 픽셀은 투명화
+                        if ((dr < 110 && dg < 110 && db < 110) || (r > 160 && g > 160 && b > 160)) {
+                            data[idx + 3] = 0;
+                        } else if (transparentNeighbors >= 5) {
+                            data[idx + 3] = Math.floor(data[idx + 3] * 0.4);
+                        } else if (transparentNeighbors >= 3) {
+                            data[idx + 3] = Math.floor(data[idx + 3] * 0.8);
+                        }
                     }
                 }
             }
@@ -272,11 +306,26 @@ class AssetManager {
             // === NPC 초상화 ===
             face_guide:     await this.loadImage('/assets/images/faces/guide.png'),
             face_innkeeper: await this.loadImage('/assets/images/faces/innkeeper.png'),
+            // === 신규 고화질 픽셀아트 이펙트 에셋 ===
+            effect_double_slash: await this.loadImage('/assets/images/effects/double_slash.png'),
+            effect_triple_slash: await this.loadImage('/assets/images/effects/triple_slash.png'),
+            effect_critical:     await this.loadImage('/assets/images/effects/critical.png'),
+            effect_explosion:    await this.loadImage('/assets/images/effects/explosion.png'),
+            effect_holy:         await this.loadImage('/assets/images/effects/holy.png'),
+            effect_impact:       await this.loadImage('/assets/images/effects/impact.png'),
         };
 
         // 투명화 적용 자산 (자연 경관 일부 이외의 개체들)
         // 새로 생성한 에셋은 이미 배경 제거 스크립트(remove_bg.js)를 거쳤으므로 _removeWhiteBackground 필요없음
         const assets = {
+            // === 신규 고화질 이펙트 ===
+            effect_double_slash: rawAssets.effect_double_slash,
+            effect_triple_slash: rawAssets.effect_triple_slash,
+            effect_critical:     rawAssets.effect_critical,
+            effect_explosion:    rawAssets.effect_explosion,
+            effect_holy:         rawAssets.effect_holy,
+            effect_impact:       rawAssets.effect_impact,
+
             // 맵 타일 (배경 제거 불필요)
             grass: rawAssets.grass, wall: rawAssets.wall, dirt: rawAssets.dirt,
             water: rawAssets.water, tree: rawAssets.tree,
@@ -286,14 +335,14 @@ class AssetManager {
             portal: this._removeWhiteBackground(rawAssets.portal),
             shop:   this._removeWhiteBackground(rawAssets.shop),
             // 캐릭터
-            student: rawAssets.student,
+            student: this._removeWhiteBackground(rawAssets.student),
             warrior: this._removeWhiteBackground(rawAssets.warrior),
             thief:   this._removeWhiteBackground(rawAssets.thief),
             mage:    this._removeWhiteBackground(rawAssets.mage),
             healer:  this._removeWhiteBackground(rawAssets.healer),
-            npc_village_chief: rawAssets.npc_village_chief,
-            npc_guard: rawAssets.npc_guard,
-            npc_merchant: rawAssets.npc_merchant,
+            npc_village_chief: this._removeWhiteBackground(rawAssets.npc_village_chief),
+            npc_guard: this._removeWhiteBackground(rawAssets.npc_guard),
+            npc_merchant: this._removeWhiteBackground(rawAssets.npc_merchant),
             // 몬스터
             monster_squirrel:    this._removeWhiteBackground(rawAssets.monster_squirrel),
             monster_slime:       this._removeWhiteBackground(rawAssets.monster_slime),
@@ -328,8 +377,8 @@ class AssetManager {
             monster_minotaur:    this._removeWhiteBackground(rawAssets.monster_minotaur),
             monster_centaur:     this._removeWhiteBackground(rawAssets.monster_centaur),
             monster_death_knight:this._removeWhiteBackground(rawAssets.monster_death_knight),
-            monster_slime_king:  rawAssets.monster_slime_king,
-            monster_lich:        rawAssets.monster_lich,
+            monster_slime_king:  this._removeWhiteBackground(rawAssets.monster_slime_king),
+            monster_lich:        this._removeWhiteBackground(rawAssets.monster_lich),
             // 아이템
             item_potion_hp:   rawAssets.item_potion_hp,
             item_potion_mp:   rawAssets.item_potion_mp,
@@ -382,9 +431,9 @@ class AssetManager {
             monster_fox:        this._removeWhiteBackground(rawAssets.monster_fox),
             monster_ice_slime:  this._removeWhiteBackground(rawAssets.monster_ice_slime),
             // 신규 NPC 에셋
-            npc_innkeeper:      rawAssets.npc_innkeeper,
-            npc_blacksmith:     rawAssets.npc_blacksmith,
-            npc_guild_master:   rawAssets.npc_guild_master,
+            npc_innkeeper:      this._removeWhiteBackground(rawAssets.npc_innkeeper),
+            npc_blacksmith:     this._removeWhiteBackground(rawAssets.npc_blacksmith),
+            npc_guild_master:   this._removeWhiteBackground(rawAssets.npc_guild_master),
             // 신규 맵 오브젝트
             mega_waterfall:     rawAssets.mega_waterfall,
             mega_campfire:      rawAssets.mega_campfire,
@@ -421,6 +470,7 @@ class AssetManager {
             '주모':           assets.npc_innkeeper,
             '대장장이':        assets.npc_blacksmith,
             '길드장':          assets.npc_guild_master,
+            '길드마스터':       assets.npc_guild_master,
             '촌장':           assets.npc_village_chief,
             '포졸':           assets.npc_guard,
             '상인':           assets.npc_merchant
@@ -495,6 +545,14 @@ class AssetManager {
             shield:    this._removeBlackBackground(assets.effect_shield),
             ice:       this._removeBlackBackground(assets.effect_ice),
             fire_storm: this._removeBlackBackground(assets.effect_fire_storm),
+            
+            // === 신규 고화질 이펙트 ===
+            double_slash: assets.effect_double_slash,
+            triple_slash: assets.effect_triple_slash,
+            critical:     assets.effect_critical,
+            explosion:    assets.effect_explosion,
+            holy:         assets.effect_holy,
+            impact:       assets.effect_impact
         };
 
         // 아이템 이미지 등록 (흰 배경 → 투명 처리)
@@ -3974,7 +4032,7 @@ class AssetManager {
                 ctx.lineTo(C + Math.cos(ang) * 30, C + Math.sin(ang) * 30);
                 ctx.stroke();
             }
-            fx['holy'] = c;
+            fx['holy'] = (this.images && this.images.effects && this.images.effects.holy) ? this.images.effects.holy : c;
         }
 
         // --- 대지 (earth): 암석 및 먼지 ---
@@ -4157,7 +4215,7 @@ class AssetManager {
             ctx.strokeStyle = 'rgba(255,200,200,0.4)'; ctx.lineWidth = 8;
             ctx.beginPath(); ctx.moveTo(8, 8); ctx.lineTo(S - 8, S - 8); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(S - 8, 8); ctx.lineTo(8, S - 8); ctx.stroke();
-            fx['double_slash'] = c;
+            fx['double_slash'] = (this.images && this.images.effects && this.images.effects.double_slash) ? this.images.effects.double_slash : c;
         }
 
         // --- 삼중 슬래시: 세 줄 사선 ---
@@ -4168,7 +4226,7 @@ class AssetManager {
                 ctx.strokeStyle = 'rgba(255,100,100,0.85)'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
             });
-            fx['triple_slash'] = c;
+            fx['triple_slash'] = (this.images && this.images.effects && this.images.effects.triple_slash) ? this.images.effects.triple_slash : c;
         }
 
         // --- 저주: 해골 + 어두운 원 ---
@@ -4230,7 +4288,7 @@ class AssetManager {
             g.addColorStop(0.5, '#fb8c00');
             g.addColorStop(1, 'rgba(255, 0, 0, 0)');
             ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 30, 0, Math.PI * 2); ctx.fill();
-            fx['explosion'] = c;
+            fx['explosion'] = (this.images && this.images.effects && this.images.effects.explosion) ? this.images.effects.explosion : c;
         }
 
         // --- 임팩트 (impact): 충격파 선 ---
@@ -4242,7 +4300,7 @@ class AssetManager {
                 ctx.globalAlpha = 1 - (i/4);
                 ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.stroke();
             }
-            fx['impact'] = c;
+            fx['impact'] = (this.images && this.images.effects && this.images.effects.impact) ? this.images.effects.impact : c;
         }
 
         // --- 크리티컬 (critical): 붉은 번개 느낌 ---
@@ -4253,7 +4311,7 @@ class AssetManager {
             ctx.moveTo(10, 10); ctx.lineTo(32, 20); ctx.lineTo(15, 40); ctx.lineTo(50, 60);
             ctx.stroke();
             ctx.shadowBlur = 10; ctx.shadowColor = '#f00';
-            fx['critical'] = c;
+            fx['critical'] = (this.images && this.images.effects && this.images.effects.critical) ? this.images.effects.critical : c;
         }
 
         return fx;
